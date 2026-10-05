@@ -12,6 +12,7 @@ import { createDashboardService } from '../../src/services/operations/dashboard.
 import { validateBusinessSettingsWrite, validateOutboxEvent } from '../../src/validators/operations.validator.js';
 import { createBusinessSettingsService } from '../../src/services/operations/business-settings.service.js';
 import { sanitizeBusinessSettingsValues } from '../../src/validators/operations.validator.js';
+import { createOperationsPorts } from '../../src/services/operations/index.js';
 
 class MemoryNotifications {
   static rows = [];
@@ -177,6 +178,65 @@ test('SMTP templates validate same-origin account invitations and escape appeal 
   const appeal = renderMailTemplate('appeal_update', { appealStatus: 'approved', reviewNote: '<Đã xem xét>' });
   assert.match(appeal.html, /&lt;Đã xem xét&gt;/);
   assert.throws(() => renderMailTemplate('appeal_update', { appealStatus: 'approved', reviewNote: 'x\u0001' }), { code: 'VALIDATION_ERROR' });
+});
+
+test('SMTP templates render appeal verification and account status without trusting input labels', () => {
+  const appealCode = renderMailTemplate('appeal_access_code', {
+    name: '<Lan>', verificationCode: '012345', expiresAt: '2026-10-06T00:00:00.000Z',
+  });
+  assert.match(appealCode.html, /&lt;Lan&gt;/);
+  assert.match(appealCode.text, /012345/);
+  assert.ok(appealCode.text.includes(new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(new Date('2026-10-06T00:00:00.000Z'))));
+  assert.throws(() => renderMailTemplate('appeal_access_code', {
+    verificationCode: '1234567', expiresAt: '2026-10-06T00:00:00.000Z',
+  }), { code: 'VALIDATION_ERROR' });
+  assert.throws(() => renderMailTemplate('appeal_access_code', {
+    verificationCode: '012345', expiresAt: 'not-a-date',
+  }), { code: 'VALIDATION_ERROR' });
+
+  const accountStatus = renderMailTemplate('account_status_update', { name: 'Lan', role: 'customer', status: 'blocked' });
+  assert.match(accountStatus.text, /khách hàng/);
+  assert.match(accountStatus.text, /đã tạm khóa/);
+  assert.throws(() => renderMailTemplate('account_status_update', { role: 'owner', status: 'blocked' }), { code: 'VALIDATION_ERROR' });
+});
+
+test('P02 identity mail aliases map to encrypted P09 allowlisted templates', async () => {
+  const saved = [];
+  const OutboxEvent = {
+    async findOneAndUpdate(_filter, update) {
+      const row = { _id: `mail-${saved.length + 1}`, ...update.$setOnInsert };
+      saved.push(row);
+      return row;
+    },
+    async findOne(filter) { return saved.find((row) => row.eventKey === filter.eventKey) || null; },
+  };
+  const cipher = createOutboxPayloadCipher({ key: Buffer.alloc(32, 9) });
+  const ports = createOperationsPorts({
+    models: { OutboxEvent, AuditLog: {} },
+    encryptMailPayload: cipher.encrypt,
+    uuid: (() => { let index = 0; return () => `identity-mail-${++index}`; })(),
+  });
+  const recipient = 'account@example.test';
+  const source = [
+    ['verify-email', { name: 'Lan', link: 'https://shop.example.test/#token', ignored: 'drop' }, 'verify_email', { name: 'Lan', actionUrl: 'https://shop.example.test/#token' }],
+    ['reset-password', { name: 'Lan', link: 'https://shop.example.test/#reset' }, 'reset_password', { name: 'Lan', actionUrl: 'https://shop.example.test/#reset' }],
+    ['user-invitation', { name: 'Lan', role: 'staff', link: 'https://shop.example.test/#invite' }, 'user_invitation', { name: 'Lan', role: 'staff', actionUrl: 'https://shop.example.test/#invite' }],
+    ['appeal-access-code', { name: 'Lan', verificationCode: '012345', expiresAt: '2026-10-06T00:00:00.000Z' }, 'appeal_access_code', { name: 'Lan', verificationCode: '012345', expiresAt: '2026-10-06T00:00:00.000Z' }],
+    ['appeal-decision', { name: 'Lan', decision: 'approved', reviewNote: 'Đã xác minh' }, 'appeal_update', { name: 'Lan', appealStatus: 'approved', reviewNote: 'Đã xác minh' }],
+    ['account-status-update', { name: 'Lan', role: 'customer', status: 'blocked' }, 'account_status_update', { name: 'Lan', role: 'customer', status: 'blocked' }],
+  ];
+
+  for (const [identityTemplate, input, expectedTemplate, expectedData] of source) {
+    await ports.outbox.enqueueMail(identityTemplate, recipient, input);
+    const encrypted = saved.at(-1).payload.deliveries[0].encryptedMail;
+    assert.deepEqual(cipher.decrypt(encrypted), { template: expectedTemplate, recipient, data: expectedData });
+  }
+  assert.throws(() => ports.outbox.enqueueMail('appeal-access-code', recipient, {
+    verificationCode: 'bad', expiresAt: '2026-10-06T00:00:00.000Z',
+  }), /Identity appeal access code is invalid/);
+  assert.equal(saved.length, source.length);
 });
 
 test('mail payload encryption protects retry data and detects tampering', () => {

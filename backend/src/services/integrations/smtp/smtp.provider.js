@@ -3,7 +3,8 @@ import { ServiceError } from '../../../utils/serviceError.js';
 
 export const MAIL_TEMPLATE_KEYS = Object.freeze([
   'verify_email', 'reset_password', 'order_access_code', 'order_confirmation',
-  'order_update', 'ticket_reply', 'appeal_update', 'new_lead', 'user_invitation',
+  'order_update', 'ticket_reply', 'appeal_access_code', 'appeal_update',
+  'account_status_update', 'new_lead', 'user_invitation',
 ]);
 
 const TEMPLATE_COPY = Object.freeze({
@@ -13,10 +14,16 @@ const TEMPLATE_COPY = Object.freeze({
   order_confirmation: { subject: 'TRO & LAM đã tiếp nhận đơn hàng', title: 'Đã tiếp nhận đơn hàng', key: 'orderCode' },
   order_update: { subject: 'Cập nhật đơn hàng TRO & LAM', title: 'Cập nhật đơn hàng', key: 'orderCode' },
   ticket_reply: { subject: 'Có cập nhật yêu cầu hỗ trợ', title: 'Yêu cầu hỗ trợ có cập nhật', key: 'ticketCode' },
+  appeal_access_code: { subject: 'Mã xác minh kháng nghị TRO & LAM', title: 'Xác minh kháng nghị tài khoản', key: 'verificationCode' },
   appeal_update: { subject: 'Cập nhật yêu cầu xem xét tài khoản', title: 'Cập nhật kháng nghị', key: 'appealStatus' },
+  account_status_update: { subject: 'Cập nhật tài khoản TRO & LAM', title: 'Cập nhật tài khoản', key: 'status' },
   new_lead: { subject: 'Có yêu cầu tư vấn mới', title: 'Yêu cầu tư vấn mới', key: 'reference' },
   user_invitation: { subject: 'Lời mời tham gia TRO & LAM', title: 'Lời mời tài khoản TRO & LAM', key: 'actionUrl' },
 });
+
+const ROLE_COPY = Object.freeze({ customer: 'khách hàng', staff: 'nhân viên', admin: 'quản trị viên' });
+const ACCOUNT_STATUS_COPY = Object.freeze({ active: 'đang hoạt động', blocked: 'đã tạm khóa' });
+const APPEAL_DECISION_COPY = Object.freeze({ approved: 'đã được chấp thuận', rejected: 'chưa được chấp thuận' });
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -94,9 +101,33 @@ export function renderMailTemplate(templateKey, variables = {}, { publicWebUrl }
     content = `Mã đơn hàng: ${plainValue(variables.orderCode, 'orderCode', 80)}. Trạng thái hiện tại: ${plainValue(variables.status, 'status', 80)}.`;
   } else if (templateKey === 'ticket_reply') {
     content = `Mã yêu cầu: ${plainValue(variables.ticketCode, 'ticketCode', 80)}. Nhân viên đã cập nhật yêu cầu của bạn.`;
+  } else if (templateKey === 'appeal_access_code') {
+    const name = variables.name === undefined ? '' : `Xin chào ${plainValue(variables.name, 'name', 120)}. `;
+    const code = plainValue(variables.verificationCode, 'verificationCode', 6);
+    const expiry = plainValue(variables.expiresAt, 'expiresAt', 40);
+    if (!/^\d{6}$/.test(code)) throw new ServiceError(400, 'VALIDATION_ERROR', 'Mã xác minh kháng nghị không hợp lệ');
+    const expiresAt = new Date(expiry);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt.toISOString() !== expiry) {
+      throw new ServiceError(400, 'VALIDATION_ERROR', 'Thời hạn mã xác minh không hợp lệ');
+    }
+    const formattedExpiry = new Intl.DateTimeFormat('vi-VN', {
+      dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
+    }).format(expiresAt);
+    content = `${name}Mã xác minh kháng nghị của bạn: ${code}. Mã có hiệu lực đến ${formattedExpiry}.`;
   } else if (templateKey === 'appeal_update') {
     const reviewNote = variables.reviewNote === undefined ? '' : ` Ghi chú: ${bodyValue(variables.reviewNote, 'reviewNote')}`;
-    content = `Trạng thái yêu cầu xem xét: ${plainValue(variables.appealStatus, 'appealStatus', 80)}.${reviewNote}`;
+    const appealStatus = plainValue(variables.appealStatus, 'appealStatus', 80);
+    const statusCopy = Object.hasOwn(APPEAL_DECISION_COPY, appealStatus) ? APPEAL_DECISION_COPY[appealStatus] : appealStatus;
+    const name = variables.name === undefined ? '' : `Xin chào ${plainValue(variables.name, 'name', 120)}. `;
+    content = `${name}Trạng thái yêu cầu xem xét: ${statusCopy}.${reviewNote}`;
+  } else if (templateKey === 'account_status_update') {
+    const name = variables.name === undefined ? '' : `Xin chào ${plainValue(variables.name, 'name', 120)}. `;
+    const role = plainValue(variables.role, 'role', 24);
+    const status = plainValue(variables.status, 'status', 24);
+    const roleCopy = Object.hasOwn(ROLE_COPY, role) ? ROLE_COPY[role] : null;
+    const statusCopy = Object.hasOwn(ACCOUNT_STATUS_COPY, status) ? ACCOUNT_STATUS_COPY[status] : null;
+    if (!roleCopy || !statusCopy) throw new ServiceError(400, 'VALIDATION_ERROR', 'Vai trò hoặc trạng thái tài khoản không hợp lệ');
+    content = `${name}Vai trò tài khoản của bạn: ${roleCopy}. Trạng thái tài khoản: ${statusCopy}.`;
   } else {
     content = `Mã yêu cầu: ${plainValue(variables.reference, 'reference', 80)}. Có yêu cầu mới cần tiếp nhận.`;
   }
