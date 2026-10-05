@@ -10,6 +10,6 @@
 ## Rủi ro / migration / cấu hình
 
 ## Review
-- [ ] Một thành viên khác tác giả approve
+- [ ] Chủ dự án tự review/ủy quyền khi làm một mình; khi thêm thành viên, một người khác tác giả approve
 - [ ] Đã xử lý vấn đề hiệu năng/bảo mật và review comments
 - [ ] Project Leader thực hiện final merge

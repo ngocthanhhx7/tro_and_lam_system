@@ -69,4 +69,5 @@ cho trạng thái DB, không kết nối Atlas. Atlas thực phải được ki�
 - [API](doc/api.md)
 
 Mã nguồn nghiệp vụ được phát triển trên `feature/*`, PR vào `develop`.
-Thành viên khác tác giả duyệt; Project Leader thực hiện merge.
+Giai đoạn một người: chủ dự án tự review hoặc ủy quyền merge sau CI.
+Khi thêm thành viên: người khác tác giả duyệt; Project Leader thực hiện merge.
