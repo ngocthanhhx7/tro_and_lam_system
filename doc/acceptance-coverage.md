@@ -22,7 +22,7 @@
 | AC-APPEAL-01 | P02 — blocked session và restricted appeal credential | `backend/tests/identity/blocked-appeal-access.test.js` | Chưa chạy |
 | AC-APPEAL-02 | P02/P09 — quyết định appeal atomically, reason và audit | `backend/tests/identity/appeal-decision.test.js` | Chưa chạy |
 | AC-NOTIFY-01 | P09 — notification owner, dedupe và outbox retry | `backend/tests/operations/outbox-notifications.test.js` | Chưa chạy |
-| AC-CONTENT-01 | P08 — published/NFC/revoked và nội dung an toàn | `backend/tests/content/nfc-public-routing.test.js` | Chưa chạy |
+| AC-CONTENT-01 | P08 — published/NFC/revoked và nội dung an toàn | `backend/tests/content/nfc-public-routing.test.js` | Pass — P08 `94e095c`; `npm run check` ngày 2026-10-05 UTC: backend 23/23, contract/lint/build pass |
 | AC-CONTACT-01 | P07/P09 — lưu lead trước mail, queued/retry thật | `backend/tests/support/contact-outbox.test.js` | Chưa chạy |
 | AC-AI-01 | P10 — public retrieval, redaction, unavailable/handoff | `backend/tests/assistant/grounding-and-fallback.test.js` | Chưa chạy |
 | AC-AUDIT-01 | P09 — admin-only query và redaction | `backend/tests/operations/audit-access-redaction.test.js` | Chưa chạy |
@@ -36,3 +36,10 @@ P11 bổ sung luồng E2E và ma trận accessibility/security từ `doc/plannin
 | Contract bundle/OpenAPI/JSON Schema | `npm run validate:contracts` | Pass — 102 paths, 121 operations, 56 DTO schemas, 22 enums, 12 positive/negative fixtures; Node 24.21.0 |
 | Health compatibility, request ID, error envelope, CORS allowlist, body limit | `npm test -w backend` | Pass — 19/19 tests; includes legacy health shape, 413, malformed JSON, CORS denial, rate limit and request ID |
 | Integrated lint/backend tests/frontend build | `npm ci && npm run check` | Pass — Node 24.21.0, lint green, 19/19 backend tests, Vite build green; npm audit reported 0 vulnerabilities |
+
+## Bằng chứng P08
+
+| Check | Lệnh / thời điểm | Kết quả |
+| --- | --- | --- |
+| Contract bundle, lint, backend và frontend production build sau rebase lên develop | `npm run check` · 2026-10-05 22:12 UTC · commit `94e095c0d5f40d7df33d040062c2bcbef6630969` | Pass — 102 paths, 121 operations, 56 DTO schemas, 22 enums, 12 fixtures; backend 23/23; Vite build 47 modules |
+| Live Atlas migration/replica-set transaction tests | Chưa chạy | Cần `MONGODB_URI` và replica-set environment; migration chỉ tạo indexes, chưa chạy trên Atlas |
