@@ -10,4 +10,4 @@
 - [x] Kiểm tra API bằng Supertest: liveness, readiness mất DB, 404, CORS; kiểm tra env thiếu URI và port không hợp lệ.
 - [x] Ghi tài liệu nghiệp vụ, cấu trúc, cài đặt Atlas, deploy và Gitflow; thêm CI và PR template.
 - [x] Chạy npm install, npm run lint, npm test, npm run build; kiểm tra không có secrets được track.
-- [ ] Commit Conventional Commits, push main/develop/feature; tạo PR vào develop khi quyền GitHub cho phép.
+- [x] Commit Conventional Commits, push main/develop/feature; mở PR [#1](https://github.com/ngocthanhhx7/tro_and_lam_system/pull/1) vào develop, chờ reviewer và Project Leader.
