@@ -58,7 +58,7 @@ P01 định nghĩa JS JSDoc/JSON schema cho các port sau; mỗi owner cung cấ
 | Order / P05 | `getOwnedOrder(actor,id)`; `applyVerifiedPayment(paymentFact,{session})`; `requestReturn(actor,id,reason,{session})` | P06/P07 |
 | PayOS / P06 | `createLink(attempt)`; `verifyWebhook(body) -> VerifiedPaymentFact`; `getProviderStatus(attempt)`; `requestRefund` **chỉ khi docs provider hỗ trợ đã xác minh**, nếu không dùng manual refund adapter | P05/reconcile |
 | Operations / P09 | `appendOutbox(event,{session})`; `appendAudit(redactedEvent,{session})`; `enqueueMail(template,recipient,data,{session})` | P02/P05/P06/P07/P08 |
-| Content / P08 | `getPublishedStory(slug,locale)`; `resolveNfc(publicId,locale)` | P04/P10 |
+| Content / P08 | `getPublishedStory(slug,locale)`; `getPublishedStoryById(storyId,{session})`; `resolveNfc(publicId,locale)` | P04/P10 |
 | Support / P07 | `createHandoff(actor,input)` | P10 |
 
 `session` luôn Mongo ClientSession khi write đa collection; owner của transaction là service nghiệp vụ gốc, port không mở nested transaction. Provider HTTP gửi sau commit/qua outbox. P05/P06 phải tích hợp race bằng real transaction, không chỉ test fake port.

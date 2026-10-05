@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -75,6 +75,16 @@
       ],
       "consumers": ["P09"],
       "migration": "None; no threshold setting or inventory field is added."
+    },
+    {
+      "id": "DEC-23",
+      "date": "2026-10-06",
+      "reason": "Products link stories by ObjectId, while P04 product detail must resolve linked content through P08 without adding a public API route.",
+      "changes": [
+        "Add the internal P08 getPublishedStoryById(storyId, { session }) port; it returns the existing story DTO only for published records and preserves the referenced record locale."
+      ],
+      "consumers": ["P08", "P04"],
+      "migration": "None; this is an internal read port with no stored-data change."
     }
   ],
   "validation": {

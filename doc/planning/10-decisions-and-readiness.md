@@ -64,6 +64,10 @@ The frozen StoryWrite/PageWrite DTOs declared content arrays without item schema
 
 The staff dashboard contract includes `lowStock`, but the inventory model does not define a reorder threshold and no owner-approved value is available. Return `lowStock: null` and label it unconfigured until a later decision supplies that value; never report zero as if it were measured. This adds no setting, threshold field, route, enum, or permission. Consumer: P09; future threshold configuration requires a new coordinator amendment and owner input.
 
+## DEC-23 — Published story lookup by product reference
+
+Products store an optional `storyId`, while the public product detail may include the linked story. Add the internal P08 service port `getPublishedStoryById(storyId, { session })`, returning the existing safe story DTO only when that record is published and otherwise returning not found. The lookup preserves the locale of the referenced record; it does not invent a translation or fallback. This is an internal service port only: no public route, API DTO, enum, role, permission, or migration changes. Consumers: P08 implements the resolver and P04 uses it from the product detail service.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:
