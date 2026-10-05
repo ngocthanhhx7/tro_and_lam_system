@@ -43,4 +43,4 @@ Provider evidence: No media storage provider or credentials are configured; no l
 
 Remaining risks/policy assumptions: P09 audit writes remain unimplemented; P08's additive story-by-ID port needs to land before final integration; production media storage is unavailable and uploads return 503; image validation checks MIME signatures and size but does not decode images; index rollout requires a managed migration; MongoDB concurrency/index behavior and real inventory integration remain unverified. Quote leads, cart, story pages, authentication/CSRF, and route composition depend on P02/P03/P05/P07/P08 integration.
 
-PR/commits: Pending; changes remain on `feature/p04-catalog-public` for integrator rebase/review. Contract amendment: none in this package; implement against `dea5277581d768fd87baab6b1209042ce66ae800` (DEC-17/18) during integration.
+PR/commits: no PR created; implementation commit `1f6b2c2` on `feature/p04-catalog-public`; this handoff update follows that commit. Contract amendment: none in this package; integrate against `dea5277581d768fd87baab6b1209042ce66ae800` (DEC-17/18) after the coordinator's rebase.
