@@ -1,0 +1,78 @@
+.identity-admin { padding-block: 28px 72px; }
+.identity-admin__header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.identity-admin__header h1 { margin: 6px 0 8px; font-size: clamp(2rem, 4vw, 3.25rem); }
+.identity-admin__header p { margin: 4px 0; color: var(--text-secondary); }
+.identity-admin__panel { margin-block: 20px; padding: clamp(18px, 3vw, 28px); border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface); }
+.identity-admin__panel h2 { margin: 0 0 14px; font-size: 1.55rem; }
+.identity-admin__panel > p { color: var(--text-secondary); }
+.identity-admin__invite,
+.identity-admin__form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 16px; }
+.identity-admin__invite label,
+.identity-admin__form label { display: grid; gap: 7px; font-weight: 600; }
+.identity-admin__invite input,
+.identity-admin__invite select,
+.identity-admin__form input,
+.identity-admin__form select,
+.identity-admin__form textarea,
+.identity-admin__filters input,
+.identity-admin__filters select { width: 100%; min-height: 46px; padding: 9px 11px; border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); background: white; }
+.identity-admin__form textarea { min-height: 110px; resize: vertical; }
+.identity-admin__primary,
+.identity-admin__secondary { min-height: 44px; padding: 9px 14px; border: 1px solid var(--brand-blue); border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; }
+.identity-admin__primary { color: white; background: var(--brand-blue); }
+.identity-admin__secondary { color: var(--brand-blue); background: white; }
+.identity-admin__primary:disabled,
+.identity-admin__secondary:disabled { cursor: not-allowed; opacity: .55; }
+.identity-admin__filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 18px; }
+.identity-admin__filters input { width: min(100%, 280px); }
+.identity-admin__filters select { width: auto; min-width: 160px; }
+.identity-admin__table-wrap { overflow-x: auto; }
+.identity-admin table { width: 100%; border-collapse: collapse; text-align: left; }
+.identity-admin caption { padding: 0 0 12px; color: var(--text-secondary); text-align: left; }
+.identity-admin th,
+.identity-admin td { padding: 12px 10px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.identity-admin th { color: var(--text-secondary); font-size: .84rem; }
+.identity-admin td { overflow-wrap: anywhere; }
+.identity-admin td small { display: block; margin-top: 4px; color: var(--text-secondary); }
+.identity-admin__badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+.identity-admin__badge--active { color: #174B34; background: #E7F5EC; }
+.identity-admin__badge--blocked { color: #84212B; background: #FFF0F1; }
+.identity-admin__pagination { display: flex; justify-content: center; align-items: center; gap: 18px; padding-top: 18px; }
+.identity-admin__state { padding: 18px 0; color: var(--text-secondary); }
+.identity-admin__error,
+.identity-admin__success { padding: 12px 14px; border-radius: 8px; }
+.identity-admin__error { color: #84212B; background: #FFF5F5; }
+.identity-admin__success { color: #174B34; background: #F1FAF4; }
+.identity-admin__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.identity-admin__grid .identity-admin__panel { margin-block: 0; }
+.identity-admin__check { grid-column: 1 / -1; display: flex !important; grid-template-columns: auto 1fr; align-items: start; gap: 10px !important; color: var(--text-secondary); font-weight: 400 !important; }
+.identity-admin__check input { width: 20px; min-height: 20px; margin-top: 2px; accent-color: var(--brand-blue); }
+.identity-admin__facts { display: grid; gap: 14px; margin: 0; }
+.identity-admin__facts > div { padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); }
+.identity-admin__facts dt { margin-bottom: 5px; color: var(--text-secondary); font-weight: 700; }
+.identity-admin__facts dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.identity-admin__footnote { color: var(--text-secondary); font-size: .9rem; }
+.identity-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 760px) {
+  .identity-admin__header { align-items: start; flex-direction: column; gap: 8px; }
+  .identity-admin__invite,
+  .identity-admin__form,
+  .identity-admin__grid { grid-template-columns: minmax(0, 1fr); }
+  .identity-admin__table-wrap { overflow: visible; }
+  .identity-admin table,
+  .identity-admin tbody,
+  .identity-admin tr,
+  .identity-admin td { display: block; width: 100%; }
+  .identity-admin thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .identity-admin tbody { display: grid; gap: 12px; }
+  .identity-admin tr { padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: 10px; }
+  .identity-admin td { display: grid; grid-template-columns: minmax(95px, 34%) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 0; }
+  .identity-admin td::before { content: attr(data-label); color: var(--text-secondary); font-size: .84rem; font-weight: 700; }
+  .identity-admin__pagination { flex-wrap: wrap; }
+}
+
+@media (max-width: 420px) {
+  .identity-admin__panel { padding: 16px 12px; }
+  .identity-admin td { grid-template-columns: minmax(80px, 29%) minmax(0, 1fr); gap: 6px; font-size: .92rem; }
+}
