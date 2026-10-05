@@ -130,6 +130,12 @@ export class FakeIdentityRepository {
     for (const proof of this.proofs) if (keyOf(proof.userId) === keyOf(userId) && proof.purpose === purpose && !proof.revokedAt) proof.revokedAt = copy(now);
   }
 
+  async revokeGuestOrderProofs(orderId, now) {
+    for (const proof of this.proofs) {
+      if (keyOf(proof.orderId) === keyOf(orderId) && proof.purpose === 'guest_order_access' && !proof.revokedAt) proof.revokedAt = copy(now);
+    }
+  }
+
   async findPendingAppeal(userId) {
     const appeal = this.appeals.find((item) => keyOf(item.userId) === keyOf(userId) && item.status === 'pending');
     return appeal ? copy(appeal) : null;

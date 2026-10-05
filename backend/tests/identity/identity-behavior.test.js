@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createIdentityService } from '../../src/services/identity/identity.service.js';
-import { challengeCode, csrfValue, hashPassword, isValidCsrfValue } from '../../src/services/identity/identity.security.js';
+import { challengeCode, csrfValue, hashPassword, hashToken, isValidCsrfValue } from '../../src/services/identity/identity.security.js';
+import { createIdentityMiddleware } from '../../src/middlewares/identity/identity.middleware.js';
 import { validateIdentityBody } from '../../src/validators/identity/identity.validator.js';
 import { FakeIdentityRepository } from './fakes/identity-repository.fake.js';
 
@@ -205,6 +206,47 @@ test('missing outbox dependency never reports email as queued', async () => {
   const service = createIdentityService({ ports: { repository }, config: TEST_CONFIG });
   await assert.rejects(service.register({ name: 'An', email: 'an@example.test', password: 'Correct Horse Battery Staple 42!' }), { status: 503, code: 'MAIL_UNAVAILABLE' });
   assert.equal(repository.users.length, 0);
+});
+
+test('guest order proof stays restricted, cookie scoped, expiring, and revocable by order', async () => {
+  const { service, repository } = makeHarness();
+  const firstOrderId = '507f1f77bcf86cd799439011';
+  const secondOrderId = '507f1f77bcf86cd799439012';
+  const first = await service.createGuestOrderProof({ orderId: firstOrderId, identityVerifiedAt: new Date(testTime) });
+  const second = await service.createGuestOrderProof({ orderId: secondOrderId, identityVerifiedAt: new Date(testTime) });
+  assert.notEqual(repository.proofs[0].tokenHash, first.token);
+  assert.equal(repository.proofs[0].purpose, 'guest_order_access');
+  assert.equal((await service.authenticateGuestOrderProof(first.token)).orderId, firstOrderId);
+  await assert.rejects(service.authenticateGuestOrderProof(undefined), { status: 401, code: 'AUTH_REQUIRED' });
+
+  const middleware = createIdentityMiddleware({ service, config: { guestOrderCookieName: 'tl_guest_test' } });
+  const request = { headers: { cookie: `tl_guest_test=${encodeURIComponent(first.token)}` } };
+  await new Promise((resolve, reject) => middleware.requireGuestOrderProof(['guest.order.read'])(request, {}, (error) => error ? reject(error) : resolve()));
+  assert.equal(request.guestOrderActor.orderId, firstOrderId);
+
+  const wrongPurposeToken = 'wrong-purpose-proof-token-value-0001';
+  repository.proofs.push({
+    purpose: 'appeal_access', orderId: firstOrderId, userId: '507f1f77bcf86cd799439013',
+    scopes: ['guest.order.read'], tokenHash: hashToken(wrongPurposeToken),
+    expiresAt: new Date(testTime + 60_000), revokedAt: null,
+  });
+  await assert.rejects(service.authenticateGuestOrderProof(wrongPurposeToken), { status: 401, code: 'SESSION_EXPIRED' });
+
+  const secondScopes = [...repository.proofs[1].scopes];
+  repository.proofs.find((proof) => proof.orderId === secondOrderId).scopes = [];
+  await assert.rejects(service.authenticateGuestOrderProof(second.token), { status: 401, code: 'SESSION_EXPIRED' });
+  repository.proofs.find((proof) => proof.orderId === secondOrderId).scopes = secondScopes;
+
+  const secondProof = repository.proofs.find((proof) => proof.orderId === secondOrderId);
+  secondProof.expiresAt = new Date(testTime - 1);
+  await assert.rejects(service.authenticateGuestOrderProof(second.token), { status: 401, code: 'SESSION_EXPIRED' });
+  secondProof.expiresAt = second.expiresAt;
+
+  await service.revokeGuestOrderProofs(firstOrderId);
+  await assert.rejects(service.authenticateGuestOrderProof(first.token), { status: 401, code: 'SESSION_EXPIRED' });
+  assert.equal((await service.authenticateGuestOrderProof(second.token)).orderId, secondOrderId);
+  await service.revokeGuestOrderProofs(secondOrderId);
+  await assert.rejects(service.authenticateGuestOrderProof(second.token), { status: 401, code: 'SESSION_EXPIRED' });
 });
 
 function repositoryRoleList() {

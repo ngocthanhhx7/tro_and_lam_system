@@ -130,6 +130,14 @@ export class IdentityRepository {
     ).exec();
   }
 
+  async revokeGuestOrderProofs(orderId, now, { session } = {}) {
+    return this.models.RestrictedProof.updateMany(
+      { orderId, purpose: 'guest_order_access', revokedAt: null },
+      { $set: { revokedAt: now } },
+      { session },
+    ).exec();
+  }
+
   async findPendingAppeal(userId, { session } = {}) {
     return this.models.AccountAppeal.findOne({ userId, status: 'pending' }).session(session || null).exec();
   }

@@ -292,6 +292,19 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     return { id: asId(user), user, proof, scopes: proof.scopes };
   }
 
+  async function authenticateGuestOrderProof(token) {
+    if (!token) throw new ServiceError(401, 'AUTH_REQUIRED', 'Cần xác minh quyền truy cập đơn hàng');
+    const proof = await repository.findRestrictedProof(hashToken(token));
+    const currentTime = now();
+    if (!proof || proof.purpose !== 'guest_order_access' || !proof.orderId || proof.userId
+      || proof.revokedAt || new Date(proof.expiresAt) <= currentTime
+      || !Array.isArray(proof.scopes) || proof.scopes.some((scope) => !GUEST_ORDER_SCOPES.includes(scope))
+      || !GUEST_ORDER_SCOPES.every((scope) => proof.scopes.includes(scope))) {
+      throw new ServiceError(401, 'SESSION_EXPIRED', 'Phiên tra cứu đơn hàng đã hết hạn');
+    }
+    return { orderId: asId(proof.orderId), proof, scopes: [...proof.scopes] };
+  }
+
   async function requestPasswordReset(input) {
     requireOutbox();
     const user = await repository.findUserByEmail(emailNormalized(input.email));
@@ -650,6 +663,11 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     return { token, expiresAt };
   }
 
+  async function revokeGuestOrderProofs(orderId, { session } = {}) {
+    if (!orderId) throw new TypeError('Guest order proof revoke cần orderId');
+    return repository.revokeGuestOrderProofs(orderId, now(), { session });
+  }
+
   return Object.freeze({
     repository,
     register,
@@ -675,6 +693,8 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     submitAppeal,
     decideAppeal,
     createGuestOrderProof,
+    authenticateGuestOrderProof,
+    revokeGuestOrderProofs,
     requireActor: authenticateSession,
     requireOwner(actor, resource) {
       const ownerId = resource?.userId?._id ?? resource?.userId?.id ?? resource?.userId;

@@ -28,6 +28,7 @@ export function createIdentityMiddleware({ ports = {}, config = {}, service: sup
   const settings = {
     sessionCookieName: config.sessionCookieName || 'tl_session',
     restrictedCookieName: config.restrictedCookieName || 'tl_appeal',
+    guestOrderCookieName: config.guestOrderCookieName || 'tl_guest_order',
     csrfCookieName: config.csrfCookieName || 'tl_csrf',
     cookiePath: config.cookiePath || '/api/v1',
     secureCookies: config.secureCookies ?? process.env.NODE_ENV === 'production',
@@ -68,6 +69,23 @@ export function createIdentityMiddleware({ ports = {}, config = {}, service: sup
     };
   }
 
+  function requireGuestOrderProof(scopes = ['guest.order.read']) {
+    if (!Array.isArray(scopes) || scopes.length === 0 || scopes.some((scope) => ![
+      'guest.order.read', 'guest.order.cancel', 'guest.payment.create', 'guest.ticket.create', 'guest.return.request',
+    ].includes(scope))) {
+      throw new TypeError('Guest order middleware chỉ hỗ trợ guest-order scopes');
+    }
+    return (req, _res, next) => {
+      Promise.resolve().then(async () => {
+        const actor = await service.authenticateGuestOrderProof(cookieValue(req, settings.guestOrderCookieName));
+        if (!scopes.every((scope) => actor.scopes.includes(scope))) {
+          throw new ServiceError(403, 'FORBIDDEN', 'Phiên này không có quyền thực hiện thao tác');
+        }
+        req.guestOrderActor = actor;
+      }).then(() => next(), next);
+    };
+  }
+
   function csrfProtection(req, _res, next) {
     const origin = req.get('origin');
     const cookie = cookieValue(req, settings.csrfCookieName);
@@ -103,6 +121,7 @@ export function createIdentityMiddleware({ ports = {}, config = {}, service: sup
     requireActor,
     requireCapability,
     requireAppeal,
+    requireGuestOrderProof,
     requireOwner,
     csrfProtection,
     issueCsrf,
