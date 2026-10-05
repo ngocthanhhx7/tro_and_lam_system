@@ -63,4 +63,4 @@ Do not publish claims such as “nghìn năm”, “di sản UNESCO”, “ngh�
 
 ## Media status
 
-Only the supplied logo and the clearly labeled editorial concept SVG are currently in the repository. There is no owner-supplied product photography or video yet. The Agy CLI reports no direct image tool in this session, and its image-generator handoff was blocked by command permission; no realistic raster image was produced. Use the concept illustration as decoration only. Product pages must wait for owner-approved SKU photography and usage rights before publication. See [assets-and-media.md](assets-and-media.md).
+The repository includes the supplied logo, an editorial concept SVG and an Agy-generated raster concept at `fondend/public/assets/generated/chu-dau-jar-editorial.jpg`. Label that raster as AI-generated illustration and do not present it as a real SKU or evidence of Chu Đậu provenance. No owner-supplied product photography or video is available yet. Product pages must wait for owner-approved SKU photography and usage rights before publication. See [assets-and-media.md](assets-and-media.md).
