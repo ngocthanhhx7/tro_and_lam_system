@@ -34,8 +34,21 @@ export default function CatalogHomePage() {
         <p className="home-hero__quiet">Giá và khả năng đặt mua hiển thị theo thông tin của từng sản phẩm đã công bố.</p>
       </div>
       <figure className="home-hero__art">
-        <div className="home-hero__art-frame"><img src="/assets/generated/chu-dau-jar-editorial.jpg" alt="Minh họa biên tập về gốm." width="1200" height="896" fetchPriority="high" /></div>
-        <figcaption>Ảnh minh họa do AI tạo; không đại diện sản phẩm đang bán.</figcaption>
+        <div className="home-hero__art-frame">
+          <video
+            controls
+            playsInline
+            preload="none"
+            poster="/assets/generated/chu-dau-jar-editorial.jpg"
+            width="1200"
+            height="896"
+            aria-label="Clip minh họa gốm chuyển động nhẹ"
+          >
+            <source src="/assets/generated/chu-dau-jar-editorial-motion.mp4" type="video/mp4" />
+            <img src="/assets/generated/chu-dau-jar-editorial.jpg" alt="Minh họa biên tập do AI tạo về một bình gốm." width="1200" height="896" fetchPriority="high" />
+          </video>
+        </div>
+        <figcaption>Ảnh concept do AI tạo; clip chỉ tạo chuyển động từ ảnh này, không phải video quay thật hay hình của sản phẩm đang bán.</figcaption>
         <span className="home-hero__seal" aria-hidden="true">TRO<br />& LAM</span>
       </figure>
       <span className="home-hero__index" aria-hidden="true">01 / 02</span>
