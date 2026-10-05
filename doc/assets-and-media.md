@@ -19,3 +19,9 @@ Chưa có video quay thật hay ảnh sản phẩm thật được chủ dự á
 - **Noto Serif Variable** cho tiêu đề; **Be Vietnam Pro** cho nội dung, điều hướng và số liệu.
 - Tệp WOFF2 tự host trong `fondend/public/assets/fonts/`; các subset Vietnamese/Latin được chọn để hiện dấu tiếng Việt đúng. WOFF2 và giấy phép SIL Open Font License đi cùng mỗi bộ font.
 - Nguồn tệp: Fontsource packages `@fontsource-variable/noto-serif@5.3.0` và `@fontsource/be-vietnam-pro@5.3.0`; metadata/license trong các tệp OFL cạnh font.
+
+## Tình trạng sử dụng trong giao diện — 2026-10-06
+
+`CatalogHomePage.jsx` đặt poster JPEG làm ảnh đại diện cho hero và cung cấp MP4 bằng phần tử `<video controls playsInline preload="none">`. Clip không tự phát; khi trình duyệt không hỗ trợ video, nội dung `<img>` là phương án hiển thị dự phòng. Chú thích ngay dưới media nói rõ ảnh do AI tạo và clip chỉ animate ảnh concept, không phải footage hay ảnh SKU. Không dùng asset này làm bằng chứng sản phẩm.
+
+P04 đã tạo route module `fondend/src/routes/modules/catalog.routes.jsx`, nhưng tại mốc này coordinator chưa mount module vào `AppRoutes`; vì vậy component và media đã được nối trong package, song chưa truy cập được qua ứng dụng đang chạy. Cần ghi lại bằng chứng browser sau khi hoàn tất composition. Trạng thái kiểm tra hiện có: production build thành công trong integrated `npm run check`; chưa có browser/E2E evidence.

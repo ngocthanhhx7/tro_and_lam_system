@@ -44,3 +44,9 @@ Provider evidence: No media storage provider or credentials are configured; no l
 Remaining risks/policy assumptions: P09 audit writes remain unimplemented; P08's additive story-by-ID port needs to land before final integration; production media storage is unavailable and uploads return 503; image validation checks MIME signatures and size but does not decode images; index rollout requires a managed migration; MongoDB concurrency/index behavior and real inventory integration remain unverified. Quote leads, cart, story pages, authentication/CSRF, and route composition depend on P02/P03/P05/P07/P08 integration.
 
 PR/commits: no PR created; implementation commit `1f6b2c2` on `feature/p04-catalog-public`; this handoff update follows that commit. Contract amendment: none in this package; integrate against `dea5277581d768fd87baab6b1209042ce66ae800` (DEC-17/18) after the coordinator's rebase.
+
+## Coordinator integration addendum — 2026-10-06
+
+P04 implementation and guard fix are now on `develop` through `daa7e8f`. P08's published story-by-ID resolver landed in `ebf73e2`, so the earlier dependency request above is satisfied without exposing the ID through the public slug endpoint. P03 has also been integrated at `210aaa5`.
+
+P04 package checks passed: contract validation, lint, backend 38/38 and Vite production build. A later integrated `npm run check` after P03 passed backend 92/92, lint, contract validation and Vite build. These checks do not yet prove runtime integration: `catalogRoutes` is still not mounted by the shared `AppRoutes`, the API catalog router is not yet injected into the server composition, and P09 audit/P02 capability wiring needs coordinator integration. There is no browser/E2E, Atlas or live media-provider evidence. Keep the AI concept caption and manual playback behavior when mounting the route.
