@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.0.0
+  version: 1.2.0
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -783,7 +783,15 @@ paths:
       operationId: listAdminAuditLogs
       tags: [admin]
       x-actors: [admin]
-      parameters: [{ in: query, name: action, schema: { type: string } }, { in: query, name: actorId, schema: { type: string } }, { in: query, name: targetType, schema: { type: string } }, { in: query, name: targetId, schema: { type: string } }, { in: query, name: cursor, schema: { type: string } }, { $ref: '#/components/parameters/Limit' }]
+      parameters:
+        - { in: query, name: action, schema: { type: string } }
+        - { in: query, name: actorId, schema: { type: string } }
+        - { in: query, name: targetType, schema: { type: string } }
+        - { in: query, name: targetId, schema: { type: string } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { in: query, name: cursor, schema: { type: string } }
+        - { $ref: '#/components/parameters/Limit' }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /admin/statistics:
     get:
@@ -861,7 +869,7 @@ paths:
       operationId: updateAdminStory
       tags: [admin]
       x-actors: [admin]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StoryWrite' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/StoryWrite' }, { type: object, required: [expectedVersion] }] } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
     delete:
       operationId: archiveAdminStory
@@ -888,7 +896,7 @@ paths:
       operationId: updateAdminPage
       tags: [admin]
       x-actors: [admin]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PageWrite' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/PageWrite' }, { type: object, required: [expectedVersion] }] } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
     delete:
       operationId: archiveAdminPage

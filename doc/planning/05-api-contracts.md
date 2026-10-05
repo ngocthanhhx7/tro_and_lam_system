@@ -126,7 +126,7 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 
 | Method path | Quyền | Request/query | Response data |
 | --- | --- | --- | --- |
-| GET /staff/dashboard | S | from,to | {orderQueues,ticketQueues,lowStock,operationalCounts}; tiền theo metric định nghĩa, không dữ liệu giả |
+| GET /staff/dashboard | S | from,to | {orderQueues,ticketQueues,lowStock,operationalCounts}; `lowStock:null` means no owner-approved threshold is configured; money totals come from defined persisted metrics, never fabricated data |
 | GET /staff/orders | S | status,paymentStatus,queue,from,to,q,page,limit | OrderSummary[] |
 | GET /staff/orders/:id | S | — | OrderOperational gồm operational notes |
 | POST /staff/orders/:id/transitions | S | OrderTransition + Idempotency-Key | OrderOperational |
@@ -225,6 +225,10 @@ ProductWrite: `{name,slug,sku,line,categoryId,description,material,dimensions?,c
 Full-only baseline: POST return-requests phải gửi toàn item quantity eligible; refund-request amount bằng toàn refundable balance. Partial bị từ chối 422 `PARTIAL_OPERATION_DISABLED` khi flags false. Refund failed trả status failed ở Refund và Order.paymentStatus trở về paid/partially_refunded theo ledger, không ghi refunded hoặc treo refund_pending vô hạn. API schema có items/amountVnd/refundedAmountVnd để phase partial không phá DTO, nhưng UI không hiện chức năng partial lúc baseline. Staff ticket status phải theo transitions ở 04; return case enum requested/approved/rejected/received/closed, inspection lưu fact rồi closed khi hoàn tất xử lý case; refund lifecycle độc lập.
 
 TicketCreate: `{kind:'support'|'complaint'|'return',subject,body,orderId?,attachmentIds?}`; guest required orderId+proof; return required owned order+eligible transition. ContactCreate: `{name,email,phone?,kind:'general'|'corporate'|'quote',productId?,quantity?,company?,message,consent:true}`. Không `to/cc/bcc` trong request. StoryWrite: `{slug,title,locale,origin,artisan?,motifs,sections,media,productIds,status,expectedVersion?}`. PageWrite: `{slug,title,locale,blocks,status,expectedVersion?}`. CategoryWrite: `{slug,name,description?,parentId?,sortOrder,status,expectedVersion?}`.
+
+P08 content item rules: `sections[]` is `{heading?:string≤300,body:ContentBlock[]≤100}`; `PageWrite.blocks` has at most 200 `ContentBlock`s. A `ContentBlock` is exactly one of `{type:'paragraph'|'heading'|'quote',text:string[1..5000]}`, `{type:'list',items:string[1..1000][]}` with 1–50 items, `{type:'image',url,alt:string[1..300],caption?:string≤500}`, or `{type:'link',text:string[1..300],url}`. A media URL is a same-origin path with one leading slash or credential-free HTTPS, at most 2048 characters. Story motifs are 1–300 characters each (maximum 100); media items are `{url,alt,caption?}` with the image limits (maximum 100); `productIds` are unique 24-character hexadecimal IDs (maximum 100). `slug` is lowercase ASCII letters/digits/hyphens (maximum 180), title maximum 300, origin maximum 2000, and artisan maximum 300. Unknown block properties are rejected. These content block variants are a structured-text allowlist, not a new business lifecycle enum. Publishing a story still requires non-empty origin and at least one populated section; publishing a page requires at least one block. HTML is not rendered as markup.
+
+`BusinessSettingsWrite.values` accepts only the documented top-level keys `shippingZones`, `codEnabled`, `checkoutLimits`, and `supportWindows`; their values are respectively an array, boolean, object, and object. Unknown top-level keys and empty updates are rejected. Nested values are inert business data only; secrets, provider credentials/URLs, and executable content are never stored in `settings`.
 
 ### Ví dụ recovery, appeal và webhook
 

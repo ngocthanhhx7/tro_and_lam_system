@@ -48,6 +48,22 @@ Consumer impact: P04 implements query validation/filtering and PATCH version che
 
 The admin media upload route must report an unconfigured or unavailable storage provider truthfully. Add the `MEDIA_UNAVAILABLE` error code to the documented 503 provider-unavailable set and shared error middleware. P04 returns this code until a storage provider is configured; it does not fabricate an uploaded asset or URL. Consumer impact is P04 and clients of `POST /admin/media`. The existing error envelope is unchanged; no data migration, new enum, route, role or permission is required.
 
+## DEC-19 — Audit-log date range filters
+
+The frozen OpenAPI omitted `from` and `to` from `GET /admin/audit-logs`, although planning 03 ADM-07 and 05 already require time filtering. Add optional ISO `date-time` query parameters with the existing names. The service filters by `createdAt`, validates timestamps and rejects an inverted range. No route, response, role, permission, or business enum changes; this is additive and needs no migration. Consumer: P09.
+
+## DEC-20 — Business settings key allowlist
+
+`PATCH /admin/settings` already requires a schema allowlist, and 04/05/10 limit the collection to shipping zones/fees, COD, checkout limits, and support windows. Formalize those existing concepts as top-level `values` keys `shippingZones` (array), `codEnabled` (boolean), `checkoutLimits` (object), and `supportWindows` (object); reject empty patches and unknown top-level keys. Values remain inert business data: secrets, provider URLs/credentials and executable content are forbidden. No route, role, permission or enum change. P09 owns the validator/UI; P05 consumes configured checkout values. Actual fees, zones and policies remain owner-supplied input R06.
+
+## DEC-21 — Bounded story and page content blocks
+
+The frozen StoryWrite/PageWrite DTOs declared content arrays without item schemas, while planning 03/04/08 require safe rich text and an allowlist. Specify the P08 text-only block variants and bounds in 05 and `dtos.schema.json`: paragraph/heading/quote, list, image, and link; restrict URLs to same-origin paths or credential-free HTTPS; reject unknown properties. Existing top-level DTO fields, status values, routes and permissions remain unchanged. The schema describes structured text; HTML is not passed to a browser parser. P08 implements these rules; P10 reads only published content. Draft/publish eligibility and product references remain as described in 04/05. No data migration is needed; pre-existing records must be validated before publication.
+
+## DEC-22 — Unconfigured low-stock threshold
+
+The staff dashboard contract includes `lowStock`, but the inventory model does not define a reorder threshold and no owner-approved value is available. Return `lowStock: null` and label it unconfigured until a later decision supplies that value; never report zero as if it were measured. This adds no setting, threshold field, route, enum, or permission. Consumer: P09; future threshold configuration requires a new coordinator amendment and owner input.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

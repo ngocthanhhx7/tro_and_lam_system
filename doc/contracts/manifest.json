@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.1.0",
+  "contractVersion": "1.2.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -35,6 +35,46 @@
       ],
       "consumers": ["P04", "POST /admin/media clients"],
       "migration": "None; the existing error envelope and route remain unchanged."
+    },
+    {
+      "id": "DEC-19",
+      "date": "2026-10-06",
+      "reason": "Planning 03/05 requires audit time filters, but the frozen OpenAPI omitted the existing from/to query fields.",
+      "changes": [
+        "GET /admin/audit-logs adds optional from and to query parameters with date-time format."
+      ],
+      "consumers": ["P09"],
+      "migration": "None; the route and authorization remain unchanged."
+    },
+    {
+      "id": "DEC-20",
+      "date": "2026-10-06",
+      "reason": "The settings DTO was unbounded despite the planning requirement for a business-settings allowlist.",
+      "changes": [
+        "BusinessSettingsWrite.values allows only shippingZones, codEnabled, checkoutLimits, and supportWindows with array/boolean/object/object value types."
+      ],
+      "consumers": ["P09", "P05"],
+      "migration": "None; actual zone, fee, limit, and support-window values remain owner-configured."
+    },
+    {
+      "id": "DEC-21",
+      "date": "2026-10-06",
+      "reason": "StoryWrite and PageWrite content arrays lacked item schemas although planning requires allowlisted safe rich text.",
+      "changes": [
+        "Add bounded text-only content block variants and item schemas for story sections, media, motifs, product IDs, and page blocks."
+      ],
+      "consumers": ["P08", "P10"],
+      "migration": "None; existing content must be validated before publication."
+    },
+    {
+      "id": "DEC-22",
+      "date": "2026-10-06",
+      "reason": "The staff dashboard requires a low-stock field, but the inventory model has no threshold and the owner has not configured one.",
+      "changes": [
+        "Return lowStock as null and show an unconfigured state until a future approved threshold exists; do not report an invented zero count."
+      ],
+      "consumers": ["P09"],
+      "migration": "None; no threshold setting or inventory field is added."
     }
   ],
   "validation": {
@@ -44,9 +84,9 @@
       "openapiVersion": "3.1.0",
       "paths": 102,
       "operations": 121,
-      "dtoSchemas": 56,
+      "dtoSchemas": 60,
       "enums": 22,
-      "dtoFixtures": 12
+      "dtoFixtures": 21
     }
   }
 }

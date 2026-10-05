@@ -39,6 +39,7 @@ const [dtos, enums, planningEnums, manifest] = await Promise.all([
 
 assert.match(manifest.baselineCommit, /^[0-9a-f]{40}$/i, 'Manifest must record a real full-length baseline commit');
 assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/i, 'Manifest must record the source commit');
+assert.equal(manifest.contractVersion, api.info.version, 'Manifest and OpenAPI contract versions must match');
 assert.deepEqual(manifest.artifacts, [
   'doc/contracts/openapi.yaml',
   'doc/contracts/schemas/dtos.schema.json',
@@ -78,6 +79,15 @@ const dtoFixtures = [
   ['orderTransition', { toStatus: 'cancelled', expectedVersion: 3, reason: 'Khách yêu cầu hủy' }, true],
   ['orderTransition', { toStatus: 'cancelled', expectedVersion: 3 }, false],
   ['orderTransition', { toStatus: 'processing', expectedVersion: 3 }, true],
+  ['businessSettingsWrite', { values: { codEnabled: false }, expectedVersion: 2, reason: 'Cập nhật cài đặt' }, true],
+  ['businessSettingsWrite', { values: { smtpPassword: 'fixture-only' }, expectedVersion: 2, reason: 'Cập nhật cài đặt' }, false],
+  ['storyWrite', { slug: 'nfc-story-fixture', title: 'Câu chuyện thử nghiệm', locale: 'vi', origin: 'Nguồn chờ chủ dự án duyệt', motifs: [], sections: [{ heading: 'Mở đầu', body: [{ type: 'paragraph', text: 'Nội dung fixture kiểm thử.' }] }], media: [], productIds: [], status: 'published' }, true],
+  ['storyWrite', { slug: 'nfc-story-fixture', title: 'Câu chuyện thử nghiệm', locale: 'vi', origin: '', motifs: [], sections: [{ body: [] }], media: [], productIds: [], status: 'published' }, false],
+  ['storyWrite', { slug: 'nfc-story-fixture', title: 'Câu chuyện thử nghiệm', locale: 'vi', origin: 'Nguồn chờ chủ dự án duyệt', motifs: [], sections: [{ body: [{ type: 'paragraph', text: 'Nội dung.', onClick: 'fixture' }] }], media: [], productIds: [], status: 'draft' }, false],
+  ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [{ type: 'link', text: 'Câu chuyện', url: '/cau-chuyen' }], status: 'draft' }, true],
+  ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [{ type: 'link', text: 'Liên kết', url: 'javascript:alert(1)' }], status: 'draft' }, false],
+  ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [{ type: 'image', url: 'https://user:pass@example.com/anh.jpg', alt: 'Ảnh fixture' }], status: 'draft' }, false],
+  ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [], status: 'published' }, false],
 ];
 for (const [name, value, expected] of dtoFixtures) {
   assert.equal(compiledDtos.get(name)(value), expected, `${name} fixture must be ${expected ? 'accepted' : 'rejected'}`);
