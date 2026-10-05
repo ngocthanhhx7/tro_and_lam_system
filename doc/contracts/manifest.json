@@ -91,7 +91,8 @@
       "date": "2026-10-06",
       "reason": "The frozen API requires guest order OTP access and atomic proof revocation during claim, while guest restricted credentials must stay in P02's identity subsystem.",
       "changes": [
-        "P02 exposes the existing proof issuer plus internal proof authentication, scoped middleware, and order-id revocation methods; P05 owns code/email challenge matching, OTP verification, and the existing public guest access operations."
+        "P02 exposes the existing proof issuer plus internal proof authentication, scoped middleware, and order-id revocation methods; P05 owns code/email challenge matching, OTP verification, and the existing public guest access operations.",
+        "P05 stores the guest proof in a dedicated HttpOnly cookie name separate from the appeal credential."
       ],
       "consumers": ["P02", "P05"],
       "migration": "None; the existing restricted_proofs model, scopes, and public API contract are unchanged."
