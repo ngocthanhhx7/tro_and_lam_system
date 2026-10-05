@@ -1,0 +1,552 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TRO & LAM API v1 DTOs",
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "required": ["requestId"],
+      "properties": {
+        "requestId": { "type": "string", "format": "uuid" },
+        "pagination": {
+          "type": "object",
+          "required": ["page", "limit", "total", "totalPages"],
+          "properties": {
+            "page": { "type": "integer", "minimum": 1 },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "total": { "type": "integer", "minimum": 0 },
+            "totalPages": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "nextCursor": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "successEnvelope": {
+      "type": "object",
+      "required": ["data", "meta"],
+      "properties": { "data": {}, "meta": { "$ref": "#/$defs/meta" } },
+      "additionalProperties": false
+    },
+    "errorEnvelope": {
+      "type": "object",
+      "required": ["error", "meta"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" },
+            "details": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["field", "code", "message"],
+                "properties": {
+                  "field": { "type": "string", "maxLength": 120 },
+                  "code": { "type": "string", "maxLength": 80 },
+                  "message": { "type": "string", "maxLength": 240 }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "meta": { "$ref": "#/$defs/meta" }
+      },
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "required": ["lat", "lng", "source", "capturedAt"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "accuracyMeters": { "type": "number", "minimum": 0 },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "addressWrite": {
+      "type": "object",
+      "required": ["recipientName", "phone", "line1", "countryCode", "formattedAddress"],
+      "properties": {
+        "label": { "type": "string", "maxLength": 80 },
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "line1": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "line2": { "type": "string", "maxLength": 200 },
+        "ward": { "type": "string", "maxLength": 100 },
+        "province": { "type": "string", "maxLength": 100 },
+        "countryCode": { "type": "string", "const": "VN" },
+        "postalCode": { "type": "string", "maxLength": 20 },
+        "formattedAddress": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "location": { "$ref": "#/$defs/location" },
+        "isDefault": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "addressPatch": {
+      "type": "object",
+      "required": ["expectedVersion"],
+      "properties": {
+        "label": { "type": "string", "maxLength": 80 },
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "line1": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "line2": { "type": "string", "maxLength": 200 },
+        "ward": { "type": "string", "maxLength": 100 },
+        "province": { "type": "string", "maxLength": 100 },
+        "countryCode": { "type": "string", "const": "VN" },
+        "postalCode": { "type": "string", "maxLength": 20 },
+        "formattedAddress": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "location": { "$ref": "#/$defs/location" },
+        "isDefault": { "type": "boolean" },
+        "expectedVersion": { "type": "integer", "minimum": 0 }
+      },
+      "minProperties": 2,
+      "additionalProperties": false
+    },
+    "productImage": {
+      "type": "object",
+      "required": ["url", "alt", "sortOrder"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "alt": { "type": "string", "maxLength": 250 },
+        "sortOrder": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "productWrite": {
+      "type": "object",
+      "required": ["name", "slug", "sku", "line", "categoryId", "description", "material", "images", "saleMode", "status", "featured"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "sku": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "line": { "$ref": "enums.schema.json#/$defs/productLine" },
+        "categoryId": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "maxLength": 12000 },
+        "material": { "type": "string", "maxLength": 500 },
+        "dimensions": { "type": "string", "maxLength": 300 },
+        "careInstructions": { "type": "string", "maxLength": 3000 },
+        "images": { "type": "array", "items": { "$ref": "#/$defs/productImage" } },
+        "saleMode": { "$ref": "enums.schema.json#/$defs/saleMode" },
+        "priceVnd": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "storyId": { "type": "string" },
+        "status": { "$ref": "enums.schema.json#/$defs/productStatus" },
+        "featured": { "type": "boolean" }
+      },
+      "allOf": [{
+        "if": { "properties": { "saleMode": { "enum": ["buy", "both"] } }, "required": ["saleMode"] },
+        "then": { "required": ["priceVnd"] }
+      }],
+      "additionalProperties": false
+    },
+    "productPatch": {
+      "type": "object",
+      "required": ["expectedVersion"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "sku": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "line": { "$ref": "enums.schema.json#/$defs/productLine" },
+        "categoryId": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "maxLength": 12000 },
+        "material": { "type": "string", "maxLength": 500 },
+        "dimensions": { "type": "string", "maxLength": 300 },
+        "careInstructions": { "type": "string", "maxLength": 3000 },
+        "images": { "type": "array", "items": { "$ref": "#/$defs/productImage" } },
+        "saleMode": { "$ref": "enums.schema.json#/$defs/saleMode" },
+        "priceVnd": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "storyId": { "type": "string" },
+        "status": { "$ref": "enums.schema.json#/$defs/productStatus" },
+        "featured": { "type": "boolean" },
+        "expectedVersion": { "type": "integer", "minimum": 0 }
+      },
+      "minProperties": 2,
+      "allOf": [{
+        "if": { "properties": { "saleMode": { "enum": ["buy", "both"] } }, "required": ["saleMode"] },
+        "then": { "required": ["priceVnd"] }
+      }],
+      "additionalProperties": false
+    },
+    "checkoutItem": {
+      "type": "object",
+      "required": ["productId", "quantity"],
+      "properties": {
+        "productId": { "type": "string", "minLength": 1 },
+        "quantity": { "type": "integer", "minimum": 1, "maximum": 99 }
+      },
+      "additionalProperties": false
+    },
+    "checkoutRecipient": {
+      "type": "object",
+      "required": ["recipientName", "phone", "line1", "countryCode", "formattedAddress", "email"],
+      "properties": {
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "line1": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "line2": { "type": "string", "maxLength": 200 },
+        "ward": { "type": "string", "maxLength": 100 },
+        "province": { "type": "string", "maxLength": 100 },
+        "countryCode": { "type": "string", "const": "VN" },
+        "postalCode": { "type": "string", "maxLength": 20 },
+        "formattedAddress": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "location": { "$ref": "#/$defs/location" },
+        "email": { "type": "string", "format": "email", "maxLength": 254 }
+      },
+      "additionalProperties": false
+    },
+    "checkoutQuote": {
+      "type": "object",
+      "required": ["items", "paymentMethod"],
+      "properties": {
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/checkoutItem" } },
+        "recipient": { "$ref": "#/$defs/checkoutRecipient" },
+        "addressId": { "type": "string" },
+        "paymentMethod": { "$ref": "enums.schema.json#/$defs/paymentMethod" }
+      },
+      "not": { "required": ["addressId", "recipient"] },
+      "additionalProperties": false
+    },
+    "checkoutCreate": {
+      "type": "object",
+      "required": ["items", "paymentMethod", "consent"],
+      "properties": {
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/checkoutItem" } },
+        "recipient": { "$ref": "#/$defs/checkoutRecipient" },
+        "addressId": { "type": "string" },
+        "paymentMethod": { "$ref": "enums.schema.json#/$defs/paymentMethod" },
+        "note": { "type": "string", "maxLength": 1000 },
+        "consent": { "type": "boolean", "const": true }
+      },
+      "not": { "required": ["addressId", "recipient"] },
+      "additionalProperties": false
+    },
+    "orderTransition": {
+      "type": "object",
+      "required": ["toStatus", "expectedVersion"],
+      "properties": {
+        "toStatus": { "$ref": "enums.schema.json#/$defs/orderStatus" },
+        "expectedVersion": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "shipping": {
+          "type": "object",
+          "properties": { "carrier": { "type": "string", "minLength": 1, "maxLength": 120 }, "trackingNumber": { "type": "string", "minLength": 1, "maxLength": 100 } },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "toStatus": { "const": "shipped" } }, "required": ["toStatus"] },
+          "then": { "oneOf": [
+            { "required": ["shipping"], "properties": { "shipping": { "required": ["carrier", "trackingNumber"] } } },
+            { "required": ["reason"], "not": { "required": ["shipping"] } }
+          ] }
+        },
+        {
+          "if": { "properties": { "toStatus": { "const": "cancelled" } }, "required": ["toStatus"] },
+          "then": { "required": ["reason"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "contactCreate": {
+      "type": "object",
+      "required": ["name", "email", "kind", "message", "consent"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "kind": { "$ref": "enums.schema.json#/$defs/contactKind" },
+        "productId": { "type": "string" },
+        "quantity": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "company": { "type": "string", "maxLength": 160 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "consent": { "type": "boolean", "const": true }
+      },
+      "additionalProperties": false
+    },
+    "ticketCreate": {
+      "type": "object",
+      "required": ["kind", "subject", "body"],
+      "properties": {
+        "kind": { "$ref": "enums.schema.json#/$defs/ticketKind" },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 10000 },
+        "orderId": { "type": "string" },
+        "attachmentIds": { "type": "array", "maxItems": 5, "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "reviewCreate": {
+      "type": "object",
+      "required": ["orderId", "productId", "rating", "comment"],
+      "properties": {
+        "orderId": { "type": "string" },
+        "productId": { "type": "string" },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string", "maxLength": 5000 },
+        "attachmentIds": { "type": "array", "maxItems": 5, "items": { "type": "string" } },
+        "consentToPublishAttachments": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "userRegister": {
+      "type": "object",
+      "required": ["name", "email", "password"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "password": { "type": "string", "minLength": 12, "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 30 }
+      },
+      "additionalProperties": false
+    },
+    "invitationAccept": {
+      "type": "object",
+      "required": ["token", "password", "name"],
+      "properties": {
+        "token": { "type": "string" },
+        "password": { "type": "string", "minLength": 12, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 }
+      },
+      "additionalProperties": false
+    },
+    "cartItemWrite": {
+      "type": "object",
+      "required": ["quantity", "expectedVersion"],
+      "properties": { "quantity": { "type": "integer", "minimum": 1, "maximum": 99 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "cartMerge": {
+      "type": "object",
+      "required": ["expectedVersion"],
+      "properties": { "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "profileWrite": {
+      "type": "object",
+      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "phone": { "type": "string", "maxLength": 30 } },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "locationReverse": {
+      "type": "object",
+      "required": ["lat", "lng"],
+      "properties": { "lat": { "type": "number", "minimum": -90, "maximum": 90 }, "lng": { "type": "number", "minimum": -180, "maximum": 180 } },
+      "additionalProperties": false
+    },
+    "orderAccessChallenge": {
+      "type": "object",
+      "required": ["code", "email"],
+      "properties": { "code": { "type": "string", "minLength": 1, "maxLength": 80 }, "email": { "type": "string", "format": "email", "maxLength": 254 } },
+      "additionalProperties": false
+    },
+    "orderAccessVerify": {
+      "type": "object",
+      "required": ["challengeId", "verificationCode"],
+      "properties": { "challengeId": { "type": "string", "minLength": 1 }, "verificationCode": { "type": "string", "minLength": 1, "maxLength": 32 } },
+      "additionalProperties": false
+    },
+    "orderCancel": {
+      "type": "object",
+      "required": ["reason", "expectedVersion"],
+      "properties": { "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "orderClaim": {
+      "type": "object",
+      "required": ["orderId"],
+      "properties": { "orderId": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "returnRequestCreate": {
+      "type": "object",
+      "required": ["items", "message", "expectedVersion"],
+      "properties": {
+        "items": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["productId", "quantity", "reason"], "properties": { "productId": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 } }, "additionalProperties": false } },
+        "message": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "expectedVersion": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "ticketMessageCreate": {
+      "type": "object",
+      "required": ["body", "visibility"],
+      "properties": { "body": { "type": "string", "minLength": 1, "maxLength": 10000 }, "attachmentIds": { "type": "array", "maxItems": 5, "items": { "type": "string" } }, "visibility": { "type": "string", "enum": ["customer", "internal"] } },
+      "additionalProperties": false
+    },
+    "assistantMessage": {
+      "type": "object",
+      "required": ["message", "consent"],
+      "properties": { "conversationId": { "type": "string" }, "message": { "type": "string", "minLength": 1, "maxLength": 5000 }, "consent": { "const": true } },
+      "additionalProperties": false
+    },
+    "assistantHandoff": {
+      "type": "object",
+      "required": ["conversationId", "shareTranscript"],
+      "properties": {
+        "conversationId": { "type": "string", "minLength": 1 },
+        "shareTranscript": { "type": "boolean" },
+        "contact": { "type": "object", "properties": { "name": { "type": "string", "maxLength": 120 }, "email": { "type": "string", "format": "email", "maxLength": 254 }, "phone": { "type": "string", "maxLength": 30 } }, "additionalProperties": false },
+        "orderId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "attachmentUploadCreate": {
+      "type": "object",
+      "required": ["purpose", "mimeType", "bytes"],
+      "properties": { "purpose": { "type": "string", "enum": ["ticket", "refund", "review"] }, "orderId": { "type": "string" }, "ticketId": { "type": "string" }, "reviewId": { "type": "string" }, "mimeType": { "type": "string", "enum": ["image/jpeg", "image/png", "image/webp"] }, "bytes": { "type": "integer", "minimum": 1, "maximum": 5242880 }, "visibility": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "shippingEventCreate": {
+      "type": "object",
+      "required": ["status", "message", "occurredAt", "expectedVersion"],
+      "properties": { "status": { "type": "string", "minLength": 1, "maxLength": 80 }, "message": { "type": "string", "minLength": 1, "maxLength": 1000 }, "occurredAt": { "type": "string", "format": "date-time" }, "trackingNumber": { "type": "string", "maxLength": 100 }, "carrier": { "type": "string", "maxLength": 120 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "codCollectionCreate": {
+      "type": "object",
+      "required": ["amountVnd", "evidenceReference", "expectedVersion"],
+      "properties": { "amountVnd": { "type": "integer", "minimum": 0 }, "evidenceReference": { "type": "string", "minLength": 1, "maxLength": 500 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "refundRequestCreate": {
+      "type": "object",
+      "required": ["amountVnd", "reason", "expectedVersion"],
+      "properties": { "amountVnd": { "type": "integer", "minimum": 0 }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "staffTicketWrite": {
+      "type": "object",
+      "properties": { "status": { "$ref": "enums.schema.json#/$defs/ticketStatus" }, "assignedTo": { "type": "string" }, "priority": { "type": "string" }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "required": ["expectedVersion"],
+      "additionalProperties": false
+    },
+    "returnDecision": {
+      "type": "object",
+      "required": ["decision", "reason", "expectedVersion"],
+      "properties": { "decision": { "type": "string", "enum": ["approved", "rejected"] }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "returnInspection": {
+      "type": "object",
+      "required": ["items", "evidenceReference", "expectedVersion"],
+      "properties": { "items": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["productId", "receivedQuantity", "resellableQuantity"], "properties": { "productId": { "type": "string" }, "receivedQuantity": { "type": "integer", "minimum": 0 }, "resellableQuantity": { "type": "integer", "minimum": 0 } }, "additionalProperties": false } }, "evidenceReference": { "type": "string", "minLength": 1, "maxLength": 500 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "reasonVersion": {
+      "type": "object",
+      "required": ["reason", "expectedVersion"],
+      "properties": { "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "staffContactWrite": {
+      "type": "object",
+      "properties": { "status": { "$ref": "enums.schema.json#/$defs/contactStatus" }, "assignedTo": { "type": "string" }, "note": { "type": "string", "maxLength": 5000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "required": ["expectedVersion"],
+      "additionalProperties": false
+    },
+    "inventoryAdjustment": {
+      "type": "object",
+      "required": ["delta", "reason", "expectedVersion"],
+      "properties": { "delta": { "type": "integer" }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "categoryWrite": {
+      "type": "object",
+      "required": ["slug", "name"],
+      "properties": { "slug": { "type": "string", "minLength": 1, "maxLength": 180 }, "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "description": { "type": "string", "maxLength": 5000 }, "parentId": { "type": "string" }, "sortOrder": { "type": "integer", "minimum": 0 }, "status": { "$ref": "enums.schema.json#/$defs/productStatus" }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "userInvite": {
+      "type": "object",
+      "required": ["name", "email", "role"],
+      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "email": { "type": "string", "format": "email", "maxLength": 254 }, "role": { "type": "string", "enum": ["customer", "staff"] } },
+      "additionalProperties": false
+    },
+    "adminUserWrite": {
+      "type": "object",
+      "required": ["expectedVersion"],
+      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "phone": { "type": "string", "maxLength": 30 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "userStatusWrite": {
+      "type": "object",
+      "required": ["status", "reason", "expectedVersion"],
+      "properties": { "status": { "$ref": "enums.schema.json#/$defs/userStatus" }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "userRoleWrite": {
+      "type": "object",
+      "required": ["role", "reason", "expectedVersion"],
+      "properties": { "role": { "$ref": "enums.schema.json#/$defs/role" }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "appealDecision": {
+      "type": "object",
+      "required": ["decision", "reviewNote", "expectedVersion"],
+      "properties": { "decision": { "type": "string", "enum": ["approved", "rejected"] }, "reviewNote": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "refundDecision": {
+      "type": "object",
+      "required": ["decision", "reason", "expectedVersion"],
+      "properties": { "decision": { "type": "string", "enum": ["approved", "rejected"] }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "refundComplete": {
+      "type": "object",
+      "required": ["externalReference", "evidenceReference", "expectedVersion"],
+      "properties": { "externalReference": { "type": "string", "minLength": 1, "maxLength": 500 }, "evidenceReference": { "type": "string", "minLength": 1, "maxLength": 500 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "reviewModeration": {
+      "type": "object",
+      "required": ["status", "reason", "expectedVersion"],
+      "properties": { "status": { "type": "string", "enum": ["published", "hidden"] }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "businessSettingsWrite": {
+      "type": "object",
+      "required": ["values", "expectedVersion", "reason"],
+      "properties": { "values": { "type": "object" }, "expectedVersion": { "type": "integer", "minimum": 0 }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 } },
+      "additionalProperties": false
+    },
+    "storyWrite": {
+      "type": "object",
+      "required": ["slug", "title", "locale", "origin", "motifs", "sections", "media", "productIds", "status"],
+      "properties": { "slug": { "type": "string" }, "title": { "type": "string" }, "locale": { "type": "string", "enum": ["vi", "en"] }, "origin": { "type": "string" }, "artisan": { "type": "string" }, "motifs": { "type": "array" }, "sections": { "type": "array" }, "media": { "type": "array" }, "productIds": { "type": "array", "items": { "type": "string" } }, "status": { "$ref": "enums.schema.json#/$defs/productStatus" }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "pageWrite": {
+      "type": "object",
+      "required": ["slug", "title", "locale", "blocks", "status"],
+      "properties": { "slug": { "type": "string" }, "title": { "type": "string" }, "locale": { "type": "string", "enum": ["vi", "en"] }, "blocks": { "type": "array" }, "status": { "$ref": "enums.schema.json#/$defs/productStatus" }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "nfcTagCreate": {
+      "type": "object",
+      "required": ["storyId"],
+      "properties": { "storyId": { "type": "string", "minLength": 1 }, "productId": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "reviewWrite": {
+      "type": "object",
+      "required": ["rating", "comment", "expectedVersion"],
+      "properties": { "rating": { "type": "integer", "minimum": 1, "maximum": 5 }, "comment": { "type": "string", "maxLength": 5000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "adminMediaUpload": {
+      "type": "object",
+      "required": ["file"],
+      "properties": { "file": { "type": "string", "format": "binary" }, "alt": { "type": "string", "minLength": 1, "maxLength": 250 } },
+      "additionalProperties": false
+    }
+  }
+}

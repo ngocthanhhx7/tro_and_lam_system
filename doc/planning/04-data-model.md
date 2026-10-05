@@ -94,7 +94,7 @@ Order enum chung: `pending, confirmed, processing, shipped, delivered, cancelled
 | pending | confirmed | staff/admin; PayOS phải paid, COD đã kiểm tra thông tin và còn reservation |
 | pending | cancelled | khách owner/guest proof hoặc staff; PayOS chưa paid có thể expiry; nếu paid phải theo luồng refund |
 | confirmed | processing, cancelled | staff/admin; hủy phải giải phóng stock và mở refund nếu đã thu |
-| processing | shipped | trackingNumber+carrier bắt buộc; PayOS paid; commit reservation giảm stock trong cùng transaction |
+| processing | shipped | Nếu giao qua hãng, bắt buộc `shipping.carrier` và `shipping.trackingNumber`; giao thủ công phải ghi `reason`; PayOS phải paid; commit reservation giảm stock trong cùng transaction |
 | processing | cancelled | chỉ staff/admin trước bàn giao; lý do, release reservation, refund khi cần |
 | shipped | delivered | staff/admin xác nhận chứng cứ bàn giao; COD đánh dấu paid chỉ khi xác nhận thu tiền |
 | shipped, delivered | return_requested | tạo ticket return, lý do; shipped chỉ sự cố giao hàng; delivered trong 7 ngày đề xuất |
