@@ -10,7 +10,7 @@
 | AC-STOCK-01 | P05 — reservation cạnh tranh trên replica set | `backend/tests/commerce/reservation-race.integration.test.js` | Chưa chạy |
 | AC-TRACK-01 | P05 — guest order proof/OTP, chống enumeration | `backend/tests/commerce/guest-order-access.test.js` | Chưa chạy |
 | AC-CLAIM-01 | P02/P05 — challenge và compare-and-set claim guest order | `backend/tests/identity/guest-order-claim.integration.test.js` | Chưa chạy |
-| AC-AUTH-01 | P02 — register, verify, login/reset, session, CSRF và revoke | `backend/tests/identity/identity-behavior.test.js`; `backend/tests/identity/identity-routes.test.js` | Pass — P02 `47c1b7f`; `npm run check` · 2026-10-05 22:38 UTC: contract validation, backend 30/30 và Vite build 47 modules pass; lint 0 errors, 1 Fast Refresh warning |
+| AC-AUTH-01 | P02 — register, verify, login/reset, session, CSRF và revoke | `backend/tests/identity/identity-behavior.test.js`; `backend/tests/identity/identity-routes.test.js` | Pass — integrated head `5138eef`; `npm run check` · 2026-10-05 22:49 UTC: contract validation, backend 30/30, lint clean, Vite build 63 modules |
 | AC-ADDR-01 | P03 — address ownership/default/geolocation fallback | `backend/tests/account/address-ownership.test.js`; `fondend/tests/account/address-form.test.jsx` | Chưa chạy |
 | AC-ORDER-01 | P05 — snapshot, timeline, transition/version và audit | `backend/tests/commerce/order-transitions.test.js` | Chưa chạy |
 | AC-PAY-01 | P06 — chữ ký, amount, redirect browser và webhook dedupe | `backend/tests/payments/payos-webhook.test.js` | Chưa chạy |
@@ -48,5 +48,5 @@ P11 bổ sung luồng E2E và ma trận accessibility/security từ `doc/plannin
 
 | Check | Lệnh / thời điểm | Kết quả |
 | --- | --- | --- |
-| Contract validation, lint, backend, frontend production build sau rebase | `npm run check` · 2026-10-05 22:38 UTC · P02 commit `47c1b7f` | Pass — 102 paths, 121 operations; backend 30/30; Vite build 47 modules; lint 0 errors và 1 Fast Refresh warning |
+| Contract validation, lint, backend, frontend production build sau rebase/route integration | `npm run check` · 2026-10-05 22:49 UTC · integrated head `5138eef` | Pass — 102 paths, 121 operations; backend 30/30; Vite build 63 modules; lint clean |
 | Mongo replica-set transaction/index tests, SMTP delivery, browser E2E | Chưa chạy | Cần replica-set DB, configured mail provider, và P11 browser environment |
