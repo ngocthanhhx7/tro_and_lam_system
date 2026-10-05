@@ -21,9 +21,17 @@ của Mongoose; khi khởi động thất bại cần khắc phục cấu hình 
 | MONGODB_URI | Backend | URI database thật |
 | CORS_ORIGIN | Backend | Origin frontend, không có path hoặc dấu / cuối |
 | TRUST_PROXY | Backend | 0 local, 1 khi đứng sau một reverse proxy tin cậy trên Render |
+| CSRF_SECRET | Backend | Ít nhất 32 ký tự ngẫu nhiên; bắt buộc production, không commit |
+| PUBLIC_WEB_URL | Backend | Origin website dùng cho link xác minh/reset; production phải HTTPS |
+| SESSION_COOKIE_NAME / RESTRICTED_COOKIE_NAME / GUEST_ORDER_COOKIE_NAME / CSRF_COOKIE_NAME | Backend | Tên cookie opaque; guest-order và appeal cookie riêng |
+| COOKIE_PATH / COOKIE_SAME_SITE / SECURE_COOKIES | Backend | Mặc định `/api/v1`, `Lax`, tắt Secure local; production luôn Secure |
 | VITE_API_BASE_URL | Frontend | /api/v1 local; https://API-HOST/api/v1 production |
 
 Các biến `VITE_*` xuất hiện trong bundle công khai; tuyệt đối không chứa secrets.
+Trong development, `CSRF_SECRET` để trống sẽ sinh khóa tạm theo process. Tạo khóa bền
+cho production bằng `node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64url'))"`
+và nhập thẳng vào secret environment của host, không đưa vào Git/chat. Nếu frontend/API
+khác site, cấu hình `COOKIE_SAME_SITE=None` cùng `SECURE_COOKIES=true` và HTTPS.
 Local Vite proxy `/api` tới localhost:5000; đổi proxy nếu đổi PORT backend.
 Scripts gọi trực tiếp entry JS của các công cụ để chạy được trên Windows khi
 đường dẫn workspace chứa ký tự `&` như `tro&lam_system`.
