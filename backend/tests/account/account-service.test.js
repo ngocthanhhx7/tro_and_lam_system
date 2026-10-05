@@ -105,7 +105,7 @@ const addressInput = (label = 'Nhà riêng') => ({
   formattedAddress: 'Số 12, phố Gốm, Hà Nội',
 });
 
-function makeService({ repository = new MemoryAccountRepository(), products, geocoder } = {}) {
+function makeService({ repository = new MemoryAccountRepository(), products, geocoder, config = {} } = {}) {
   const catalog = {
     async getCheckoutProducts(ids) {
       const allowed = products || [
@@ -115,7 +115,7 @@ function makeService({ repository = new MemoryAccountRepository(), products, geo
       return allowed.filter((item) => ids.includes(item.productId));
     },
   };
-  return { repository, service: createAccountService({ ports: { accountRepository: repository, catalogService: catalog, geocoder } }) };
+  return { repository, service: createAccountService({ ports: { accountRepository: repository, catalogService: catalog, geocoder }, config }) };
 }
 
 test('address ownership is scoped to the authenticated user', async () => {
@@ -225,4 +225,12 @@ test('reverse geocoding reports unavailable until a real provider adapter is con
   assert.deepEqual(await configured.reverseGeocode({ lat: 21, lng: 105 }), {
     suggestedAddress: { line1: 'Số 1', formattedAddress: 'Số 1, Hà Nội' }, provider: 'configured-adapter', accuracy: 'approximate',
   });
+});
+
+test('reverse geocoding applies a bounded timeout and preserves manual fallback', async () => {
+  const { service } = makeService({ geocoder: {
+    configured: true,
+    reverse: () => new Promise(() => {}),
+  }, config: { geocodingTimeoutMs: 1 } });
+  await assert.rejects(service.reverseGeocode({ lat: 21, lng: 105 }), { status: 503, code: 'GEO_UNAVAILABLE' });
 });

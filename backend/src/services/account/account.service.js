@@ -344,8 +344,22 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
     if (!geocoder || geocoder.configured !== true || typeof geocoder.reverse !== 'function') {
       throw unavailable('GEO_UNAVAILABLE', 'Gợi ý địa chỉ đang tạm ngừng. Bạn vẫn có thể nhập địa chỉ thủ công.');
     }
+    const timeoutMs = Number.isSafeInteger(config.geocodingTimeoutMs) && config.geocodingTimeoutMs > 0
+      ? config.geocodingTimeoutMs
+      : 5000;
+    const controller = new AbortController();
+    let timer;
     try {
-      const result = await geocoder.reverse({ lat: input.lat, lng: input.lng, timeoutMs: config.geocodingTimeoutMs });
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error('Geocoder request timed out'));
+        }, timeoutMs);
+      });
+      const result = await Promise.race([
+        geocoder.reverse({ lat: input.lat, lng: input.lng, timeoutMs, signal: controller.signal }),
+        timeout,
+      ]);
       if (!result || typeof result.provider !== 'string' || !result.suggestedAddress
         || typeof result.suggestedAddress.line1 !== 'string'
         || typeof result.suggestedAddress.formattedAddress !== 'string') {
@@ -359,6 +373,8 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
       return { suggestedAddress, provider: result.provider.slice(0, 80), accuracy: 'approximate' };
     } catch {
       throw unavailable('GEO_UNAVAILABLE', 'Không lấy được gợi ý địa chỉ. Bạn vẫn có thể nhập địa chỉ thủ công.');
+    } finally {
+      clearTimeout(timer);
     }
   }
 
