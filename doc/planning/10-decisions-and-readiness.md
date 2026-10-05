@@ -76,6 +76,14 @@ P05 owns order-access OTP challenges because issuing a challenge requires matchi
 
 The existing `CodCollectionCreate` requires an evidence reference, but Order has no field for append-only collection evidence. P05 stores one immutable successful full-balance collection in a P05-owned `cod_collections` collection (`orderId`, `amountVnd`, `evidenceReference`, `idempotencyKey`, `recordedBy`, `recordedAt`) with a unique `orderId` index. In the same Mongo transaction, the service validates COD eligibility and exact outstanding balance, writes the collection, and compare-and-sets Order `paymentStatus`/`paidAmountVnd`; partial COD capture remains disabled. Same-key retries replay the committed result and a different key cannot collect twice. Public request/response fields, enums and permissions do not change. Consumer: P05. Migration adds the collection index; existing Orders are unaffected.
 
+## DEC-26 — Address update uses the partial DTO
+
+The account workflow and existing `AddressPatch` schema require `expectedVersion` and permit updating only supplied fields, but `PATCH /account/addresses/{id}` incorrectly referenced `AddressWrite` in OpenAPI. Change the operation to `AddressPatch` and expose that existing DTO in the OpenAPI components. No route, field, permission, enum or storage change. Consumer: P03.
+
+## DEC-27 — Configured pending COD limit
+
+Planning requires a configurable cap on pending COD orders to limit held-stock abuse, but DEC-20 left the nested `checkoutLimits` object unbounded. Freeze `checkoutLimits.maxPendingCodOrders` as an optional positive integer with no default; an absent value disables COD checkout until the owner configures it. P09 validates and edits only this allowlisted key; P05 reads the configured value when enforcing the per-principal/guest limit. This adds no top-level settings field, route, enum or permission. R06 owner policy and value still gates live COD.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

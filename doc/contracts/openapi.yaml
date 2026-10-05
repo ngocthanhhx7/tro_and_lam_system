@@ -262,7 +262,7 @@ paths:
       operationId: updateOwnAddress
       tags: [account]
       x-actors: [customer, staff, admin]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressWrite' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressPatch' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
     delete:
       operationId: deleteOwnAddress
@@ -949,6 +949,7 @@ components:
     SuccessEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/successEnvelope' }
     ErrorEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/errorEnvelope' }
     AddressWrite: { $ref: './schemas/dtos.schema.json#/$defs/addressWrite' }
+    AddressPatch: { $ref: './schemas/dtos.schema.json#/$defs/addressPatch' }
     ProfileWrite: { $ref: './schemas/dtos.schema.json#/$defs/profileWrite' }
     CartItemWrite: { $ref: './schemas/dtos.schema.json#/$defs/cartItemWrite' }
     CartMerge: { $ref: './schemas/dtos.schema.json#/$defs/cartMerge' }

@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -106,6 +106,26 @@
       ],
       "consumers": ["P05"],
       "migration": "Create the additive cod_collections collection/index; existing Orders are unaffected."
+    },
+    {
+      "id": "DEC-26",
+      "date": "2026-10-06",
+      "reason": "Address update behavior requires partial fields and expectedVersion, but the OpenAPI PATCH operation referenced the create-only AddressWrite DTO.",
+      "changes": [
+        "PATCH /account/addresses/{id} references the existing AddressPatch DTO; the DTO is exposed as an OpenAPI component."
+      ],
+      "consumers": ["P03"],
+      "migration": "None; no route or stored field changes."
+    },
+    {
+      "id": "DEC-27",
+      "date": "2026-10-06",
+      "reason": "Pending COD limits are required to protect held inventory, but the existing checkoutLimits object had no documented key or safe enablement rule.",
+      "changes": [
+        "checkoutLimits allows only positive integer maxPendingCodOrders; absence means COD checkout is disabled, with no invented default."
+      ],
+      "consumers": ["P09", "P05"],
+      "migration": "None; owners configure this value through existing business settings."
     }
   ],
   "validation": {
@@ -117,7 +137,7 @@
       "operations": 121,
       "dtoSchemas": 60,
       "enums": 22,
-      "dtoFixtures": 21
+      "dtoFixtures": 23
     }
   }
 }

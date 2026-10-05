@@ -82,7 +82,7 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 | POST /cart/merge | C + guest cookie | {expectedVersion} | Cart merged server, max99/item; không auto nhân đôi khi retry |
 | GET /account/addresses | C | — | Address[] owned |
 | POST /account/addresses | C | AddressWrite | 201 Address |
-| PATCH /account/addresses/:id | C owner | AddressWrite partial + expectedVersion | Address |
+| PATCH /account/addresses/:id | C owner | AddressPatch | Address |
 | DELETE /account/addresses/:id | C owner | expectedVersion | 204 |
 | POST /account/addresses/:id/default | C owner | {expectedVersion} | Address default |
 | POST /locations/reverse | C | {lat,lng}; consent user đã bật UI | {suggestedAddress,provider,accuracy:'approximate'}; không tự lưu |
@@ -228,7 +228,7 @@ TicketCreate: `{kind:'support'|'complaint'|'return',subject,body,orderId?,attach
 
 P08 content item rules: `sections[]` is `{heading?:string≤300,body:ContentBlock[]≤100}`; `PageWrite.blocks` has at most 200 `ContentBlock`s. A `ContentBlock` is exactly one of `{type:'paragraph'|'heading'|'quote',text:string[1..5000]}`, `{type:'list',items:string[1..1000][]}` with 1–50 items, `{type:'image',url,alt:string[1..300],caption?:string≤500}`, or `{type:'link',text:string[1..300],url}`. A media URL is a same-origin path with one leading slash or credential-free HTTPS, at most 2048 characters. Story motifs are 1–300 characters each (maximum 100); media items are `{url,alt,caption?}` with the image limits (maximum 100); `productIds` are unique 24-character hexadecimal IDs (maximum 100). `slug` is lowercase ASCII letters/digits/hyphens (maximum 180), title maximum 300, origin maximum 2000, and artisan maximum 300. Unknown block properties are rejected. These content block variants are a structured-text allowlist, not a new business lifecycle enum. Publishing a story still requires non-empty origin and at least one populated section; publishing a page requires at least one block. HTML is not rendered as markup.
 
-`BusinessSettingsWrite.values` accepts only the documented top-level keys `shippingZones`, `codEnabled`, `checkoutLimits`, and `supportWindows`; their values are respectively an array, boolean, object, and object. Unknown top-level keys and empty updates are rejected. Nested values are inert business data only; secrets, provider credentials/URLs, and executable content are never stored in `settings`.
+`BusinessSettingsWrite.values` accepts only the documented top-level keys `shippingZones`, `codEnabled`, `checkoutLimits`, and `supportWindows`; their values are respectively an array, boolean, object, and object. `checkoutLimits` accepts the optional positive integer `maxPendingCodOrders`; COD checkout stays unavailable until the owner configures it. Unknown keys and empty updates are rejected. Nested values are inert business data only; secrets, provider credentials/URLs, and executable content are never stored in `settings`.
 
 ### Ví dụ recovery, appeal và webhook
 

@@ -71,6 +71,8 @@ const dtoFixtures = [
   ['userRegister', { name: 'Nguyễn An', email: 'an@example.com', password: 'passphrase-cho-test', role: 'admin' }, false],
   ['userInvite', { name: 'Nhân viên', email: 'staff@example.com', role: 'staff' }, true],
   ['userInvite', { name: 'Tài khoản', email: 'admin@example.com', role: 'admin' }, false],
+  ['addressPatch', { expectedVersion: 2, label: 'Nhà riêng' }, true],
+  ['addressPatch', { recipientName: 'An Nguyễn' }, false],
   ['orderTransition', { toStatus: 'shipped', expectedVersion: 3, reason: 'Bàn giao thủ công' }, true],
   ['orderTransition', { toStatus: 'shipped', expectedVersion: 3 }, false],
   ['orderTransition', { toStatus: 'shipped', expectedVersion: 3, shipping: { carrier: 'Đơn vị vận chuyển' } }, false],

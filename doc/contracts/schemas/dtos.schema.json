@@ -594,7 +594,12 @@
           "properties": {
             "shippingZones": { "type": "array", "items": { "type": "object" } },
             "codEnabled": { "type": "boolean" },
-            "checkoutLimits": { "type": "object" },
+            "checkoutLimits": {
+              "type": "object",
+              "minProperties": 1,
+              "properties": { "maxPendingCodOrders": { "type": "integer", "minimum": 1 } },
+              "additionalProperties": false
+            },
             "supportWindows": { "type": "object" }
           },
           "additionalProperties": false
