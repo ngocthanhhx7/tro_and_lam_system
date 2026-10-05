@@ -162,6 +162,7 @@ test('AC-CONTENT-01: drafts stay private; published safe text is locale-specific
   const storyId = created.body.data.id;
   assert.equal(created.body.data.status, 'draft');
   assert.equal(created.body.data.sections[0].body[0].text, 'Verified copy');
+  await assert.rejects(harness.publishedPort.getPublishedStoryById(storyId), (error) => error.status === 404);
 
   const draftRead = await harness.api.get('/api/v1/stories/source-required-story?locale=vi');
   assert.equal(draftRead.status, 404, harness.fakeLabel);
@@ -183,8 +184,10 @@ test('AC-CONTENT-01: drafts stay private; published safe text is locale-specific
   assert.equal(publicStory.status, 200);
   assert.deepEqual(publicStory.body.data.productIds, [productId]);
   assert.equal(publicStory.body.data.sections[0].body[0].text, 'Public content');
-  assert.deepEqual(Object.keys(harness.publishedPort).sort(), ['getPublishedStory', 'resolveNfc']);
+  assert.deepEqual(Object.keys(harness.publishedPort).sort(), ['getPublishedStory', 'getPublishedStoryById', 'resolveNfc']);
   assert.equal((await harness.publishedPort.getPublishedStory('source-required-story', 'vi')).status, 'published');
+  assert.equal((await harness.publishedPort.getPublishedStoryById(storyId)).status, 'published');
+  assert.equal((await harness.publishedPort.getPublishedStoryById(storyId, { session: { mode: 'test-session' } })).status, 'published');
   await assert.rejects(harness.publishedPort.getPublishedStory('source-required-story', 'en'), (error) => error.status === 404);
 
   const unreviewedEnglish = await harness.api.get('/api/v1/stories/source-required-story?locale=en');
@@ -199,6 +202,7 @@ test('AC-CONTENT-01: drafts stay private; published safe text is locale-specific
   const archived = await harness.adminRequest('delete', `/api/v1/admin/stories/${storyId}?expectedVersion=1`);
   assert.equal(archived.status, 204);
   assert.equal((await harness.api.get('/api/v1/stories/source-required-story?locale=vi')).status, 404);
+  await assert.rejects(harness.publishedPort.getPublishedStoryById(storyId), (error) => error.status === 404);
   const archivedList = await harness.adminRequest('get', '/api/v1/admin/stories?status=archived');
   assert.equal(archivedList.body.data[0].productIds[0], productId, 'archive retains product linkage history');
 });

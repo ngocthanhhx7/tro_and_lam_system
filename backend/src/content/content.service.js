@@ -265,6 +265,12 @@ export function createContentService({
     return normalizeContentDocument(story);
   }
 
+  async function getPublishedStoryById(storyId, { session } = {}) {
+    const story = await Story.findById(storyId).session(session).lean();
+    if (!story || story.status !== 'published') throw notFound();
+    return normalizeContentDocument(story);
+  }
+
   async function getPublishedPage(slug, locale = 'vi') {
     const page = await Page.findOne({ slug, locale, status: 'published' }).lean();
     if (!page) throw notFound();
@@ -303,6 +309,6 @@ export function createContentService({
     createStory, updateStory, archiveStory, listAdminStories,
     createPage, updatePage, archivePage, listAdminPages,
     createNfcTag, revokeNfcTag, listAdminNfcTags,
-    getPublishedStory, getPublishedPage, resolveNfc,
+    getPublishedStory, getPublishedStoryById, getPublishedPage, resolveNfc,
   });
 }
