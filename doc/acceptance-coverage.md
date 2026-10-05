@@ -10,7 +10,7 @@
 | AC-STOCK-01 | P05 — reservation cạnh tranh trên replica set | `backend/tests/commerce/reservation-race.integration.test.js` | Chưa chạy |
 | AC-TRACK-01 | P05 — guest order proof/OTP, chống enumeration | `backend/tests/commerce/guest-order-access.test.js` | Chưa chạy |
 | AC-CLAIM-01 | P02/P05 — challenge và compare-and-set claim guest order | `backend/tests/identity/guest-order-claim.integration.test.js` | Chưa chạy |
-| AC-AUTH-01 | P02 — register, verify, login/reset, session, CSRF và revoke | `backend/tests/identity/authentication.test.js` | Chưa chạy |
+| AC-AUTH-01 | P02 — register, verify, login/reset, session, CSRF và revoke | `backend/tests/identity/identity-behavior.test.js`; `backend/tests/identity/identity-routes.test.js` | Pass — P02 `47c1b7f`; `npm run check` · 2026-10-05 22:38 UTC: contract validation, backend 30/30 và Vite build 47 modules pass; lint 0 errors, 1 Fast Refresh warning |
 | AC-ADDR-01 | P03 — address ownership/default/geolocation fallback | `backend/tests/account/address-ownership.test.js`; `fondend/tests/account/address-form.test.jsx` | Chưa chạy |
 | AC-ORDER-01 | P05 — snapshot, timeline, transition/version và audit | `backend/tests/commerce/order-transitions.test.js` | Chưa chạy |
 | AC-PAY-01 | P06 — chữ ký, amount, redirect browser và webhook dedupe | `backend/tests/payments/payos-webhook.test.js` | Chưa chạy |
@@ -18,11 +18,11 @@
 | AC-REVIEW-01 | P07 — review đủ điều kiện, unique và moderation | `backend/tests/reviews/review-eligibility.test.js` | Chưa chạy |
 | AC-TICKET-01 | P07 — ticket ownership, nội dung nội bộ và attachments | `backend/tests/support/ticket-access.test.js` | Chưa chạy |
 | AC-STAFF-01 | P09 + domain owners — dashboard và giới hạn quyền staff | `backend/tests/operations/staff-rbac.test.js` | Chưa chạy |
-| AC-ADMIN-01 | P02/P04 — CRUD/admin user và race last-admin | `backend/tests/identity/last-admin-race.integration.test.js`; `backend/tests/catalog/admin-catalog.test.js` | Chưa chạy |
-| AC-APPEAL-01 | P02 — blocked session và restricted appeal credential | `backend/tests/identity/blocked-appeal-access.test.js` | Chưa chạy |
-| AC-APPEAL-02 | P02/P09 — quyết định appeal atomically, reason và audit | `backend/tests/identity/appeal-decision.test.js` | Chưa chạy |
+| AC-ADMIN-01 | P02/P04 — CRUD/admin user và race last-admin | `backend/tests/identity/identity-behavior.test.js`; `backend/tests/catalog/catalog.routes.test.js`; `backend/tests/catalog/catalog.service.test.js` | P02 fake-repository last-admin coverage pass 30/30; P04 package check pass 38/38 trên branch, integrated audit/RBAC chưa chạy |
+| AC-APPEAL-01 | P02 — blocked session và restricted appeal credential | `backend/tests/identity/identity-behavior.test.js`; `backend/tests/identity/identity-routes.test.js` | P02 package suite pass 30/30; route/behavior checks gồm revoke phiên, restricted appeal proof và quyền owner; live replica-set chưa chạy |
+| AC-APPEAL-02 | P02/P09 — quyết định appeal atomically, reason và audit | `backend/tests/identity/identity-behavior.test.js`; P09 audit integration tests | P02 fake-repository behavior pass 30/30; P09 transactional audit integration đang triển khai |
 | AC-NOTIFY-01 | P09 — notification owner, dedupe và outbox retry | `backend/tests/operations/outbox-notifications.test.js` | Chưa chạy |
-| AC-CONTENT-01 | P08 — published/NFC/revoked và nội dung an toàn | `backend/tests/content/nfc-public-routing.test.js` | Pass — P08 `8996218`; `npm run check` ngày 2026-10-05 22:27 UTC: backend 23/23, contract/lint/build pass |
+| AC-CONTENT-01 | P08 — published/NFC/revoked, nội dung an toàn và tra story đã publish theo ID | `backend/tests/content/nfc-public-routing.test.js` | Pass — P08 `97ef44f`; `npm run check` · 2026-10-05 22:35 UTC: backend 23/23, 102 paths/121 operations, lint và Vite build 47 modules pass |
 | AC-CONTACT-01 | P07/P09 — lưu lead trước mail, queued/retry thật | `backend/tests/support/contact-outbox.test.js` | Chưa chạy |
 | AC-AI-01 | P10 — public retrieval, redaction, unavailable/handoff | `backend/tests/assistant/grounding-and-fallback.test.js` | Chưa chạy |
 | AC-AUDIT-01 | P09 — admin-only query và redaction | `backend/tests/operations/audit-access-redaction.test.js` | Chưa chạy |
@@ -41,5 +41,12 @@ P11 bổ sung luồng E2E và ma trận accessibility/security từ `doc/plannin
 
 | Check | Lệnh / thời điểm | Kết quả |
 | --- | --- | --- |
-| Contract bundle, lint, backend và frontend production build sau rebase lên contract v1.2.0 | `npm run check` · 2026-10-05 22:27 UTC · commit `899621879eaabd1f5838ae60db49b95b50b9e730` | Pass — 102 paths, 121 operations, 60 schemas, 22 enums, 21 fixtures; backend 23/23; Vite build 47 modules |
+| Contract bundle, lint, backend và frontend production build sau P08 published-by-ID port | `npm run check` · 2026-10-05 22:35 UTC · P08 commit `97ef44f` | Pass — 102 paths, 121 operations, 60 schemas, 22 enums, 21 fixtures; backend 23/23; Vite build 47 modules |
 | Live Atlas migration/replica-set transaction tests | Chưa chạy | Cần `MONGODB_URI` và replica-set environment; migration chỉ tạo indexes, chưa chạy trên Atlas |
+
+## Bằng chứng P02
+
+| Check | Lệnh / thời điểm | Kết quả |
+| --- | --- | --- |
+| Contract validation, lint, backend, frontend production build sau rebase | `npm run check` · 2026-10-05 22:38 UTC · P02 commit `47c1b7f` | Pass — 102 paths, 121 operations; backend 30/30; Vite build 47 modules; lint 0 errors và 1 Fast Refresh warning |
+| Mongo replica-set transaction/index tests, SMTP delivery, browser E2E | Chưa chạy | Cần replica-set DB, configured mail provider, và P11 browser environment |
