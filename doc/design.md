@@ -18,6 +18,7 @@ Chưa triển khai website bán hàng hoàn chỉnh, quản trị, thanh toán h
 
 ## Kiểm tra và Git
 Build React, lint toàn repo, integration test API health/404/CORS và unit test env.
-Main/develop khởi tạo bằng commit tài liệu; scaffold nằm trên feature/project-scaffold.
-PR vào develop cần một thành viên khác tác giả duyệt; Project Leader merge.
-Không tự merge scaffold vào main/develop hoặc triển khai production.
+Scaffold đi qua feature/project-scaffold → develop → main bằng PR sau CI.
+Theo xác nhận ngày 06/10/2026, giai đoạn một người chủ dự án được tự review và
+ủy quyền trợ lý merge. Khi thêm thành viên, PR cần reviewer khác tác giả và Project Leader merge.
+Deployment production là bước riêng, chưa thực hiện trong phạm vi scaffold.
