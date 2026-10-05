@@ -65,6 +65,19 @@ function safeEmail(email) {
   return typeof email === 'string' && email.length <= 254 && /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email) && !/[\r\n]/.test(email);
 }
 
+function addressFromRecipient(value) {
+  const address = typeof value === 'string' ? value : value && typeof value === 'object' ? value.address : null;
+  return typeof address === 'string' ? address.trim().toLowerCase() : null;
+}
+
+function transportAcceptedRecipient(response, recipient) {
+  if (!response || !Array.isArray(response.accepted) || !Array.isArray(response.rejected)) return false;
+  const requestedAddress = recipient.trim().toLowerCase();
+  const wasAccepted = response.accepted.some((value) => addressFromRecipient(value) === requestedAddress);
+  const wasRejected = response.rejected.some((value) => addressFromRecipient(value) === requestedAddress);
+  return wasAccepted && !wasRejected;
+}
+
 function safeActionUrl(value, publicWebUrl) {
   const url = plainValue(value, 'actionUrl', 1000);
   if (!publicWebUrl) throw new ServiceError(503, 'MAIL_UNAVAILABLE', 'Liên kết thư chưa được cấu hình');
@@ -164,7 +177,8 @@ export function createSmtpProvider({ transporter, from, publicWebUrl, timeoutMs 
         timeout = setTimeout(() => reject(new Error('SMTP timeout')), timeoutMs);
         timeout.unref?.();
       });
-      await Promise.race([sending, timedOut]);
+      const response = await Promise.race([sending, timedOut]);
+      if (!transportAcceptedRecipient(response, to)) throw new Error('SMTP did not accept the requested recipient');
       return { accepted: true, messageId };
     } catch {
       throw new ServiceError(503, 'MAIL_UNAVAILABLE', 'SMTP chưa tiếp nhận email');

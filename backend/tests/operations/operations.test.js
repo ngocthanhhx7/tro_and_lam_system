@@ -157,7 +157,12 @@ test('SMTP adapter keeps stable Message-ID and fails unavailable without a real 
   const sent = [];
   const configured = createSmtpProvider({
     from: 'TRO & LAM <shop@example.test>',
-    transporter: { sendMail: async (message) => { sent.push(message); return { messageId: message.messageId }; } },
+    transporter: {
+      sendMail: async (message) => {
+        sent.push(message);
+        return { messageId: message.messageId, accepted: [message.to], rejected: [] };
+      },
+    },
   });
   const first = await configured.send({ eventId: 'mail:1', to: 'guest@example.test', templateKey: 'order_confirmation', variables: { orderCode: '<TL-1>' } });
   const second = await configured.send({ eventId: 'mail:1', to: 'guest@example.test', templateKey: 'order_confirmation', variables: { orderCode: '<TL-1>' } });
@@ -165,6 +170,29 @@ test('SMTP adapter keeps stable Message-ID and fails unavailable without a real 
   assert.equal(first.messageId, second.messageId);
   assert.match(sent[0].html, /&lt;TL-1&gt;/);
   assert.throws(() => renderMailTemplate('order_confirmation', { orderCode: 'x\r\nBcc: attacker@example.test' }), { code: 'VALIDATION_ERROR' });
+});
+
+test('SMTP provider retries unresolved recipients when Nodemailer rejects or malforms its result', async () => {
+  const recipient = 'guest@example.test';
+  const unsuccessfulResults = [
+    { accepted: [], rejected: [recipient] },
+    { accepted: [], rejected: [] },
+    { messageId: '<transport-returned-no-recipient-lists@example.test>' },
+    { accepted: recipient, rejected: [] },
+    { accepted: ['another@example.test'], rejected: [] },
+    { accepted: [recipient], rejected: [recipient] },
+  ];
+
+  for (const response of unsuccessfulResults) {
+    const provider = createSmtpProvider({
+      from: 'TRO & LAM <shop@example.test>',
+      transporter: { sendMail: async () => response },
+    });
+    await assert.rejects(() => provider.send({
+      eventId: 'mail:recipient-check', to: recipient,
+      templateKey: 'order_confirmation', variables: { orderCode: 'TL-1' },
+    }), { code: 'MAIL_UNAVAILABLE' });
+  }
 });
 
 test('SMTP templates validate same-origin account invitations and escape appeal review notes', () => {
