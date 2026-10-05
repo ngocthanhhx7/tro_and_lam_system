@@ -1,8 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clearCsrfToken } from '../services/httpClient.js';
 import { identityApi } from '../services/identity/identity.api.js';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './auth.context.js';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -57,10 +56,4 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => ({ user, loading, errorCode, refresh, setUser, logout }), [user, loading, errorCode, refresh, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth phải được dùng bên trong AuthProvider');
-  return context;
 }

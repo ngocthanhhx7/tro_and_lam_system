@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useAuth } from '../../contexts/auth.context.js';
 import './identity.css';
 
 export default function IdentityRouteGuard({ roles, children }) {

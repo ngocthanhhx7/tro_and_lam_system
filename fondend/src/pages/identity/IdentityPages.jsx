@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { identityApi } from '../../services/identity/identity.api.js';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useAuth } from '../../contexts/auth.context.js';
 import { useIdentityRequest } from '../../hooks/identity/useIdentityRequest.js';
 import './identity.css';
 
