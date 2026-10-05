@@ -72,6 +72,10 @@ Products store an optional `storyId`, while the public product detail may includ
 
 P05 owns order-access OTP challenges because issuing a challenge requires matching an order code and its email without revealing whether either exists. After successful OTP verification, P05 must use P02's internal `createGuestOrderProof({ orderId, identityVerifiedAt, session })` port; it must not mint or persist identity credentials itself. P02 exposes `authenticateGuestOrderProof(token)` to validate the stored token hash, purpose, order scope, expiry and revocation, `requireGuestOrderProof(scopes)` middleware for guest-order routes, and `revokeGuestOrderProofs(orderId, { session })` for atomic guest-order claim. These internal ports add no public route, DTO, role, permission, or enum; the existing `/order-access/challenges` and `/order-access/verify` contract operations remain P05-owned.
 
+## DEC-25 — Immutable COD collection evidence
+
+The existing `CodCollectionCreate` requires an evidence reference, but Order has no field for append-only collection evidence. P05 stores one immutable successful full-balance collection in a P05-owned `cod_collections` collection (`orderId`, `amountVnd`, `evidenceReference`, `idempotencyKey`, `recordedBy`, `recordedAt`) with a unique `orderId` index. In the same Mongo transaction, the service validates COD eligibility and exact outstanding balance, writes the collection, and compare-and-sets Order `paymentStatus`/`paidAmountVnd`; partial COD capture remains disabled. Same-key retries replay the committed result and a different key cannot collect twice. Public request/response fields, enums and permissions do not change. Consumer: P05. Migration adds the collection index; existing Orders are unaffected.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

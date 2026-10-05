@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -95,6 +95,16 @@
       ],
       "consumers": ["P02", "P05"],
       "migration": "None; the existing restricted_proofs model, scopes, and public API contract are unchanged."
+    },
+    {
+      "id": "DEC-25",
+      "date": "2026-10-06",
+      "reason": "The frozen COD collection request requires evidence, but the Order snapshot has no field for immutable collection records.",
+      "changes": [
+        "P05 persists one immutable full-balance COD collection per order and atomically commits it with Order paid status and amount; partial capture is not enabled."
+      ],
+      "consumers": ["P05"],
+      "migration": "Create the additive cod_collections collection/index; existing Orders are unaffected."
     }
   ],
   "validation": {
