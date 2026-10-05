@@ -1,0 +1,29 @@
+{
+  "contractVersion": "1.0.0",
+  "createdAt": "2026-10-06",
+  "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
+  "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
+  "authority": [
+    "doc/planning/04-data-model.md",
+    "doc/planning/05-api-contracts.md",
+    "doc/planning/contract-enums.json"
+  ],
+  "artifacts": [
+    "doc/contracts/openapi.yaml",
+    "doc/contracts/schemas/dtos.schema.json",
+    "doc/contracts/schemas/enums.schema.json"
+  ],
+  "coordinatorDecisions": ["DEC-16"],
+  "validation": {
+    "command": "npm run validate:contracts",
+    "runtime": "Node 24.21.0",
+    "result": {
+      "openapiVersion": "3.1.0",
+      "paths": 102,
+      "operations": 121,
+      "dtoSchemas": 56,
+      "enums": 22,
+      "dtoFixtures": 12
+    }
+  }
+}

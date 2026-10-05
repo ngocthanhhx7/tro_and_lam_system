@@ -11,6 +11,7 @@ const contractDir = path.join(root, 'doc', 'contracts');
 const openapiPath = path.join(contractDir, 'openapi.yaml');
 const dtosPath = path.join(contractDir, 'schemas', 'dtos.schema.json');
 const enumsPath = path.join(contractDir, 'schemas', 'enums.schema.json');
+const manifestPath = path.join(contractDir, 'manifest.json');
 
 const api = await SwaggerParser.validate(openapiPath);
 assert.equal(api.openapi, '3.1.0', 'OpenAPI must stay on the frozen 3.1 contract');
@@ -29,10 +30,19 @@ for (const [routePath, pathItem] of Object.entries(api.paths)) {
 }
 assert.ok(!JSON.stringify(api).includes('#/components/schemas/GenericObject'), 'request DTOs must not use untyped GenericObject schemas');
 
-const [dtos, enums, planningEnums] = await Promise.all([
+const [dtos, enums, planningEnums, manifest] = await Promise.all([
   readFile(dtosPath, 'utf8').then(JSON.parse),
   readFile(enumsPath, 'utf8').then(JSON.parse),
   readFile(path.join(root, 'doc', 'planning', 'contract-enums.json'), 'utf8').then(JSON.parse),
+  readFile(manifestPath, 'utf8').then(JSON.parse),
+]);
+
+assert.match(manifest.baselineCommit, /^[0-9a-f]{40}$/i, 'Manifest must record a real full-length baseline commit');
+assert.match(manifest.sourceCommit, /^[0-9a-f]{40}$/i, 'Manifest must record the source commit');
+assert.deepEqual(manifest.artifacts, [
+  'doc/contracts/openapi.yaml',
+  'doc/contracts/schemas/dtos.schema.json',
+  'doc/contracts/schemas/enums.schema.json',
 ]);
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -72,5 +82,12 @@ const dtoFixtures = [
 for (const [name, value, expected] of dtoFixtures) {
   assert.equal(compiledDtos.get(name)(value), expected, `${name} fixture must be ${expected ? 'accepted' : 'rejected'}`);
 }
+
+assert.equal(manifest.validation.result.openapiVersion, api.openapi);
+assert.equal(manifest.validation.result.paths, Object.keys(api.paths).length);
+assert.equal(manifest.validation.result.operations, operationIds.size);
+assert.equal(manifest.validation.result.dtoSchemas, Object.keys(dtos.$defs).length);
+assert.equal(manifest.validation.result.enums, Object.keys(enums.$defs).length);
+assert.equal(manifest.validation.result.dtoFixtures, dtoFixtures.length);
 
 console.log(`Contracts valid: OpenAPI ${api.openapi}, ${Object.keys(api.paths).length} paths, ${operationIds.size} operations, ${Object.keys(dtos.$defs).length} DTO schemas, ${Object.keys(enums.$defs).length} frozen enums, ${dtoFixtures.length} DTO fixtures.`);
