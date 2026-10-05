@@ -5,8 +5,9 @@ import { ApiError } from '../../services/httpClient.js';
 import { getPage } from '../../services/content/content.service.js';
 import { PublicPageContent } from './StoryPage.jsx';
 
-export default function PublishedPage() {
-  const { slug } = useParams();
+export default function PublishedPage({ pageSlug }) {
+  const { slug: routeSlug } = useParams();
+  const slug = pageSlug || routeSlug;
   const [searchParams] = useSearchParams();
   const locale = searchParams.get('locale') === 'en' ? 'en' : 'vi';
   const [state, setState] = useState({ status: 'loading' });
