@@ -212,8 +212,10 @@ test('guest order proof stays restricted, cookie scoped, expiring, and revocable
   const { service, repository } = makeHarness();
   const firstOrderId = '507f1f77bcf86cd799439011';
   const secondOrderId = '507f1f77bcf86cd799439012';
-  const first = await service.createGuestOrderProof({ orderId: firstOrderId, identityVerifiedAt: new Date(testTime) });
+  const first = await service.createGuestOrderProof({ orderId: firstOrderId });
   const second = await service.createGuestOrderProof({ orderId: secondOrderId, identityVerifiedAt: new Date(testTime) });
+  assert.equal(repository.proofs[0].identityVerifiedAt, undefined, 'checkout access must not imply email verification');
+  assert.deepEqual(repository.proofs[1].identityVerifiedAt, new Date(testTime));
   assert.notEqual(repository.proofs[0].tokenHash, first.token);
   assert.equal(repository.proofs[0].purpose, 'guest_order_access');
   assert.equal((await service.authenticateGuestOrderProof(first.token)).orderId, firstOrderId);

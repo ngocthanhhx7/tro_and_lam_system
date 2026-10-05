@@ -652,13 +652,19 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
   }
 
   async function createGuestOrderProof({ orderId, identityVerifiedAt, session }) {
-    if (!orderId || !identityVerifiedAt) throw new TypeError('Guest order proof cần orderId và identityVerifiedAt đã xác minh');
+    if (!orderId) throw new TypeError('Guest order proof cần orderId');
+    let verifiedAt;
+    if (identityVerifiedAt !== undefined) {
+      verifiedAt = new Date(identityVerifiedAt);
+      if (Number.isNaN(verifiedAt.getTime())) throw new TypeError('identityVerifiedAt phải là thời điểm hợp lệ');
+    }
     const token = opaqueToken();
     const issuedAt = now();
     const expiresAt = new Date(issuedAt.getTime() + duration('guestOrderProofTtlMs', 60 * 60 * 1000));
     await repository.createRestrictedProof({
       purpose: 'guest_order_access', orderId, scopes: [...GUEST_ORDER_SCOPES],
-      tokenHash: hashToken(token), expiresAt, issuedAt, identityVerifiedAt: new Date(identityVerifiedAt),
+      tokenHash: hashToken(token), expiresAt, issuedAt,
+      ...(verifiedAt ? { identityVerifiedAt: verifiedAt } : {}),
     }, { session });
     return { token, expiresAt };
   }

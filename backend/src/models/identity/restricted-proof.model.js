@@ -9,7 +9,7 @@ const restrictedProofSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true },
   revokedAt: { type: Date },
   issuedAt: { type: Date, required: true },
-  identityVerifiedAt: { type: Date, required: true },
+  identityVerifiedAt: { type: Date },
   authVersion: { type: Number },
 }, { timestamps: true, collection: 'restricted_proofs' });
 
