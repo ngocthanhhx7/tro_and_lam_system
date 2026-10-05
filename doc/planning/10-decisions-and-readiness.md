@@ -36,6 +36,18 @@
 | Delete sản phẩm/user | Archive/soft-delete khi đã có tham chiếu đơn/log | Không cascade xóa lịch sử mua/tài chính |
 | NFC | URL story published + tag opaque, QR fallback | Không tuyên bố chống giả chỉ bằng URL |
 
+## DEC-17 — Catalog filters and versioned product updates
+
+The frozen OpenAPI omitted two requirements already present in PUB-02 and the admin product workflow: public filtering by `saleMode`/inventory availability, and `expectedVersion` on product updates. The admin `ProductPatch` schema already exists, so the PATCH operation now uses it; product creation remains `ProductWrite`.
+
+`GET /products` accepts the existing `saleMode` enum and an optional boolean `available`. `available=true` selects products purchasable from current available inventory; `available=false` selects buyable products with no available inventory. Quote-only products are excluded when `available` is supplied. The response continues to expose only `availableForPurchase`/`stockLabel`, never reserved quantities. Availability reads use the P05 inventory port; without that port the service must fail closed rather than infer stock from Product.
+
+Consumer impact: P04 implements query validation/filtering and PATCH version checks; P05 provides authoritative availability reads. This is additive and requires no data migration or new enum, route, role, or permission. Contract baseline commit remains the P01 baseline; the amendment is recorded in `doc/contracts/manifest.json`.
+
+## DEC-18 — Media storage unavailable response
+
+The admin media upload route must report an unconfigured or unavailable storage provider truthfully. Add the `MEDIA_UNAVAILABLE` error code to the documented 503 provider-unavailable set and shared error middleware. P04 returns this code until a storage provider is configured; it does not fabricate an uploaded asset or URL. Consumer impact is P04 and clients of `POST /admin/media`. The existing error envelope is unchanged; no data migration, new enum, route, role or permission is required.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

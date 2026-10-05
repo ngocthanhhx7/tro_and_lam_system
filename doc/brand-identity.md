@@ -1,49 +1,66 @@
-# TRO & LAM — bộ nhận diện triển khai
+# TRO & LAM — brand identity and content guide
 
-Trạng thái: hướng dẫn thiết kế số theo logo có trong repo và hồ sơ planning. Đây là hệ thống triển khai giao diện, không phải tuyên bố pháp lý về nhãn hiệu hay chứng minh xuất xứ từng sản phẩm.
+## Brand foundation
 
-## Ý niệm
+TRO & LAM presents Chu Đậu ceramics for daily use, interiors and considered gifts. The visual system follows the supplied logo: deep blue-green, gold linework, an ivory ground, and the lotus motif already present in the mark. The logo is the source of the identity; interface decoration must stay secondary to the ceramics and approved product photography.
 
-Thương hiệu gốm Chu Đậu với hai tuyến Lifestyle và Diplomacy, kể bằng nhịp editorial gọn, vật liệu thật và trải nghiệm mua rõ ràng. Giữ dấu hiệu lam, men ngà, sen và vàng kim nhìn thấy trên logo; trang sản phẩm phải phân biệt mua trực tiếp với yêu cầu tư vấn theo `saleMode`.
+The two catalog lines remain distinct in product copy:
 
-## Màu
+- **Lifestyle Line** — useful ceramics and objects for personal spaces and gifting.
+- **Diplomacy Line** — selected vessels and gift inquiries for formal, business and institutional occasions. Purchase or quote actions follow each product's `saleMode`.
 
-| Tên | Mã | Vai trò |
+NFC pages explain an editorial story attached to a tag. A tag URL is not proof of authenticity, provenance or ownership.
+
+## Visual system
+
+| Token | Value | Use |
 | --- | --- | --- |
-| Lam thương hiệu | `#123F56` | Điều hướng, CTA chính, chữ đậm trên nền sáng |
-| Lam sâu | `#092B3B` | Nền đậm và lớp phủ ảnh |
-| Men ngà | `#F7F3E9` | Nền nội dung, thẻ editorial |
-| Trắng | `#FFFFFF` | Form và vùng thao tác |
-| Kim nhạt | `#D8B35A` | Viền, họa tiết và điểm nhấn trên lam; không dùng cho chữ nhỏ trên nền sáng |
-| Mực | `#1D2930` | Nội dung chính |
-| Chữ phụ | `#52626B` | Mô tả thứ cấp |
-| Viền | `#D8DFE1` | Input, card và bảng |
+| Deep blue-green | `#092B3B` | Header, footer and high-contrast brand surfaces |
+| Ceramics blue | `#123F56` | Links, active navigation and secondary actions |
+| Warm ivory | `#F7F3E9` | Main page ground and quiet editorial sections |
+| Logo gold | `#D8B35A` | Fine rules, small highlights and focus accents |
+| Primary text | `#1D2930` | Body text on light surfaces |
 
-Màu trạng thái dùng thêm: thành công `#216345`, cảnh báo `#81540B`, lỗi `#A12B35`; luôn kèm nhãn/icon, không chỉ đổi màu. Body text phải đạt tương phản WCAG AA 4.5:1; chữ lớn 3:1; focus nhìn rõ trên cả lam và men ngà.
+These values reuse the local design tokens and approximate the supplied logo palette. Keep gold as an accent rather than a large text or page background color. Preserve the logo artwork and clear space; do not recolor, crop or redraw it in the interface.
 
-## Chữ
+Use the self-hosted **Noto Serif** Vietnamese variable font for display headings and **Be Vietnam Pro** for body text, controls, labels and figures. Keep paragraphs comfortably readable on mobile. Avoid all-caps body copy and excessive letter spacing in Vietnamese.
 
-- Tiêu đề: **Noto Serif**, các weight 400/500, hỗ trợ đầy đủ dấu tiếng Việt; Georgia/serif là fallback.
-- Nội dung, biểu mẫu, điều hướng và số liệu: **Be Vietnam Pro**, weight 400/500/600/700; `system-ui` là fallback.
-- Body từ 16px, line-height khoảng 1.6. H1 desktop 48–64px, mobile 32–40px; không để headline đẩy CTA khỏi màn hình điện thoại.
-- Ưu tiên tự host WOFF2 có license OFL; không phụ thuộc font từ bên thứ ba để render nội dung cốt lõi.
+## Layout direction
 
-## Logo và đồ họa
+Use a quiet editorial rhythm: generous ivory space, strong product imagery, short section introductions and restrained blue/gold details. Public pages should lead with a concrete product or collection and a clear next action. Product cards show price only when the SKU is purchasable; quote-only items say “Yêu cầu báo giá”. Keep catalog filters in the URL and make mobile product grids easy to scan.
 
-Logo gốc: [`fondend/public/assets/logo/logo.PNG`](../fondend/public/assets/logo/logo.PNG). Đây là ảnh nền lam có vòng tròn, chữ và sen màu kim. Dùng nguyên file, giữ tỷ lệ, không crop, recolor, tách chi tiết hay kéo giãn. Tệp phân biệt hoa/thường khi deploy Linux. Dùng `object-fit: contain`; trên header nhỏ có thể đặt wordmark text cạnh ảnh.
+Reference review on 2026-10-06 used read-only HTTP GET requests to [Sắc Cố Đô](https://saccodo.com/) and [Thành Nam Hương Ký](https://thanhnamhuongky.io.vn/). The first page visibly organizes an introductory hero, destination/story cards and a numbered visitor journey. The second opens with a brand statement, follows with a brand story and product cards, and includes category navigation and newsletter content. TRO & LAM can use those general information patterns while keeping its own logo, product photography, colors and copy. No reference-site image, video, logo, text or source code was copied or downloaded. Agy's web-research tool was denied command permission in this session; these observations are the coordinator's direct page review, not Agy research.
 
-Đường tròn mảnh, nét hoa sen và họa tiết lam chỉ dùng như chi tiết trang trí có khoảng thở. Không dùng toàn bộ logo làm hero background. Card sản phẩm dùng nền trung tính, ảnh đúng tỷ lệ và tên/giá/CTA dễ so sánh.
+## Voice and page wording
 
-## Hình ảnh, video và nội dung
+Write in Vietnamese first. Sound composed, clear and helpful. Describe visible form, material, dimensions, use and care only from approved product data. Treat heritage, maker, workshop, motif and origin statements as claims that need an approved source.
 
-- Ưu tiên ảnh sản phẩm thật do chủ dự án cấp, có quyền sử dụng và ánh sáng cho thấy men, họa tiết, kích thước. Mỗi ảnh cần alt mô tả điều nhìn thấy, không nhồi cụm từ tìm kiếm.
-- Asset tạo bằng AI hoặc minh họa vector chỉ dùng làm art direction/editorial; phải được lưu kèm ghi chú nguồn và không trình bày như SKU, nghệ nhân hoặc địa điểm có thật.
-- Không tải, cắt hoặc tái sử dụng ảnh/video/copy/logo/code từ Sắc Cố Đô hay Thành Nam Hương Ký. Chỉ học nhịp section và cách dẫn chuyện đã ghi ở `doc/planning/03-design-and-pages.md`.
-- Video không autoplay có âm thanh; có poster, caption/transcript và điều khiển. Trang phải dễ hiểu khi video không tải hoặc người dùng bật `prefers-reduced-motion`.
-- Không dùng lời chứng thực, số năm, nguồn gốc chi tiết, giá hay chính sách khi chưa có nguồn/duyệt tương ứng.
+Preferred CTA labels:
 
-## Thành phần và nhịp giao diện
+- “Khám phá bộ sưu tập”
+- “Xem chi tiết sản phẩm”
+- “Thêm vào giỏ”
+- “Yêu cầu báo giá”
+- “Tư vấn quà tặng doanh nghiệp”
+- “Đọc câu chuyện”
 
-Container tối đa khoảng 1200px, gutter 16/24/32px; spacing theo bội 4px; góc control 8px, card 12px. Header public gọn; nội dung kể chuyện xen ảnh rộng và đoạn chữ ngắn. Workspace staff/admin dùng cùng font/màu nhưng nhịp dày hơn, ưu tiên bảng, trạng thái và thao tác.
+Use these search phrases naturally when they match the page: **gốm Chu Đậu**, **gốm trang trí**, **quà tặng gốm**, **quà tặng doanh nghiệp**, and **câu chuyện gốm qua NFC**. Put one clear subject in each page title and heading. Product pages should name the exact approved product; do not add dimensions, price, artisan or provenance terms without data. Use descriptive image alt text for informative product photos and empty alt text for purely decorative art.
 
-Breakpoints: mobile 0–639px, tablet 640–1023px, desktop từ 1024px. Kiểm tra 320/390/768/1024/1440px và zoom 200%; menu điện thoại hỗ trợ Escape, focus và hoàn trả focus. Touch target tối thiểu 44×44px.
+Example homepage title: `TRO & LAM — Gốm Chu Đậu cho đời sống hôm nay`.
+
+Example collection introduction: `Khám phá các sản phẩm gốm Chu Đậu thuộc Lifestyle Line và Diplomacy Line. Lọc theo công năng, mức giá và hình thức tư vấn; thông tin sản phẩm được hiển thị theo dữ liệu đã công bố.`
+
+Do not publish claims such as “nghìn năm”, “di sản UNESCO”, “nghệ nhân lâu đời”, “thủ công 100%”, “độc bản”, “được chứng nhận”, or “chống hàng giả” unless the owner supplies and approves supporting evidence. Do not fabricate reviews, stock, discounts, delivery promises or customer counts.
+
+## SEO/GEO content structure
+
+- Give every public page a distinct Vietnamese title, summary and one descriptive H1.
+- Use semantic headings for collections, product specifications, care, story and contact information.
+- Keep product names, price, stock label and sale mode consistent with the API response.
+- Give story pages a short factual summary and cite approved sources for cultural claims.
+- Make contact and business inquiry destinations visible and accurate; omit unknown address, phone and hours.
+- Keep locale support in the data model. Do not show an English switch until reviewed English copy exists.
+
+## Media status
+
+Only the supplied logo and the clearly labeled editorial concept SVG are currently in the repository. There is no owner-supplied product photography or video yet. The Agy CLI reports no direct image tool in this session, and its image-generator handoff was blocked by command permission; no realistic raster image was produced. Use the concept illustration as decoration only. Product pages must wait for owner-approved SKU photography and usage rights before publication. See [assets-and-media.md](assets-and-media.md).

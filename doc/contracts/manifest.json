@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.0.0",
+  "contractVersion": "1.1.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,7 +13,30 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18"],
+  "amendments": [
+    {
+      "id": "DEC-17",
+      "date": "2026-10-06",
+      "reason": "PUB-02 required sale-mode and availability filters and the admin product update workflow required optimistic concurrency, but the frozen OpenAPI omitted those details.",
+      "changes": [
+        "GET /products adds optional saleMode (existing enum) and available (boolean) query filters.",
+        "PATCH /admin/products/{id} now references the existing ProductPatch DTO with required expectedVersion; POST remains ProductWrite."
+      ],
+      "consumers": ["P04", "P05"],
+      "migration": "None; query filters are additive and expectedVersion uses the existing product version field."
+    },
+    {
+      "id": "DEC-18",
+      "date": "2026-10-06",
+      "reason": "POST /admin/media must report missing storage configuration without returning a fabricated URL or mislabeling a storage outage as a database failure.",
+      "changes": [
+        "Add MEDIA_UNAVAILABLE to the existing API error code vocabulary for HTTP 503 media storage failures."
+      ],
+      "consumers": ["P04", "POST /admin/media clients"],
+      "migration": "None; the existing error envelope and route remain unchanged."
+    }
+  ],
   "validation": {
     "command": "npm run validate:contracts",
     "runtime": "Node 24.21.0",

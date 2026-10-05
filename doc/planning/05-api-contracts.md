@@ -28,7 +28,7 @@ Giá trên là fixture minh họa, không là giá chính thức. Error giữ d�
 | 413/415 | PAYLOAD_TOO_LARGE, UNSUPPORTED_MEDIA_TYPE | đổi file |
 | 422 | CHECKOUT_NOT_ALLOWED, REVIEW_NOT_ELIGIBLE | giải thích điều kiện nghiệp vụ |
 | 429 | RATE_LIMITED | Retry-After, không tự spam |
-| 503 | DATABASE_UNAVAILABLE, PAYMENT_UNAVAILABLE, MAIL_UNAVAILABLE, AI_UNAVAILABLE, GEO_UNAVAILABLE | degraded UI, đơn đã tạo vẫn hiển thị; không fake thành công |
+| 503 | DATABASE_UNAVAILABLE, PAYMENT_UNAVAILABLE, MAIL_UNAVAILABLE, AI_UNAVAILABLE, GEO_UNAVAILABLE, MEDIA_UNAVAILABLE | degraded UI, đơn đã tạo vẫn hiển thị; không fake thành công |
 
 Page mặc định 1, limit 20 max100. q trim max120, enum sort allowlist; stable tie-break id. Riêng message/audit dùng cursor opaque encode timestamp+id, limit max100, trả `meta.nextCursor` thay total. Không trộn page và cursor. Endpoint không ghi sort có default createdAt desc. Client không gửi raw Mongo filter. expectedVersion required ở order transition/user status/role/appeal/refund/content mutations; mismatch 409.
 
@@ -53,7 +53,7 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 
 | Method path | Quyền | Request/query | Response data |
 | --- | --- | --- | --- |
-| GET /products | G | q,line,category,priceMin,priceMax,sort=name/price_asc/price_desc/newest,page,limit | ProductSummary[] published |
+| GET /products | G | q,line,category,priceMin,priceMax,saleMode,available,sort=name/price_asc/price_desc/newest,page,limit | ProductSummary[] published; `available=true/false` filters buyable stock availability and never exposes reserved counts |
 | GET /products/:slug | G | locale=vi/en | ProductDetail published + related stories |
 | GET /categories | G | locale | Category[] published |
 | GET /products/:id/reviews | G | page,limit | ReviewPublic[] published |
@@ -144,7 +144,7 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 | GET /admin/products | A | q,status,line,page,limit | ProductAdmin[] all statuses |
 | GET /admin/products/:id | A | — | ProductAdmin |
 | POST /admin/products | A | ProductWrite | 201 ProductAdmin |
-| PATCH /admin/products/:id | A | ProductWrite partial + expectedVersion | ProductAdmin |
+| PATCH /admin/products/:id | A | ProductPatch (partial product fields + required expectedVersion) | ProductAdmin |
 | DELETE /admin/products/:id | A | expectedVersion | 204 archive khi có liên kết lịch sử |
 | POST /admin/products/:id/inventory-adjustments | A | {delta,reason,expectedVersion} + Idempotency-Key | Inventory; không làm onHand<reserved |
 | GET/POST /admin/categories | A | query hoặc CategoryWrite | list / 201 Category |

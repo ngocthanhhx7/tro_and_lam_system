@@ -70,6 +70,8 @@ paths:
         - { in: query, name: category, schema: { type: string } }
         - { in: query, name: priceMin, schema: { type: integer, minimum: 0 } }
         - { in: query, name: priceMax, schema: { type: integer, minimum: 0 } }
+        - { in: query, name: saleMode, schema: { $ref: '#/components/schemas/SaleMode' } }
+        - { in: query, name: available, description: Filter buyable products by inventory availability; false selects buyable products with no available stock., schema: { type: boolean } }
         - { in: query, name: sort, schema: { type: string, enum: [name, price_asc, price_desc, newest] } }
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/Limit' }
@@ -669,7 +671,7 @@ paths:
       operationId: updateAdminProduct
       tags: [admin]
       x-actors: [admin]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductWrite' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductPatch' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
     delete:
       operationId: archiveAdminProduct
@@ -951,10 +953,12 @@ components:
     OrderClaim: { $ref: './schemas/dtos.schema.json#/$defs/orderClaim' }
     ContactCreate: { $ref: './schemas/dtos.schema.json#/$defs/contactCreate' }
     ProductWrite: { $ref: './schemas/dtos.schema.json#/$defs/productWrite' }
+    ProductPatch: { $ref: './schemas/dtos.schema.json#/$defs/productPatch' }
     ReviewCreate: { $ref: './schemas/dtos.schema.json#/$defs/reviewCreate' }
     TicketCreate: { $ref: './schemas/dtos.schema.json#/$defs/ticketCreate' }
     UserRegister: { $ref: './schemas/dtos.schema.json#/$defs/userRegister' }
     ProductLine: { $ref: './schemas/enums.schema.json#/$defs/productLine' }
+    SaleMode: { $ref: './schemas/enums.schema.json#/$defs/saleMode' }
     ProductStatus: { $ref: './schemas/enums.schema.json#/$defs/productStatus' }
     OrderStatus: { $ref: './schemas/enums.schema.json#/$defs/orderStatus' }
     PaymentStatus: { $ref: './schemas/enums.schema.json#/$defs/paymentStatus' }
