@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -85,6 +85,16 @@
       ],
       "consumers": ["P08", "P04"],
       "migration": "None; this is an internal read port with no stored-data change."
+    },
+    {
+      "id": "DEC-24",
+      "date": "2026-10-06",
+      "reason": "The frozen API requires guest order OTP access and atomic proof revocation during claim, while guest restricted credentials must stay in P02's identity subsystem.",
+      "changes": [
+        "P02 exposes the existing proof issuer plus internal proof authentication, scoped middleware, and order-id revocation methods; P05 owns code/email challenge matching, OTP verification, and the existing public guest access operations."
+      ],
+      "consumers": ["P02", "P05"],
+      "migration": "None; the existing restricted_proofs model, scopes, and public API contract are unchanged."
     }
   ],
   "validation": {

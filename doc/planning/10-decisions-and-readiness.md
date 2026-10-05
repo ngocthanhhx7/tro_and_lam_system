@@ -68,6 +68,10 @@ The staff dashboard contract includes `lowStock`, but the inventory model does n
 
 Products store an optional `storyId`, while the public product detail may include the linked story. Add the internal P08 service port `getPublishedStoryById(storyId, { session })`, returning the existing safe story DTO only when that record is published and otherwise returning not found. The lookup preserves the locale of the referenced record; it does not invent a translation or fallback. This is an internal service port only: no public route, API DTO, enum, role, permission, or migration changes. Consumers: P08 implements the resolver and P04 uses it from the product detail service.
 
+## DEC-24 — Guest order restricted-proof identity port
+
+P05 owns order-access OTP challenges because issuing a challenge requires matching an order code and its email without revealing whether either exists. After successful OTP verification, P05 must use P02's internal `createGuestOrderProof({ orderId, identityVerifiedAt, session })` port; it must not mint or persist identity credentials itself. P02 exposes `authenticateGuestOrderProof(token)` to validate the stored token hash, purpose, order scope, expiry and revocation, `requireGuestOrderProof(scopes)` middleware for guest-order routes, and `revokeGuestOrderProofs(orderId, { session })` for atomic guest-order claim. These internal ports add no public route, DTO, role, permission, or enum; the existing `/order-access/challenges` and `/order-access/verify` contract operations remain P05-owned.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

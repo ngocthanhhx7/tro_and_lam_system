@@ -51,7 +51,7 @@ P01 định nghĩa JS JSDoc/JSON schema cho các port sau; mỗi owner cung cấ
 
 | Port / owner | Chữ ký nghiệp vụ cần freeze | Caller |
 | --- | --- | --- |
-| Identity / P02 | `requireActor(sessionToken) -> {id,role,status}`; `requireOwner(actor,resource)` | tất cả module |
+| Identity / P02 | `requireActor(sessionToken) -> {id,role,status}`; `requireOwner(actor,resource)`; `createGuestOrderProof({orderId,identityVerifiedAt,session})`; `authenticateGuestOrderProof(token)`; `requireGuestOrderProof(scopes)`; `revokeGuestOrderProofs(orderId,{session})` | tất cả module; P05 order access/claim |
 | Catalog / P04 | `getCheckoutProducts(ids,{session}) -> ProductForCheckout[]`; `searchPublished(query)` | P03/P05/P10 |
 | Address / P03 | `getOwnedAddress(userId,addressId,{session}) -> AddressSnapshot`; `getCart(actor)` | P05 |
 | Inventory / P05 | `reserve(items,orderId,{session,expiresAt})`; `release(orderId,{session,reason})`; `commitShipment(orderId,{session})`; `getAvailability(ids)` | P04/P06/order |
