@@ -62,6 +62,8 @@ Lệnh này chạy ESLint, backend tests và production build React. Tests dùng
 cho trạng thái DB, không kết nối Atlas. Atlas thực phải được kiểm tra riêng.
 
 ## Tài liệu
+- [Hồ sơ phát triển đầy đủ và kế hoạch chia agent](doc/planning/README.md)
+- [Prompt giao agent hoàn thiện dự án](doc/agent-handoff-prompt.md)
 - [Thiết kế](doc/design.md)
 - [Nghiệp vụ và phạm vi](doc/business-requirements.md)
 - [Setup Atlas và deployment](doc/setup.md)
@@ -71,3 +73,6 @@ cho trạng thái DB, không kết nối Atlas. Atlas thực phải được ki�
 Mã nguồn nghiệp vụ được phát triển trên `feature/*`, PR vào `develop`.
 Giai đoạn một người: chủ dự án tự review hoặc ủy quyền merge sau CI.
 Khi thêm thành viên: người khác tác giả duyệt; Project Leader thực hiện merge.
+
+Hồ sơ `doc/planning/` mô tả các tính năng cần phát triển tiếp; các tính năng đó chưa được
+triển khai trong scaffold. Logo do chủ dự án cung cấp nằm ở `fondend/public/assets/logo/logo.PNG`.

@@ -3,6 +3,10 @@
 Nguồn: brief người dùng cung cấp ngày 06/10/2026; không bổ sung các tuyên bố lịch sử
 hoặc thông tin sản phẩm chưa được xác minh.
 
+Đặc tả mở rộng đầy đủ customer/staff/admin, guest checkout, address, appeal, notification,
+PayOS/SMTP/Gemini và plan song song nằm tại [doc/planning](planning/README.md).
+Danh sách giai đoạn dưới đây là định hướng ban đầu; dùng hồ sơ planning làm đích triển khai mới nhất.
+
 ## Thương hiệu
 Sản xuất, kinh doanh và phát triển gốm Chu Đậu mang tính ứng dụng, nghệ thuật và quà tặng
 văn hóa. Kết hợp nghề thủ công truyền thống, thiết kế đương đại và NFC Storytelling.
