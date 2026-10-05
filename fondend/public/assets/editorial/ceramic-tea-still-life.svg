@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%" height="100%" role="img" aria-labelledby="t d">
+  <title id="t">Minh họa bình trà và chén gốm</title>
+  <desc id="d">Minh họa vector bình trà và chén gốm theo hướng biên tập, không phải ảnh sản phẩm thật.</desc>
+  <defs>
+    <linearGradient id="iv" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#E5D9C3"/><stop offset="30%" stop-color="#FAF6EE"/><stop offset="100%" stop-color="#D5C4A6"/></linearGradient>
+    <linearGradient id="gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E5CB78"/><stop offset="100%" stop-color="#B89035"/></linearGradient>
+    <radialGradient id="sh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#092B3B" stop-opacity=".2"/><stop offset="100%" stop-color="#092B3B" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="370" cy="345" rx="110" ry="14" fill="url(#sh)"/>
+  <ellipse cx="195" cy="342" rx="55" ry="9" fill="url(#sh)"/>
+  <!-- Tea Jar -->
+  <path d="M315,145 C310,170 285,205 278,255 C270,300 295,338 320,342 C340,346 400,346 420,342 C445,338 470,300 462,255 C455,205 430,170 425,145 Z" fill="url(#iv)" stroke="#C7B89E"/>
+  <path d="M322,342 C350,347 390,347 418,342 L416,346 C390,351 350,351 324,346 Z" fill="#C4B69C"/>
+  <path d="M314,145 C340,150 400,150 426,145 L425,149 C400,154 340,154 315,149 Z" fill="url(#gd)"/>
+  <path d="M305,200 C340,212 400,212 435,200 C425,206 400,218 370,218 C340,218 315,206 305,200 Z" fill="#092B3B"/>
+  <path d="M370,230 C358,255 330,268 315,264 C335,280 360,272 370,256 C380,272 405,280 425,264 C410,268 382,255 370,230 Z" fill="#092B3B"/>
+  <circle cx="370" cy="278" r="5" fill="url(#gd)"/>
+  <path d="M370,286 C356,310 332,318 322,315 C338,327 362,324 370,308 C378,324 402,327 418,315 C408,318 384,310 370,286 Z" fill="#092B3B"/>
+  <path d="M322,143 C327,116 345,102 370,100 C395,102 413,116 418,143 C395,147 345,147 322,143 Z" fill="url(#iv)" stroke="#C7B89E"/>
+  <path d="M321,143 C348,148 392,148 419,143 L418,146 C392,150 348,150 322,146 Z" fill="url(#gd)"/>
+  <ellipse cx="370" cy="96" rx="10" ry="10" fill="url(#gd)"/>
+  <path d="M325,170 C318,205 305,250 307,300 C312,270 325,220 335,180 Z" fill="#FFF" fill-opacity=".45"/>
+  <!-- Tea Cup -->
+  <path d="M155,290 C160,320 178,340 195,342 C212,340 230,320 235,290 C220,297 170,297 155,290 Z" fill="url(#iv)" stroke="#C7B89E"/>
+  <ellipse cx="195" cy="290" rx="40" ry="10" fill="#E8DEC9" stroke="#C7B89E"/>
+  <ellipse cx="195" cy="291" rx="33" ry="7" fill="#092B3B" fill-opacity=".9"/>
+  <ellipse cx="195" cy="290" rx="40" ry="10" fill="none" stroke="url(#gd)" stroke-width="1.5"/>
+  <path d="M168,306 C180,318 210,318 222,306 C215,312 175,312 168,306 Z" fill="#092B3B"/>
+  <circle cx="195" cy="318" r="2.5" fill="url(#gd)"/>
+  <path d="M182,341 C190,344 200,344 208,341 L207,344 C200,346 190,346 183,344 Z" fill="#C4B69C"/>
+  <path d="M162,298 C164,312 172,326 178,332 C174,324 167,312 165,300 Z" fill="#FFF" fill-opacity=".4"/>
+</svg>

@@ -22,3 +22,9 @@ test('origin rejects paths and invalid proxy setting', () => {
   assert.throws(() => validateEnv({ ...valid, CORS_ORIGIN: 'https://example.com/path' }), /CORS_ORIGIN/);
   assert.throws(() => validateEnv({ ...valid, TRUST_PROXY: '5' }), /TRUST_PROXY/);
 });
+
+test('CORS allowlist accepts comma-separated exact origins', () => {
+  const config = validateEnv({ ...valid, CORS_ORIGIN: 'https://store.example, https://admin.example' });
+  assert.equal(config.corsOrigin, 'https://store.example, https://admin.example');
+  assert.throws(() => validateEnv({ ...valid, CORS_ORIGIN: 'https://store.example/path, https://admin.example' }), /origin/);
+});

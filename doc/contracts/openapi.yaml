@@ -1,0 +1,1015 @@
+openapi: 3.1.0
+info:
+  title: TRO & LAM API
+  version: 1.0.0
+  description: |
+    Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
+    All application routes use /api/v1. Health probes keep the scaffold response
+    shape. Provider webhook wire payload and ACK are delegated to the current
+    provider documentation; browser redirects never mutate payment state.
+servers:
+  - url: /api/v1
+tags:
+  - name: health
+  - name: catalog
+  - name: auth
+  - name: account
+  - name: cart
+  - name: checkout
+  - name: orders
+  - name: payments
+  - name: support
+  - name: assistant
+  - name: attachments
+  - name: staff
+  - name: admin
+paths:
+  /health:
+    get:
+      operationId: getLegacyHealth
+      tags: [health]
+      responses:
+        '200':
+          description: Legacy liveness shape retained for the scaffold.
+          content:
+            application/json:
+              schema: { type: object, required: [status], properties: { status: { const: ok } }, additionalProperties: false }
+  /health/live:
+    get:
+      operationId: getHealthLive
+      tags: [health]
+      responses:
+        '200':
+          description: Liveness probe; database independent.
+          content:
+            application/json:
+              schema: { type: object, required: [status], properties: { status: { const: ok } }, additionalProperties: false }
+  /health/ready:
+    get:
+      operationId: getHealthReady
+      tags: [health]
+      responses:
+        '200':
+          description: Database readiness probe.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthReady' }
+        '503':
+          description: Database not ready; health response remains outside the normal envelope.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthUnavailable' }
+  /products:
+    get:
+      operationId: listProducts
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters:
+        - { in: query, name: q, schema: { type: string, maxLength: 120 } }
+        - { in: query, name: line, schema: { $ref: '#/components/schemas/ProductLine' } }
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: priceMin, schema: { type: integer, minimum: 0 } }
+        - { in: query, name: priceMax, schema: { type: integer, minimum: 0 } }
+        - { in: query, name: sort, schema: { type: string, enum: [name, price_asc, price_desc, newest] } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /products/{slug}:
+    parameters: [{ $ref: '#/components/parameters/Slug' }]
+    get:
+      operationId: getProductBySlug
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: locale, schema: { type: string, enum: [vi, en] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /categories:
+    get:
+      operationId: listPublishedCategories
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: locale, schema: { type: string, enum: [vi, en] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /products/{id}/reviews:
+    parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+    get:
+      operationId: listPublishedProductReviews
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /pages/{slug}:
+    parameters: [{ $ref: '#/components/parameters/Slug' }]
+    get:
+      operationId: getPublishedPage
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: locale, schema: { type: string, enum: [vi, en] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /stories/{slug}:
+    parameters: [{ $ref: '#/components/parameters/Slug' }]
+    get:
+      operationId: getPublishedStory
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: locale, schema: { type: string, enum: [vi, en] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /nfc/{publicId}:
+    parameters: [{ name: publicId, in: path, required: true, schema: { type: string } }]
+    get:
+      operationId: resolvePublicNfcTag
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: locale, schema: { type: string, enum: [vi, en] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '410': { $ref: '#/components/responses/Error' } }
+  /commerce/config:
+    get:
+      operationId: getPublicCommerceConfig
+      tags: [catalog]
+      x-actors: [guest, customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /contacts:
+    post:
+      operationId: createContact
+      tags: [support]
+      x-actors: [guest, customer]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactCreate' }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '400': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/csrf:
+    get:
+      operationId: getCsrfToken
+      tags: [auth]
+      x-actors: [guest, customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /auth/register:
+    post:
+      operationId: registerCustomer
+      tags: [auth]
+      x-actors: [guest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserRegister' }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '400': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/invitations/accept:
+    post:
+      operationId: acceptInvitation
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InvitationAccept' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } }, additionalProperties: false } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '410': { $ref: '#/components/responses/Error' } }
+  /auth/resend-verification:
+    post:
+      operationId: resendVerification
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } }, additionalProperties: false } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string } }, additionalProperties: false } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      x-actors: [guest, customer, staff, admin]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, default: { $ref: '#/components/responses/Error' } }
+  /auth/forgot-password:
+    post:
+      operationId: requestPasswordReset
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } }, additionalProperties: false } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token, password], properties: { token: { type: string }, password: { type: string, minLength: 12, maxLength: 128 } }, additionalProperties: false } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '410': { $ref: '#/components/responses/Error' } }
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /auth/appeal-challenges:
+    post:
+      operationId: createAppealChallenge
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email } }, additionalProperties: false } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '429': { $ref: '#/components/responses/Error' } }
+  /auth/appeal-access:
+    post:
+      operationId: exchangeAppealAccess
+      tags: [auth]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, verificationCode, challengeId], properties: { email: { type: string, format: email }, verificationCode: { type: string }, challengeId: { type: string } }, additionalProperties: false } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' } }
+  /account/appeals/current:
+    get:
+      operationId: getCurrentAppeal
+      tags: [account]
+      x-actors: [blocked-appeal]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /account/appeals:
+    post:
+      operationId: submitAppeal
+      tags: [account]
+      x-actors: [blocked-appeal]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [message], properties: { message: { type: string, minLength: 1, maxLength: 5000 } }, additionalProperties: false } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/profile:
+    patch:
+      operationId: updateProfile
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProfileWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /account/addresses:
+    get:
+      operationId: listOwnAddresses
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAddress
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '400': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/addresses/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateOwnAddress
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: deleteOwnAddress
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/addresses/{id}/default:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: setOwnAddressDefault
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [expectedVersion], properties: { expectedVersion: { type: integer, minimum: 0 } }, additionalProperties: false } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /locations/reverse:
+    post:
+      operationId: reverseGeocode
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LocationReverse' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '503': { $ref: '#/components/responses/Error' } }
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      x-actors: [guest, customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, default: { $ref: '#/components/responses/Error' } }
+  /cart/items/{productId}:
+    parameters: [{ name: productId, in: path, required: true, schema: { type: string } }]
+    put:
+      operationId: setCartItemQuantity
+      tags: [cart]
+      x-actors: [guest, customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CartItemWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: removeCartItem
+      tags: [cart]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' } }
+  /cart/merge:
+    post:
+      operationId: mergeGuestCart
+      tags: [cart]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CartMerge' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' } }
+  /checkout/quote:
+    post:
+      operationId: quoteCheckout
+      tags: [checkout]
+      x-actors: [guest, customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckoutQuote' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [checkout]
+      x-actors: [guest, customer, staff, admin]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckoutCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
+  /order-access/challenges:
+    post:
+      operationId: createGuestOrderAccessChallenge
+      tags: [orders]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OrderAccessChallenge' } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '429': { $ref: '#/components/responses/Error' } }
+  /order-access/verify:
+    post:
+      operationId: verifyGuestOrderAccess
+      tags: [orders]
+      x-actors: [guest]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OrderAccessVerify' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' } }
+  /orders/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getOwnedOrder
+      tags: [orders]
+      x-actors: [order-owner, guest-order-proof]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '401': { $ref: '#/components/responses/Error' } }
+  /orders/{id}/cancel:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: cancelOwnedOrder
+      tags: [orders]
+      x-actors: [order-owner, guest-order-proof]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OrderCancel' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /orders/{id}/payment-attempts:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: createPaymentAttempt
+      tags: [payments]
+      x-actors: [order-owner, guest-order-proof]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses: { '201': { $ref: '#/components/responses/Created' }, '409': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
+  /orders/{id}/payment:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getOwnedPaymentStatus
+      tags: [payments]
+      x-actors: [order-owner, guest-order-proof]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /payments/payos/webhook:
+    post:
+      operationId: receivePayosWebhook
+      tags: [payments]
+      x-actors: [payos-provider]
+      description: Verify the current provider signature and transaction mapping before applying a payment fact. ACK shape follows provider documentation; never trust browser return parameters.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, description: Provider wire schema is pinned only after official PayOS documentation is verified. } } } }
+      responses:
+        '200': { description: Provider acknowledgement after durable event persistence; duplicate events are acknowledged idempotently. }
+        '400': { description: Invalid signature or malformed provider request. }
+        '401': { description: Provider authentication/signature failure. }
+        '5XX': { description: Persistence unavailable; provider should retry. }
+  /account/orders:
+    get:
+      operationId: listOwnOrders
+      tags: [orders]
+      x-actors: [customer, staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/OrderStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /account/orders/claim:
+    post:
+      operationId: claimGuestOrder
+      tags: [orders]
+      x-actors: [customer, staff, admin-with-guest-proof]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OrderClaim' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/reviews:
+    get:
+      operationId: listOwnReviews
+      tags: [support]
+      x-actors: [customer, staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ReviewStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createVerifiedReview
+      tags: [support]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /account/reviews/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateOwnReview
+      tags: [support]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/tickets:
+    get:
+      operationId: listOwnTickets
+      tags: [support]
+      x-actors: [customer, staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/TicketStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /tickets:
+    post:
+      operationId: createTicket
+      tags: [support]
+      x-actors: [customer, guest-order-proof]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TicketCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '401': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /orders/{id}/return-requests:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: listOwnedReturnRequests
+      tags: [support]
+      x-actors: [order-owner, guest-order-proof]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: requestReturn
+      tags: [support]
+      x-actors: [order-owner, guest-order-proof]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReturnRequestCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /tickets/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getOwnTicket
+      tags: [support]
+      x-actors: [customer, guest-order-proof, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /tickets/{id}/messages:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: listTicketMessages
+      tags: [support]
+      x-actors: [customer, guest-order-proof, staff, admin]
+      parameters: [{ in: query, name: cursor, schema: { type: string } }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createTicketMessage
+      tags: [support]
+      x-actors: [customer, guest-order-proof, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TicketMessageCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '404': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /notifications:
+    get:
+      operationId: listOwnNotifications
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      parameters: [{ in: query, name: unreadOnly, schema: { type: boolean } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /notifications/{id}/read:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: markNotificationRead
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /assistant/messages:
+    post:
+      operationId: sendAssistantMessage
+      tags: [assistant]
+      x-actors: [guest, customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AssistantMessage' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '429': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
+  /assistant/handoffs:
+    post:
+      operationId: createAssistantHandoff
+      tags: [assistant]
+      x-actors: [guest, customer, order-owner]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AssistantHandoff' } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /attachments/uploads:
+    post:
+      operationId: createAttachmentUpload
+      tags: [attachments]
+      x-actors: [customer, order-owner, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentUploadCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '415': { $ref: '#/components/responses/Error' } }
+  /attachments/{id}/finalize:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: finalizeAttachmentUpload
+      tags: [attachments]
+      x-actors: [customer, order-owner, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /attachments/{id}/download:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: downloadOwnedAttachment
+      tags: [attachments]
+      x-actors: [resource-owner, staff, admin]
+      responses: { '302': { description: Authorized redirect to a short-lived private object URL. }, '404': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/dashboard:
+    get:
+      operationId: getStaffDashboard
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ in: query, name: from, schema: { type: string, format: date-time } }, { in: query, name: to, schema: { type: string, format: date-time } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/orders:
+    get:
+      operationId: listStaffOrders
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/OrderStatus' } }, { in: query, name: paymentStatus, schema: { $ref: '#/components/schemas/PaymentStatus' } }, { in: query, name: queue, schema: { type: string } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/orders/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getOperationalOrder
+      tags: [staff]
+      x-actors: [staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /staff/orders/{id}/transitions:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: transitionOperationalOrder
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OrderTransition' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /staff/orders/{id}/shipping-events:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: addShippingEvent
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShippingEventCreate' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/orders/{id}/cod-collection:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: recordCodCollection
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CodCollectionCreate' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/orders/{id}/refund-requests:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: createRefundRequest
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundRequestCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /staff/tickets:
+    get:
+      operationId: listStaffTickets
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/TicketStatus' } }, { in: query, name: assignedTo, schema: { type: string } }, { in: query, name: kind, schema: { $ref: '#/components/schemas/TicketKind' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/tickets/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateStaffTicket
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StaffTicketWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/return-requests:
+    get:
+      operationId: listStaffReturnRequests
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ReturnStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/return-requests/{id}/decision:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: decideReturnRequest
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReturnDecision' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/return-requests/{id}/inspection:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: inspectReturn
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReturnInspection' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/return-requests/{id}/close:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: closeReturnRequest
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReasonVersion' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /staff/contacts:
+    get:
+      operationId: listStaffContacts
+      tags: [staff]
+      x-actors: [staff, admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ContactStatus' } }, { in: query, name: kind, schema: { $ref: '#/components/schemas/ContactKind' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /staff/contacts/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateStaffContact
+      tags: [staff]
+      x-actors: [staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StaffContactWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/products:
+    get:
+      operationId: listAdminProducts
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: q, schema: { type: string, maxLength: 120 } }, { in: query, name: status, schema: { $ref: '#/components/schemas/ProductStatus' } }, { in: query, name: line, schema: { $ref: '#/components/schemas/ProductLine' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAdminProduct
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /admin/products/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getAdminProduct
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+    patch:
+      operationId: updateAdminProduct
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveAdminProduct
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/products/{id}/inventory-adjustments:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: adjustAdminInventory
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InventoryAdjustment' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/categories:
+    get:
+      operationId: listAdminCategories
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAdminCategory
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CategoryWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/categories/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateAdminCategory
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CategoryWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveAdminCategory
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/media:
+    post:
+      operationId: createAdminMedia
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { $ref: '#/components/schemas/AdminMediaUpload' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '413': { $ref: '#/components/responses/Error' }, '415': { $ref: '#/components/responses/Error' } }
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: q, schema: { type: string, maxLength: 120 } }, { in: query, name: role, schema: { $ref: '#/components/schemas/Role' } }, { in: query, name: status, schema: { $ref: '#/components/schemas/UserStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: inviteAdminUser
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserInvite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/users/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      operationId: getAdminUser
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminUserWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/users/{id}/status:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: updateAdminUserStatus
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserStatusWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/users/{id}/role:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: updateAdminUserRole
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserRoleWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/appeals:
+    get:
+      operationId: listAdminAppeals
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/AppealStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /admin/appeals/{id}/decision:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: decideAdminAppeal
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AppealDecision' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/audit-logs:
+    get:
+      operationId: listAdminAuditLogs
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: action, schema: { type: string } }, { in: query, name: actorId, schema: { type: string } }, { in: query, name: targetType, schema: { type: string } }, { in: query, name: targetId, schema: { type: string } }, { in: query, name: cursor, schema: { type: string } }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /admin/statistics:
+    get:
+      operationId: getAdminStatistics
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: from, required: true, schema: { type: string, format: date-time } }, { in: query, name: to, required: true, schema: { type: string, format: date-time } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /admin/refunds:
+    get:
+      operationId: listAdminRefunds
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/RefundStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /admin/refunds/{id}/decision:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: decideAdminRefund
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundDecision' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/refunds/{id}/complete:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: completeAdminRefund
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundComplete' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/reviews:
+    get:
+      operationId: listAdminReviews
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ReviewStatus' } }, { in: query, name: productId, schema: { type: string } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /admin/reviews/{id}/moderation:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: moderateAdminReview
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewModeration' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/settings:
+    get:
+      operationId: getAdminSettings
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    patch:
+      operationId: updateAdminSettings
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BusinessSettingsWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/stories:
+    get:
+      operationId: listAdminStories
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ProductStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAdminStory
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StoryWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/stories/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateAdminStory
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StoryWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveAdminStory
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/pages:
+    get:
+      operationId: listAdminPages
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/ProductStatus' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAdminPage
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PageWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/pages/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      operationId: updateAdminPage
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PageWrite' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+    delete:
+      operationId: archiveAdminPage
+      tags: [admin]
+      x-actors: [admin]
+      parameters: [{ in: query, name: expectedVersion, required: true, schema: { type: integer, minimum: 0 } }]
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/nfc-tags:
+    get:
+      operationId: listAdminNfcTags
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: createAdminNfcTag
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NfcTagCreate' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/nfc-tags/{id}/revoke:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: revokeAdminNfcTag
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReasonVersion' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+components:
+  parameters:
+    Id: { in: path, name: id, required: true, schema: { type: string, minLength: 1 } }
+    Slug: { in: path, name: slug, required: true, schema: { type: string, minLength: 1, maxLength: 180 } }
+    Page: { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    IdempotencyKey: { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 22, maxLength: 200 }, description: At least 128 bits of client-generated entropy; server scopes it to actor/session and normalized payload. }
+  responses:
+    Success:
+      description: Successful response envelope.
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    Created:
+      description: Resource created.
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    Accepted:
+      description: Request persisted for asynchronous delivery/processing.
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    NoContent: { description: Mutation succeeded with no response body. }
+    Error:
+      description: Standardized application error; health and provider webhooks are exceptions.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+  schemas:
+    SuccessEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/successEnvelope' }
+    ErrorEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/errorEnvelope' }
+    AddressWrite: { $ref: './schemas/dtos.schema.json#/$defs/addressWrite' }
+    ProfileWrite: { $ref: './schemas/dtos.schema.json#/$defs/profileWrite' }
+    CartItemWrite: { $ref: './schemas/dtos.schema.json#/$defs/cartItemWrite' }
+    CartMerge: { $ref: './schemas/dtos.schema.json#/$defs/cartMerge' }
+    CheckoutCreate: { $ref: './schemas/dtos.schema.json#/$defs/checkoutCreate' }
+    CheckoutQuote: { $ref: './schemas/dtos.schema.json#/$defs/checkoutQuote' }
+    LocationReverse: { $ref: './schemas/dtos.schema.json#/$defs/locationReverse' }
+    OrderAccessChallenge: { $ref: './schemas/dtos.schema.json#/$defs/orderAccessChallenge' }
+    OrderAccessVerify: { $ref: './schemas/dtos.schema.json#/$defs/orderAccessVerify' }
+    OrderCancel: { $ref: './schemas/dtos.schema.json#/$defs/orderCancel' }
+    OrderClaim: { $ref: './schemas/dtos.schema.json#/$defs/orderClaim' }
+    ContactCreate: { $ref: './schemas/dtos.schema.json#/$defs/contactCreate' }
+    ProductWrite: { $ref: './schemas/dtos.schema.json#/$defs/productWrite' }
+    ReviewCreate: { $ref: './schemas/dtos.schema.json#/$defs/reviewCreate' }
+    TicketCreate: { $ref: './schemas/dtos.schema.json#/$defs/ticketCreate' }
+    UserRegister: { $ref: './schemas/dtos.schema.json#/$defs/userRegister' }
+    ProductLine: { $ref: './schemas/enums.schema.json#/$defs/productLine' }
+    ProductStatus: { $ref: './schemas/enums.schema.json#/$defs/productStatus' }
+    OrderStatus: { $ref: './schemas/enums.schema.json#/$defs/orderStatus' }
+    PaymentStatus: { $ref: './schemas/enums.schema.json#/$defs/paymentStatus' }
+    RefundStatus: { $ref: './schemas/enums.schema.json#/$defs/refundStatus' }
+    ReturnStatus: { $ref: './schemas/enums.schema.json#/$defs/returnStatus' }
+    TicketKind: { $ref: './schemas/enums.schema.json#/$defs/ticketKind' }
+    TicketStatus: { $ref: './schemas/enums.schema.json#/$defs/ticketStatus' }
+    ContactKind: { $ref: './schemas/enums.schema.json#/$defs/contactKind' }
+    ContactStatus: { $ref: './schemas/enums.schema.json#/$defs/contactStatus' }
+    AppealStatus: { $ref: './schemas/enums.schema.json#/$defs/appealStatus' }
+    ReviewStatus: { $ref: './schemas/enums.schema.json#/$defs/reviewStatus' }
+    Role: { $ref: './schemas/enums.schema.json#/$defs/role' }
+    UserStatus: { $ref: './schemas/enums.schema.json#/$defs/userStatus' }
+    HealthReady:
+      type: object
+      required: [status, database]
+      properties:
+        status: { const: ready }
+        database: { const: connected }
+      additionalProperties: false
+    HealthUnavailable:
+      type: object
+      required: [status, database]
+      properties:
+        status: { const: unavailable }
+        database: { const: disconnected }
+      additionalProperties: false
+    OrderTransition: { $ref: './schemas/dtos.schema.json#/$defs/orderTransition' }
+    ReviewWrite: { $ref: './schemas/dtos.schema.json#/$defs/reviewWrite' }
+    ReturnRequestCreate: { $ref: './schemas/dtos.schema.json#/$defs/returnRequestCreate' }
+    TicketMessageCreate: { $ref: './schemas/dtos.schema.json#/$defs/ticketMessageCreate' }
+    AssistantMessage: { $ref: './schemas/dtos.schema.json#/$defs/assistantMessage' }
+    AssistantHandoff: { $ref: './schemas/dtos.schema.json#/$defs/assistantHandoff' }
+    AttachmentUploadCreate: { $ref: './schemas/dtos.schema.json#/$defs/attachmentUploadCreate' }
+    ShippingEventCreate: { $ref: './schemas/dtos.schema.json#/$defs/shippingEventCreate' }
+    CodCollectionCreate: { $ref: './schemas/dtos.schema.json#/$defs/codCollectionCreate' }
+    RefundRequestCreate: { $ref: './schemas/dtos.schema.json#/$defs/refundRequestCreate' }
+    StaffTicketWrite: { $ref: './schemas/dtos.schema.json#/$defs/staffTicketWrite' }
+    ReturnDecision: { $ref: './schemas/dtos.schema.json#/$defs/returnDecision' }
+    ReturnInspection: { $ref: './schemas/dtos.schema.json#/$defs/returnInspection' }
+    ReasonVersion: { $ref: './schemas/dtos.schema.json#/$defs/reasonVersion' }
+    StaffContactWrite: { $ref: './schemas/dtos.schema.json#/$defs/staffContactWrite' }
+    InventoryAdjustment: { $ref: './schemas/dtos.schema.json#/$defs/inventoryAdjustment' }
+    CategoryWrite: { $ref: './schemas/dtos.schema.json#/$defs/categoryWrite' }
+    AdminMediaUpload: { $ref: './schemas/dtos.schema.json#/$defs/adminMediaUpload' }
+    UserInvite: { $ref: './schemas/dtos.schema.json#/$defs/userInvite' }
+    InvitationAccept: { $ref: './schemas/dtos.schema.json#/$defs/invitationAccept' }
+    AdminUserWrite: { $ref: './schemas/dtos.schema.json#/$defs/adminUserWrite' }
+    UserStatusWrite: { $ref: './schemas/dtos.schema.json#/$defs/userStatusWrite' }
+    UserRoleWrite: { $ref: './schemas/dtos.schema.json#/$defs/userRoleWrite' }
+    AppealDecision: { $ref: './schemas/dtos.schema.json#/$defs/appealDecision' }
+    RefundDecision: { $ref: './schemas/dtos.schema.json#/$defs/refundDecision' }
+    RefundComplete: { $ref: './schemas/dtos.schema.json#/$defs/refundComplete' }
+    ReviewModeration: { $ref: './schemas/dtos.schema.json#/$defs/reviewModeration' }
+    BusinessSettingsWrite: { $ref: './schemas/dtos.schema.json#/$defs/businessSettingsWrite' }
+    StoryWrite: { $ref: './schemas/dtos.schema.json#/$defs/storyWrite' }
+    PageWrite: { $ref: './schemas/dtos.schema.json#/$defs/pageWrite' }
+    NfcTagCreate: { $ref: './schemas/dtos.schema.json#/$defs/nfcTagCreate' }

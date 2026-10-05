@@ -86,6 +86,7 @@ Các mục sau là quyết định đề xuất cho bản đầu, có thể cấ
 | DEC-13 | Gemini chỉ công khai, fail rõ khi unavailable; fallback contact/ticket | Model khả dụng, key, chi phí và consent gửi hội thoại |
 | DEC-14 | Product create/update/archive admin; xóa cứng chỉ draft chưa tham chiếu | Ai phê duyệt nội dung và xuất bản |
 | DEC-15 | Guest secure token có scope/expiry, phục hồi bằng OTP email; code đơn chỉ dẫn đường | TTL cụ thể, thời gian lưu đơn/ticket/PII |
+| DEC-16 | Chuyển đơn sang `shipped` cần cặp `shipping.carrier` + `shipping.trackingNumber` nếu giao qua hãng; giao thủ công phải có `reason`. Hủy đơn cũng giữ lý do theo workflow hiện có; không thêm field hay enum | Chủ dự án chốt phạm vi giao thủ công và mẫu bằng chứng vận hành trước go-live |
 
 Không hardcode chính sách hoàn tiền, tuyên bố pháp lý hoặc điều khoản bán hàng chưa được phê duyệt thành trang public như chính sách chính thức. Feature flag và notice “chưa cấu hình” dành cho môi trường development; bản production thiếu cấu hình bắt buộc phải bị chặn go-live, không quảng cáo chức năng không hoạt động.
 

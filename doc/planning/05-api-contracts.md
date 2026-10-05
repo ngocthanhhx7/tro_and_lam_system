@@ -12,7 +12,7 @@ response user+session theo auth policy, không nhận role tự chọn từ ngư
 Success JSON: `{ "data": <object|array>, "meta": { "requestId": "..." } }`. Danh sách thêm `meta.pagination={page,limit,total,totalPages}`. Create 201; async accepted 202; mutation có DTO trả 200; DELETE thành công 204 không body. Money suffix `Vnd`, date ISO UTC, `id` string, boolean đúng kiểu. Fields passwordHash/tokenHash/authVersion/signature/internal notes không serialize.
 
 ```json
-{"data":[{"id":"507f1f77bcf86cd799439011","name":"Hũ đựng trà","line":"lifestyle","saleMode":"buy","priceVnd":450000}],"meta":{"requestId":"req_example","pagination":{"page":1,"limit":20,"total":1,"totalPages":1}}}
+{"data":[{"id":"507f1f77bcf86cd799439011","name":"Hũ đựng trà","line":"lifestyle","saleMode":"buy","priceVnd":450000}],"meta":{"requestId":"f44ef8a6-01aa-4ae9-b738-6e878fb90123","pagination":{"page":1,"limit":20,"total":1,"totalPages":1}}}
 ```
 
 Giá trên là fixture minh họa, không là giá chính thức. Error giữ dạng scaffold: `{error:{code,message,details?},meta:{requestId}}`; details là mảng `{field,code,message}` đã redact. P01 thêm meta nhưng giữ code `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `INTERNAL_ERROR`. Health ngoại lệ **giữ nguyên** `GET /health/live -> {status:'ok'}`, `GET /health/ready -> {status:'ready'|'unavailable',database:'connected'|'disconnected'}` 200/503 (`backend/src/controllers/health.controller.js`, `services/health.service.js`). Provider webhook ACK theo tài liệu provider, không ép envelope nội bộ.
@@ -216,7 +216,7 @@ CheckoutQuote và CheckoutCreate dùng cùng items/recipient; C có thể gửi 
 {"toStatus":"shipped","expectedVersion":3,"reason":"Bàn giao vận chuyển","shipping":{"carrier":"Đơn vị vận chuyển","trackingNumber":"DEMO123"}}
 ```
 
-OrderTransition theo machine trong 04; lý do max1000; trackingNumber max100. Guest/customer cancel chỉ pending; các hủy sau confirmed do staff quyết định qua ticket. OrderDetail: `{id,code,status,paymentStatus,paymentMethod,recipient,items,subtotalVnd,shippingFeeVnd,discountVnd,totalVnd,paidAmountVnd,refundedAmountVnd,shipping,statusHistory,createdAt,version}`. Chỉ Operational mới thêm internalNote/paymentReview; statusHistory không có IP/internal reason nhạy cảm.
+OrderTransition theo machine trong 04; `reason` tối đa 1000 ký tự và bắt buộc với hủy hoặc giao thủ công. Khi giao qua hãng, `shipping.carrier` và `shipping.trackingNumber` đều bắt buộc; giao thủ công không gửi shipping pair. Guest/customer cancel chỉ pending; các hủy sau confirmed do staff quyết định qua ticket. OrderDetail: `{id,code,status,paymentStatus,paymentMethod,recipient,items,subtotalVnd,shippingFeeVnd,discountVnd,totalVnd,paidAmountVnd,refundedAmountVnd,shipping,statusHistory,createdAt,version}`. Chỉ Operational mới thêm internalNote/paymentReview; statusHistory không có IP/internal reason nhạy cảm.
 
 ProductWrite: `{name,slug,sku,line,categoryId,description,material,dimensions?,careInstructions?,images:[{url,alt,sortOrder}],saleMode,priceVnd?,storyId?,status,featured}`; slug/sku unique, buy/both priceVnd>0 safe integer, quote price không bị UI coi 0đ. Stock cập nhật endpoint riêng P05, không field stock trên ProductWrite. ProductSummary expose availableForPurchase và stockLabel; không lộ reserved ledger.
 
@@ -235,7 +235,7 @@ TicketCreate: `{kind:'support'|'complaint'|'return',subject,body,orderId?,attach
 POST /order-access/challenges luôn 202 cùng message, trả challengeId ngẫu nhiên kể cả identity không khớp; chỉ gửi mail khi khớp. POST /order-access/verify body `{ "challengeId":"opaque-example", "verificationCode":"123456" }`, token/OTP chỉ fixture. Success đặt HttpOnly guest proof cookie, data `{ "orderId":"507f1f77bcf86cd799439011", "expiresAt":"2026-10-06T03:00:00Z" }`. GET /orders/:id sau verify trả đầy đủ recipient/items/totals/shipping/statusHistory như owner customer; loại bỏ internal notes, secret, audit actor metadata. Code đơn một mình hoặc email một mình không cấp quyền.
 
 ```json
-{"error":{"code":"ACCOUNT_BLOCKED","message":"Tài khoản đang bị khóa","details":[{"field":"account","code":"APPEAL_AVAILABLE","message":"Bạn có thể gửi yêu cầu xem xét"}]},"meta":{"requestId":"req_example"}}
+{"error":{"code":"ACCOUNT_BLOCKED","message":"Tài khoản đang bị khóa","details":[{"field":"account","code":"APPEAL_AVAILABLE","message":"Bạn có thể gửi yêu cầu xem xét"}]},"meta":{"requestId":"f44ef8a6-01aa-4ae9-b738-6e878fb90123"}}
 ```
 
 Blocked login đặt HttpOnly appeal-only cookie sau password đúng, không trả token thô vào body. Schema `AppealContext` gồm userId, expiresAt, purpose='appeal', không role permission. POST /account/appeals body `{ "message":"Xin kiểm tra lại tình trạng tài khoản của tôi." }`; cookie proof B + CSRF. Response 201 `{data:{id,status:'pending',submittedAt},meta:{requestId}}`; admin decision body `{ "decision":"approved", "reviewNote":"Đã xác minh thông tin", "expectedVersion":0 }`, unlock+revoke cùng transaction. Tài khoản bị khóa không phải guest để bypass checkout bằng session blocked; user muốn mua guest phải logout rõ ràng và theo chính sách chống abuse.

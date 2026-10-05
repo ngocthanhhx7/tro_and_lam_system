@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TRO & LAM API v1 enums",
+  "$defs": {
+    "role": { "type": "string", "enum": ["customer", "staff", "admin"] },
+    "userStatus": { "type": "string", "enum": ["active", "blocked"] },
+    "saleMode": { "type": "string", "enum": ["buy", "quote", "both"] },
+    "productLine": { "type": "string", "enum": ["lifestyle", "diplomacy"] },
+    "productStatus": { "type": "string", "enum": ["draft", "published", "archived"] },
+    "orderStatus": { "type": "string", "enum": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "return_requested", "returned"] },
+    "paymentMethod": { "type": "string", "enum": ["cod", "payos"] },
+    "paymentStatus": { "type": "string", "enum": ["pending", "paid", "failed", "expired", "cancelled", "refund_pending", "refunded", "partially_refunded"] },
+    "paymentAttemptStatus": { "type": "string", "enum": ["pending", "paid", "failed", "expired", "cancelled"] },
+    "reservationStatus": { "type": "string", "enum": ["held", "committed", "released"] },
+    "refundStatus": { "type": "string", "enum": ["requested", "approved", "rejected", "processing", "completed", "failed"] },
+    "returnStatus": { "type": "string", "enum": ["requested", "approved", "rejected", "received", "closed"] },
+    "ticketKind": { "type": "string", "enum": ["support", "complaint", "return"] },
+    "ticketStatus": { "type": "string", "enum": ["open", "assigned", "in_progress", "waiting_customer", "resolved", "closed"] },
+    "contactKind": { "type": "string", "enum": ["general", "corporate", "quote"] },
+    "contactStatus": { "type": "string", "enum": ["new", "assigned", "contacted", "closed"] },
+    "appealStatus": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+    "reviewStatus": { "type": "string", "enum": ["pending", "published", "hidden"] },
+    "nfcStatus": { "type": "string", "enum": ["active", "revoked"] },
+    "idempotencyState": { "type": "string", "enum": ["processing", "succeeded"] },
+    "outboxState": { "type": "string", "enum": ["pending", "processing", "sent", "failed"] },
+    "notificationCategory": { "type": "string", "enum": ["order", "support", "account", "system"] }
+  }
+}

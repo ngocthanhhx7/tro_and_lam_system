@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["fondend", "backend"],
-  "engines": { "node": "24.x" },
+  "workspaces": [
+    "fondend",
+    "backend"
+  ],
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "node node_modules/concurrently/dist/bin/concurrently.js -k -n web,api \"npm run dev -w fondend\" \"npm run dev -w backend\"",
     "dev:web": "npm run dev -w fondend",
@@ -12,10 +17,14 @@
     "build": "npm run build -w fondend",
     "lint": "node node_modules/eslint/bin/eslint.js .",
     "test": "npm test -w backend",
-    "check": "npm run lint && npm test && npm run build"
+    "validate:contracts": "node scripts/validate-contracts.js",
+    "check": "npm run validate:contracts && npm run lint && npm test && npm run build"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
     "@eslint/js": "^9.39.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "concurrently": "^9.2.0",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.0.0",
