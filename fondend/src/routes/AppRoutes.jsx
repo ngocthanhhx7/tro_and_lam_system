@@ -8,6 +8,18 @@ import { identityRoutes } from './modules/identity.routes.jsx';
 import { accountRoutes } from './modules/account.routes.jsx';
 import { catalogRoutes } from './modules/catalog.routes.jsx';
 import { adminContentRouteFragments, publicContentRouteFragments } from './modules/content.routes.jsx';
+import { operationsRoutes } from './modules/operations.routes.jsx';
+
+function guardedOperationsRoute(route) {
+  const roles = route.path.startsWith('/admin')
+    ? ['admin']
+    : route.path.startsWith('/staff') ? ['staff', 'admin'] : ['customer', 'staff', 'admin'];
+  return <Route
+    key={route.path}
+    path={route.path.slice(1)}
+    element={<IdentityRouteGuard roles={roles}>{route.element}</IdentityRouteGuard>}
+  />;
+}
 
 export default function AppRoutes() {
   const [catalogShell, ...adminCatalogRoutes] = catalogRoutes;
@@ -15,6 +27,7 @@ export default function AppRoutes() {
     ...Children.toArray(catalogShell.props.children),
     ...publicContentRouteFragments.map((route) => <Route key={route.path} path={route.path} element={route.element} />),
     ...accountRoutes.map((route) => <Route key={route.path} path={route.path.slice(1)} element={route.element} />),
+    ...operationsRoutes.map(guardedOperationsRoute),
     <Route key="story-landing" path="cau-chuyen" element={<PublishedPage pageSlug="cau-chuyen" />} />,
   ];
   const integratedCatalogShell = cloneElement(catalogShell, undefined, publicChildren);
