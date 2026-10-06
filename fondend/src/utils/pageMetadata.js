@@ -19,3 +19,18 @@ export function setPageMetadata({ title, description }) {
   setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
   setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
 }
+
+export function setPublishedContentMetadata({ title, blocks = [], sections = [] }) {
+  const cleanTitle = String(title || '').replace(/\s+/gu, ' ').trim();
+  if (!cleanTitle) return;
+  const textBlocks = [
+    ...blocks,
+    ...sections.flatMap((section) => section?.body || []),
+  ];
+  const firstParagraph = textBlocks.find((block) => block?.type === 'paragraph' && typeof block.text === 'string' && block.text.trim());
+  const description = String(firstParagraph?.text || cleanTitle).replace(/\s+/gu, ' ').trim().slice(0, 160);
+  setPageMetadata({
+    title: `${cleanTitle} | Gốm Chu Đậu | TRO & LAM`,
+    description,
+  });
+}

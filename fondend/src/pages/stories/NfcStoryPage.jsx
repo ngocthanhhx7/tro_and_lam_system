@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { LocaleLinks, StoryContent } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getNfcStory } from '../../services/content/content.service.js';
+import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 
 export default function NfcStoryPage() {
   const { publicId } = useParams();
@@ -22,6 +23,21 @@ export default function NfcStoryPage() {
   }, [publicId, locale, requestKey]);
 
   const viewResult = result.key === requestKey ? result : { status: 'loading' };
+  const publishedStory = viewResult.status === 'ready' ? viewResult.value.story : null;
+
+  useEffect(() => {
+    if (publishedStory) {
+      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections });
+    } else if (viewResult.status === 'error') {
+      const revoked = viewResult.error instanceof ApiError && viewResult.error.status === 410 && viewResult.error.code === 'NFC_REVOKED';
+      const missing = viewResult.error instanceof ApiError && viewResult.error.status === 404;
+      setPageMetadata({
+        title: revoked ? 'NFC đã ngừng hoạt động | TRO & LAM' : missing ? 'Nội dung NFC chưa công khai | TRO & LAM' : 'Không tải được nội dung | TRO & LAM',
+        description: revoked ? 'Mã NFC này đã được thu hồi.' : missing ? 'Câu chuyện chưa được xuất bản ở ngôn ngữ đã chọn hoặc mã không còn hợp lệ.' : 'TRO & LAM hiện chưa thể tải nội dung NFC này.',
+      });
+    }
+  }, [publishedStory, viewResult.status, viewResult.error]);
+
   const basePath = `/nfc/${encodeURIComponent(publicId)}`;
   if (viewResult.status === 'loading') return <div className="story-page"><p role="status">Đang tải câu chuyện…</p></div>;
   if (viewResult.status === 'error') {

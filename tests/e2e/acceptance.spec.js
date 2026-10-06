@@ -269,6 +269,7 @@ test('published story and NFC browser routes expose only published content and h
   expect(hiddenStory.status).toBe(404);
   await page.goto(`/cau-chuyen/${slug}`);
   await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page).toHaveTitle('Câu chuyện chưa công khai | TRO & LAM');
   await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
 
   const published = await browserApi(page, `/api/v1/admin/stories/${storyId}`, {
@@ -279,9 +280,31 @@ test('published story and NFC browser routes expose only published content and h
   await page.goto(`/cau-chuyen/${slug}`);
   await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toBeVisible();
   await expect(page.getByText(draftInput.sections[0].body[0].text, { exact: true })).toBeVisible();
+  await expect(page).toHaveTitle(`${draftInput.title} | Gốm Chu Đậu | TRO & LAM`);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', draftInput.sections[0].body[0].text);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', `${draftInput.title} | Gốm Chu Đậu | TRO & LAM`);
   await page.goto(`/cau-chuyen/${slug}?locale=en`);
   await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page).toHaveTitle('Câu chuyện chưa công khai | TRO & LAM');
   await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toHaveCount(0);
+
+  const pageSlug = 'p11-browser-page-metadata';
+  const pageTitle = 'P11 Published Page Metadata';
+  const pageDescription = 'P11 metadata excerpt from published CMS text.';
+  const draftPage = await browserApi(page, '/api/v1/admin/pages', {
+    method: 'POST',
+    body: { slug: pageSlug, title: pageTitle, locale: 'vi', status: 'draft', blocks: [{ type: 'paragraph', text: pageDescription }] },
+  });
+  expect(draftPage.status, JSON.stringify(draftPage.body)).toBe(201);
+  const publishedPage = await browserApi(page, `/api/v1/admin/pages/${draftPage.body.data.id}`, {
+    method: 'PATCH',
+    body: { slug: pageSlug, title: pageTitle, locale: 'vi', status: 'published', expectedVersion: 0, blocks: [{ type: 'paragraph', text: pageDescription }] },
+  });
+  expect(publishedPage.status, JSON.stringify(publishedPage.body)).toBe(200);
+  await page.goto(`/trang/${pageSlug}`);
+  await expect(page.getByRole('heading', { name: pageTitle, exact: true })).toBeVisible();
+  await expect(page).toHaveTitle(`${pageTitle} | Gốm Chu Đậu | TRO & LAM`);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', pageDescription);
 
   const createdTag = await browserApi(page, '/api/v1/admin/nfc-tags', {
     method: 'POST',
@@ -291,6 +314,8 @@ test('published story and NFC browser routes expose only published content and h
   const { id: tagId, publicId } = createdTag.body.data;
   await page.goto(`/nfc/${publicId}`);
   await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toBeVisible();
+  await expect(page).toHaveTitle(`${draftInput.title} | Gốm Chu Đậu | TRO & LAM`);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', draftInput.sections[0].body[0].text);
   await expect(page.locator('.notice')).toBeVisible();
 
   const revoked = await browserApi(page, `/api/v1/admin/nfc-tags/${tagId}/revoke`, {
@@ -299,6 +324,7 @@ test('published story and NFC browser routes expose only published content and h
   });
   expect(revoked.status, JSON.stringify(revoked.body)).toBe(200);
   await page.goto(`/nfc/${publicId}`);
+  await expect(page).toHaveTitle('NFC đã ngừng hoạt động | TRO & LAM');
   await expect(page.locator('.story-state h1')).toContainText('NFC');
   await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
 });

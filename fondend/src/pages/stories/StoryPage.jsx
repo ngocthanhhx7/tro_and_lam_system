@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { ContentBlocks, LocaleLinks, StoryContent } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getStory } from '../../services/content/content.service.js';
+import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 
 export default function StoryPage() {
   const { slug } = useParams();
@@ -24,6 +25,19 @@ export default function StoryPage() {
   }, [slug, locale, reloadKey, requestKey]);
 
   const viewState = state.key === requestKey ? state : { status: 'loading' };
+  const publishedStory = viewState.status === 'ready' ? viewState.story : null;
+
+  useEffect(() => {
+    if (publishedStory) {
+      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections });
+    } else if (viewState.status === 'error') {
+      const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
+      setPageMetadata({
+        title: missing ? 'Câu chuyện chưa công khai | TRO & LAM' : 'Không tải được câu chuyện | TRO & LAM',
+        description: missing ? 'Câu chuyện này chưa được xuất bản bằng ngôn ngữ đã chọn.' : 'TRO & LAM hiện chưa thể tải câu chuyện này.',
+      });
+    }
+  }, [publishedStory, viewState.status, viewState.error]);
 
   const basePath = `/cau-chuyen/${encodeURIComponent(slug)}`;
   return <div className="story-page">

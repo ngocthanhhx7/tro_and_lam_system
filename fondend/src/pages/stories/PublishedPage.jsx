@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { LocaleLinks } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getPage } from '../../services/content/content.service.js';
+import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 import { PublicPageContent } from './StoryPage.jsx';
 
 export default function PublishedPage({ pageSlug, fallback }) {
@@ -21,6 +22,22 @@ export default function PublishedPage({ pageSlug, fallback }) {
   }, [slug, locale, requestKey]);
 
   const viewState = state.key === requestKey ? state : { status: 'loading' };
+  const publishedPage = viewState.status === 'ready' ? viewState.page : null;
+  const usesEditorialFallback = Boolean(fallback && locale === 'vi'
+    && viewState.status === 'error' && viewState.error instanceof ApiError && viewState.error.status === 404);
+
+  useEffect(() => {
+    if (publishedPage) {
+      setPublishedContentMetadata({ title: publishedPage.title, blocks: publishedPage.blocks });
+    } else if (viewState.status === 'error' && !usesEditorialFallback) {
+      const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
+      setPageMetadata({
+        title: missing ? 'Trang chưa công khai | TRO & LAM' : 'Không tải được trang | TRO & LAM',
+        description: missing ? 'Trang này chưa được xuất bản bằng ngôn ngữ đã chọn.' : 'TRO & LAM hiện chưa thể tải trang này.',
+      });
+    }
+  }, [publishedPage, viewState.status, viewState.error, usesEditorialFallback]);
+
   if (fallback && locale === 'vi' && viewState.status === 'error' && viewState.error instanceof ApiError && viewState.error.status === 404) return fallback;
   return <div className="story-page">
     <LocaleLinks locale={locale} basePath={`/trang/${encodeURIComponent(slug)}`} />
