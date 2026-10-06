@@ -48,6 +48,7 @@ test('identity routes require CSRF, set opaque HttpOnly sessions, and keep block
 
   const token = new URLSearchParams(new URL(mail[0].variables.link).hash.slice(1)).get('token');
   await browser.post('/api/v1/auth/verify-email').set('Origin', origin).set('X-CSRF-Token', csrf).send({ token }).expect(200);
+  assert.ok(repository.users[0].emailVerifiedAt instanceof Date);
   const login = await browser.post('/api/v1/auth/login').set('Origin', origin).set('X-CSRF-Token', csrf).send({
     email: 'an@example.test', password: 'Correct Horse Battery Staple 42!',
   }).expect(200);
