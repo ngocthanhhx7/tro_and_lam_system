@@ -11,7 +11,7 @@ Ma trận này phản ánh integrated source `be70e7b`, được kiểm tra tron
 | A-GST-01 | Guest cart | `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js`; E2E thêm sản phẩm và đọc cart API | Browser sửa/xóa, reload/session policy và cart persistence đầy đủ | Partial |
 | A-GST-02 | Guest checkout | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`; E2E quote xác nhận checkout unavailable và order button bị disable | R06 cần owner cấu hình; chưa E2E tạo order, retry/idempotency qua server và email outbox | Partial |
 | A-GST-03 | Guest order tracking/proof | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`, `backend/tests/identity/restricted-proof-model.test.js` | Browser OTP/delivery, sai credential cùng response shape và PII chỉ sau proof | Partial |
-| A-AUTH-01 | Register/login/reset/session | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`; E2E login customer/staff/admin | Browser register/reset/logout, email thật trên staging và no-enumeration UAT | Partial |
+| A-AUTH-01 | Register/login/reset/session | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`; E2E login customer/staff/admin + email fragment verification | Browser register/reset/logout, email thật trên staging và no-enumeration UAT | Partial |
 | A-ADR-01 | Address CRUD/ownership | `backend/tests/account/account-models-validator.test.js`, `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js` | Browser ownership/error states và snapshot qua DB replica-set | Partial |
 | A-ADR-02 | Geolocation/manual fallback | `backend/tests/account/account-service.test.js` | Browser success/denied/timeout; geocoder staging key/quota/billing | Partial |
 | A-ORD-01 | Pricing/inventory/race | `backend/tests/commerce/commerce.behavior.test.js`; có `backend/tests/commerce/commerce.replica-set.test.js` | Replica-set test hiện skip; chưa xác minh cuộc đua checkout trong DB thật | Partial |
@@ -32,7 +32,7 @@ Ma trận này phản ánh integrated source `be70e7b`, được kiểm tra tron
 | A-NFC-01 | Published/draft/revoked story | `backend/tests/content/nfc-public-routing.test.js` | Mounted server/browser flow, owner duyệt nguồn story và bản quyền media | Partial |
 | A-LOG-01 | Audit access/redaction | `backend/tests/operations/operations.test.js` | Browser/admin query trên server tích hợp, stored event verification và full sensitive-log scan | Partial |
 | A-UI-01 | Responsive/accessibility | E2E kiểm tra catalog không overflow ở viewport 390px | Viewport 360/768/1280/1440, keyboard, focus, labels, errors, alt text, reduced motion và audit WCAG | Partial |
-| A-REL-01 | Build/check/E2E/release | `npm run check` pass; `npm run test:e2e` pass 4/4 trong checkout QA sạch | P05/P06 replica-set, provider staging, accessibility, restore/rollback và owner UAT còn thiếu | Partial |
+| A-REL-01 | Build/check/E2E/release | `npm run check` pass; `npm run test:e2e` pass 5/5 trong integrated workspace | P05/P06 replica-set, provider staging, accessibility, restore/rollback và owner UAT còn thiếu | Partial |
 
 ## P11 browser evidence
 
@@ -48,3 +48,9 @@ Kết quả `npm run test:e2e`: **4 passed, 0 failed**. Database là URI loopbac
 ## Tình trạng tích hợp
 
 Các gap ở baseline cũ về router composition, P07 support/review, P10 assistant và thiếu Playwright runner đã được tích hợp. `npm run check` trên integrated source `be70e7b` pass: contract validation 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures, lint sạch, backend 177 pass và 2 skip, Vite build 123 modules. Hai skip thuộc P05/P06 replica-set do chưa có URI test riêng. Đây là bằng chứng automated check; không thay thế staging, replica-set hoặc UAT.
+
+## Email verification regression evidence (2026-10-06)
+
+On integrated commit `09aacb3`, `tests/e2e/identity-verification.spec.js` opens a link with a token in the URL fragment, checks that the address bar is cleaned, submits the exact token with CSRF exactly once, and displays success under React StrictMode. The browser test stubs the API; backend `identity-behavior` and `identity-routes` tests cover single-use/purpose-bound verification and login after verification. `npm run check` passed (177 backend tests passed, 2 replica-set tests skipped); `npm run test:e2e` passed 5/5 using the dedicated loopback Mongo database `tro_lam_p11_e2e_test_84bd32eae6f0`, which teardown removed.
+
+This proves the browser and backend test flow, not Gmail inbox delivery. SMTP staging and deliverability remain owner gate R04. Other interface-refresh changes were uncommitted in the workspace while these checks ran, so these results are not release evidence for that interface refresh.
