@@ -10,8 +10,12 @@ import { Address } from '../../backend/src/models/account/address.model.js';
 import { CatalogCategory } from '../../backend/src/models/catalog/category.model.js';
 import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
 import { Inventory } from '../../backend/src/models/commerce/inventory.model.js';
+import { InventoryMovement } from '../../backend/src/models/commerce/inventory-movement.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
+import { StockReservation } from '../../backend/src/models/commerce/stock-reservation.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
+import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js';
+import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
 import { validateEnv } from '../../backend/src/validators/env.validator.js';
 import {
   assertDedicatedLocalMongoUri,
@@ -20,6 +24,9 @@ import {
   FIXTURE_PASSWORD,
   PUBLISHED_PRODUCT,
   USERS,
+  STAFF_ORDER_CODE,
+  PAYMENT_ORDER_CODE,
+  GUEST_ORDER_CODE,
   WEB_ORIGIN,
   WEB_PORT,
 } from './fixtures.js';
@@ -43,12 +50,16 @@ async function seedSyntheticFixture() {
     CatalogCategory.init(),
     CatalogProduct.init(),
     Inventory.init(),
+    InventoryMovement.init(),
     Order.init(),
+    StockReservation.init(),
     User.init(),
+    AuditLog.init(),
+    OutboxEvent.init(),
   ]);
 
   const passwordHash = await argon2.hash(FIXTURE_PASSWORD);
-  await User.insertMany(Object.values(USERS).map((user) => ({
+  const users = await User.insertMany(Object.values(USERS).map((user) => ({
     ...user,
     emailNormalized: user.email,
     passwordHash,
@@ -57,6 +68,9 @@ async function seedSyntheticFixture() {
     authVersion: 0,
     version: 0,
   })));
+  const userByEmail = new Map(users.map((user) => [user.emailNormalized, user]));
+  const customer = userByEmail.get(USERS.customer.email);
+  const otherCustomer = userByEmail.get(USERS.otherCustomer.email);
 
   const category = await CatalogCategory.create({
     slug: 'p11-fixture-category',
@@ -96,11 +110,123 @@ async function seedSyntheticFixture() {
 
   await Inventory.create({
     productId: published._id,
-    onHand: 2,
-    reserved: 0,
+    onHand: 5,
+    reserved: 3,
     version: 0,
   });
-  return { publishedProductId: String(published._id), draftProductId: String(draft._id) };
+
+  const now = new Date();
+  const fixtureOrders = [
+    {
+      code: STAFF_ORDER_CODE,
+      userId: customer._id,
+      status: 'processing',
+      paymentMethod: 'cod',
+      paymentStatus: 'pending',
+      recipientName: 'P11 Staff Recipient',
+      email: 'staff.order.p11@example.test',
+      phone: '0900000012',
+      address: '12 Đường Thử nghiệm',
+      history: [
+        { fromStatus: 'pending', toStatus: 'confirmed', createdAt: new Date(now.getTime() - 2_000) },
+        { fromStatus: 'confirmed', toStatus: 'processing', createdAt: new Date(now.getTime() - 1_000) },
+      ],
+      version: 2,
+    },
+    {
+      code: PAYMENT_ORDER_CODE,
+      userId: customer._id,
+      status: 'pending',
+      paymentMethod: 'payos',
+      paymentStatus: 'pending',
+      recipientName: 'P11 Payment Recipient',
+      email: USERS.customer.email,
+      phone: '0900000013',
+      address: '13 Đường Thử nghiệm',
+      history: [{ toStatus: 'pending', createdAt: now }],
+      version: 0,
+    },
+    {
+      code: GUEST_ORDER_CODE,
+      status: 'pending',
+      paymentMethod: 'cod',
+      paymentStatus: 'pending',
+      recipientName: 'P11 Guest Private Name',
+      email: 'guest.private.p11@example.test',
+      phone: '0900000014',
+      address: '14 Đường Riêng tư',
+      history: [{ toStatus: 'pending', createdAt: now }],
+      version: 0,
+    },
+  ];
+  const orderRecords = fixtureOrders.map((fixture) => {
+    const orderId = new mongoose.Types.ObjectId();
+    const reservationId = new mongoose.Types.ObjectId();
+    return {
+      order: {
+        _id: orderId,
+        code: fixture.code,
+        ...(fixture.userId ? { userId: fixture.userId } : {}),
+        recipientSnapshot: {
+          recipientName: fixture.recipientName,
+          email: fixture.email,
+          phone: fixture.phone,
+          line1: fixture.address,
+          countryCode: 'VN',
+          formattedAddress: `${fixture.address}, Việt Nam`,
+        },
+        itemsSnapshot: [{
+          productId: published._id,
+          sku: published.sku,
+          name: published.name,
+          quantity: 1,
+          unitPriceVnd: PUBLISHED_PRODUCT.priceVnd,
+        }],
+        subtotalVnd: PUBLISHED_PRODUCT.priceVnd,
+        shippingFeeVnd: 0,
+        discountVnd: 0,
+        totalVnd: PUBLISHED_PRODUCT.priceVnd,
+        status: fixture.status,
+        paymentMethod: fixture.paymentMethod,
+        paymentStatus: fixture.paymentStatus,
+        paidAmountVnd: 0,
+        refundedAmountVnd: 0,
+        reservationId,
+        statusHistory: fixture.history,
+        version: fixture.version,
+      },
+      reservation: {
+        orderId,
+        items: [{ productId: published._id, quantity: 1 }],
+        status: 'held',
+        version: 0,
+      },
+    };
+  });
+  await Order.insertMany(orderRecords.map(({ order }) => order));
+  await StockReservation.insertMany(orderRecords.map(({ reservation }) => reservation));
+
+  await Address.create({
+    userId: otherCustomer._id,
+    label: 'P11 address owned by another customer',
+    recipientName: 'Other P11 Recipient',
+    phone: '0900000099',
+    line1: '99 Đường Thử nghiệm',
+    countryCode: 'VN',
+    formattedAddress: '99 Đường Thử nghiệm, Việt Nam',
+    isDefault: true,
+    version: 0,
+  });
+
+  return {
+    publishedProductId: String(published._id),
+    draftProductId: String(draft._id),
+    otherCustomerAddressId: String((await Address.findOne({ userId: otherCustomer._id }).exec())._id),
+    staffOrderId: String(orderRecords[0].order._id),
+    paymentOrderId: String(orderRecords[1].order._id),
+    guestOrderId: String(orderRecords[2].order._id),
+    seededOrderCount: orderRecords.length,
+  };
 }
 
 function listen(server, port) {
@@ -197,7 +323,8 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
     await disconnectDatabase();
   }
   globalThis.__P11_E2E_RUNTIME = null;
-  if (orderCount !== null && orderCount !== 0) {
-    throw new Error('P11 R06-unconfigured suite should not create an order; found ' + orderCount + '.');
+  if (orderCount !== null && orderCount !== runtime.fixture.seededOrderCount) {
+    throw new Error('P11 test database order count changed from its synthetic fixture count ('
+      + runtime.fixture.seededOrderCount + ' to ' + orderCount + ').');
   }
 }

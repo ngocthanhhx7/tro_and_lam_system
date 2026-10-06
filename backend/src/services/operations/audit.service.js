@@ -6,6 +6,7 @@ const REDACTED = '[REDACTED]';
 const SECRET_FIELD = /(password|passwd|otp|verification.?code|token|secret|signature|authorization|cookie|api.?key|credential|email|phone|address|message|transcript|webhook.?body|headers?)/i;
 const EMAIL_VALUE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const LONG_DIGITS = /(?:\+?\d[\s().-]*){8,}/;
+const UUID_REQUEST_ID = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/iu;
 const SAFE_KEY = /^[A-Za-z][A-Za-z0-9_.-]{0,79}$/;
 
 function auditError(field) {
@@ -36,7 +37,9 @@ function safeChangeValue(value, key, depth = 0) {
 export function redactAuditEvent(event = {}) {
   const action = cleanText(event.action, 100);
   const targetType = cleanText(event.targetType, 80);
-  const requestId = cleanText(event.requestId, 120);
+  const requestId = typeof event.requestId === 'string' && UUID_REQUEST_ID.test(event.requestId.trim())
+    ? event.requestId.trim()
+    : cleanText(event.requestId, 120);
   const outcome = cleanText(event.outcome, 24);
   if (!action || action === REDACTED || !/^[A-Za-z][A-Za-z0-9_.-]*$/.test(action)) throw auditError('action');
   if (!targetType || targetType === REDACTED || !/^[A-Za-z][A-Za-z0-9_.-]*$/.test(targetType)) throw auditError('targetType');
