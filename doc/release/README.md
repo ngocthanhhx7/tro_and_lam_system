@@ -225,3 +225,11 @@ On a clean verification worktree based on integrated revision `90dc763`, Node `2
 The P11 teardown removed its uniquely named test database. P02/P05 removed their generated databases; P06's exact database had three empty collections and zero documents before removal. Final prefix audit found no P02/P05/P06/P11 test database. No live provider, production database or deployment was used.
 
 The latest owner brief is reflected in the current storefront: deep blue-green and gold accents on ivory, self-hosted Noto Serif/Be Vietnam Pro, editorial layouts, ceramic imagery disclosures and a restrained lotus ornament based on the supplied logo. Concept media is not represented as real SKU photography. Owner-approved product images/rights and product data (R03), cultural content approval (R08), remote CI execution, provider staging, manual accessibility review, Atlas restore rehearsal and owner UAT remain open.
+
+## Clean-install acceptance on commit 694ae9a (2026-10-06)
+
+A fresh detached worktree at `694ae9a` completed `npm ci` with 314 packages and 0 audit vulnerabilities. The only install notice was the existing ESLint 9 deprecation warning. `npm run check` passed contract validation (102 paths, 121 operations, 60 DTO schemas, 22 enums and 26 fixtures), lint, backend **196/196 with 0 skipped**, and the 132-module production build. Vite reports a 551.12 kB minified JavaScript bundle above its 500 kB advisory threshold.
+
+`npm run test:e2e` passed **25/25** using a new P11 loopback test database. After teardown, P11 database `tro_lam_p11_e2e_test_a749bb420a1e` was absent; P02/P05 databases were removed by their tests. P06 database `tro_lam_p06_test_454af9cd4409` had three empty collections and zero documents before exact cleanup. Final audit found no P02/P05/P06/P11 databases.
+
+This verifies the locked install and current local acceptance suite. The first GitHub Actions run, owner SKU photography and rights, approved cultural content, provider staging, manual accessibility review, Atlas restore rehearsal and owner UAT remain outstanding. No production deployment or live provider call occurred.
