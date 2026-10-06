@@ -81,6 +81,25 @@ async function seedSyntheticFixture() {
     version: 0,
   });
 
+  const paginationProducts = Array.from({ length: 12 }, (_, index) => {
+    const sequence = String(index + 1).padStart(2, '0');
+    return {
+      slug: `p11-pagination-fixture-${sequence}`,
+      sku: `P11-PAGE-${sequence}`,
+      name: `P11 Pagination Fixture ${sequence}`,
+      line: 'diplomacy',
+      categoryId: category._id,
+      description: 'Synthetic pagination fixture. Not a real offer.',
+      material: 'Fixture only',
+      images: [],
+      saleMode: 'quote',
+      status: 'published',
+      featured: false,
+      version: 0,
+    };
+  });
+  await CatalogProduct.create(paginationProducts);
+
   const [published, draft] = await CatalogProduct.create([
     {
       ...PUBLISHED_PRODUCT,

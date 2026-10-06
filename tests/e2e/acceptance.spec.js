@@ -105,6 +105,50 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
 });
 
+test('public catalog filters are reflected in the URL and pagination restores after reload', async ({ page }) => {
+  await page.goto('/san-pham');
+  const filters = page.locator('.catalog-filters');
+  await page.getByLabel('Tìm theo tên hoặc nội dung').fill('P11');
+  await filters.getByLabel('Dòng sản phẩm').selectOption('lifestyle');
+  await filters.getByLabel('Hình thức bán').selectOption('buy');
+  await filters.getByLabel('Tình trạng đặt mua').selectOption('true');
+  await page.getByRole('button', { name: 'Áp dụng bộ lọc' }).click();
+
+  const filteredUrl = new URL(page.url());
+  expect(Object.fromEntries(filteredUrl.searchParams)).toMatchObject({
+    q: 'P11', line: 'lifestyle', saleMode: 'buy', available: 'true',
+  });
+  await expect(page.locator('.product-card')).toHaveCount(1);
+  await expect(page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true })).toBeVisible();
+  await expect(page.getByLabel('Tìm theo tên hoặc nội dung')).toHaveValue('P11');
+
+  await page.reload();
+  await expect(page.locator('.product-card')).toHaveCount(1);
+  await expect(filters.getByLabel('Dòng sản phẩm')).toHaveValue('lifestyle');
+  await expect(filters.getByLabel('Hình thức bán')).toHaveValue('buy');
+  await expect(filters.getByLabel('Tình trạng đặt mua')).toHaveValue('true');
+
+  await page.getByRole('button', { name: 'Xóa lọc', exact: true }).click();
+  await expect(page).toHaveURL(/\/san-pham$/u);
+  await expect(page.getByText('13 sản phẩm', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-card')).toHaveCount(12);
+  const pagination = page.getByRole('navigation', { name: 'Phân trang danh mục' });
+  await expect(pagination.getByText('Trang 1 / 2', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Trang sau', exact: true }).click();
+  await expect(page).toHaveURL(/\/san-pham\?page=2$/u);
+  await expect(pagination.getByText('Trang 2 / 2', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-card')).toHaveCount(1);
+  await page.reload();
+  await expect(page).toHaveURL(/\/san-pham\?page=2$/u);
+  await expect(pagination.getByText('Trang 2 / 2', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-card')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Trang trước', exact: true }).click();
+  await expect(page).toHaveURL(/\/san-pham\?page=1$/u);
+  await expect(page.locator('.product-card')).toHaveCount(12);
+});
+
 test('guest cart updates, survives reload, removes items, stays isolated and merges into one customer cart', async ({ page, browser }) => {
   await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
