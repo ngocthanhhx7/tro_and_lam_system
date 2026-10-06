@@ -41,3 +41,18 @@ test('rate limit responses keep the standard error envelope', async () => {
   assert.ok(response.body.meta.requestId);
   assert.equal(response.headers['x-request-id'], response.body.meta.requestId);
 });
+
+test('isolated app instances can set a bounded global API rate limit', async () => {
+  const app = createApp({ apiRateLimitLimit: 1, apiRateLimitWindowMs: 60_000 });
+  const first = await request(app).get('/api/v1/missing');
+  const second = await request(app).get('/api/v1/missing');
+
+  assert.equal(first.status, 404);
+  assert.equal(second.status, 429);
+  assert.equal(second.body.error.code, 'RATE_LIMITED');
+});
+
+test('global API rate limit configuration rejects invalid values', () => {
+  assert.throws(() => createApp({ apiRateLimitLimit: 0 }), /positive safe integer/u);
+  assert.throws(() => createApp({ apiRateLimitWindowMs: -1 }), /positive safe integer/u);
+});

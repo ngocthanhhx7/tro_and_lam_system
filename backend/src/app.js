@@ -19,7 +19,15 @@ export function createApp({
   trustProxy = 0,
   isDatabaseReady = defaultReadiness,
   domainRouters = [],
+  apiRateLimitLimit = 100,
+  apiRateLimitWindowMs = 15 * 60 * 1000,
 } = {}) {
+  if (!Number.isSafeInteger(apiRateLimitLimit) || apiRateLimitLimit < 1) {
+    throw new TypeError('API rate limit must be a positive safe integer');
+  }
+  if (!Number.isSafeInteger(apiRateLimitWindowMs) || apiRateLimitWindowMs < 1) {
+    throw new TypeError('API rate limit window must be a positive safe integer');
+  }
   const app = express();
   const allowedOrigins = normalizeOrigins(corsOrigin);
   app.disable('x-powered-by');
@@ -38,8 +46,8 @@ export function createApp({
   }));
   app.use(`${API_PREFIX}/health`, createHealthRouter(isDatabaseReady));
   app.use(API_PREFIX, rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
+    windowMs: apiRateLimitWindowMs,
+    limit: apiRateLimitLimit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, _res, next) => next(new ServiceError(429, 'RATE_LIMITED', 'Quá nhiều yêu cầu. Vui lòng thử lại sau')),
