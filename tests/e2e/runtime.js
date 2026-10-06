@@ -277,6 +277,8 @@ export async function startRuntime() {
       trustProxy: 0,
       isDatabaseReady: () => true,
       domainRouters: runtime.composition.domainRouters,
+      // Browser acceptance uses one loopback IP across tests; preserve production defaults outside this harness.
+      apiRateLimitLimit: 10_000,
     });
     runtime.api = createHttpServer(app);
     await listen(runtime.api, API_PORT);

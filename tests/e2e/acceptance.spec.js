@@ -105,6 +105,69 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
 });
 
+test('guest cart updates, survives reload, removes items, stays isolated and merges into one customer cart', async ({ page, browser }) => {
+  await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+  await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+  await page.goto('/gio-hang');
+
+  const cartItems = page.locator('.cart-item');
+  await expect(cartItems).toHaveCount(1);
+  await expect(cartItems.first().locator('.cart-quantity span')).toHaveText('1');
+  await page.reload();
+  await expect(cartItems).toHaveCount(1);
+  await expect(cartItems.first().locator('.cart-quantity span')).toHaveText('1');
+
+  await cartItems.first().locator('.cart-quantity button').last().click();
+  await expect(cartItems.first().locator('.cart-quantity span')).toHaveText('2');
+  const guestACartAfterUpdate = await browserApi(page, '/api/v1/cart');
+  expect(guestACartAfterUpdate.status).toBe(200);
+  expect(guestACartAfterUpdate.body.data.items).toHaveLength(1);
+  expect(guestACartAfterUpdate.body.data.items[0].quantity).toBe(2);
+
+  const guestBContext = await browser.newContext();
+  try {
+    const guestBPage = await guestBContext.newPage();
+    await guestBPage.goto('/gio-hang');
+    await expect(guestBPage.locator('.cart-empty')).toBeVisible();
+    const emptyGuestBCart = await browserApi(guestBPage, '/api/v1/cart');
+    expect(emptyGuestBCart.status).toBe(200);
+    expect(emptyGuestBCart.body.data.items).toHaveLength(0);
+
+    await guestBPage.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+    await guestBPage.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
+    await expect(guestBPage.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+    const guestBCart = await browserApi(guestBPage, '/api/v1/cart');
+    expect(guestBCart.status).toBe(200);
+    expect(guestBCart.body.data.items).toHaveLength(1);
+    expect(guestBCart.body.data.items[0].quantity).toBe(1);
+
+    await page.reload();
+    await expect(cartItems.first().locator('.cart-quantity span')).toHaveText('2');
+    await cartItems.first().locator('.cart-remove').click();
+    await expect(page.locator('.cart-empty')).toBeVisible();
+    expect((await browserApi(page, '/api/v1/cart')).body.data.items).toHaveLength(0);
+    expect((await browserApi(guestBPage, '/api/v1/cart')).body.data.items[0].quantity).toBe(1);
+
+    await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+    await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+    await login(page, USERS.customer);
+    await page.goto('/gio-hang');
+    await expect(page.locator('.cart-item')).toHaveCount(1);
+    await expect(page.locator('.cart-item .cart-quantity span')).toHaveText('1');
+    const customerCartAfterMerge = await browserApi(page, '/api/v1/cart');
+    expect(customerCartAfterMerge.status).toBe(200);
+    expect(customerCartAfterMerge.body.data.items).toHaveLength(1);
+    expect(customerCartAfterMerge.body.data.items[0].quantity).toBe(1);
+    await page.reload();
+    await expect(page.locator('.cart-item .cart-quantity span')).toHaveText('1');
+    expect((await browserApi(guestBPage, '/api/v1/cart')).body.data.items[0].quantity).toBe(1);
+  } finally {
+    await guestBContext.close();
+  }
+});
+
 test('customer manages addresses with manual fallback and is denied staff/admin APIs', async ({ page }) => {
   await login(page, USERS.customer);
   await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
