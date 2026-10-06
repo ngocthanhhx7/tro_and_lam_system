@@ -27,6 +27,14 @@ function identityMail(template, data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new TypeError('Mail data must be an object');
   }
+  if (template === 'order-confirmation') {
+    return { template: 'order_confirmation', data: { orderCode: requiredMailText(data, 'orderCode', template) } };
+  }
+  if (template === 'guest-order-access-code') {
+    const verificationCode = requiredMailText(data, 'verificationCode', template);
+    if (!/^\d{6}$/.test(verificationCode)) throw new TypeError('Commerce order access code is invalid');
+    return { template: 'order_access_code', data: { code: verificationCode } };
+  }
   if (template === 'verify-email' || template === 'reset-password') {
     const name = optionalMailText(data, 'name', template);
     return {

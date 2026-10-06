@@ -267,6 +267,44 @@ test('P02 identity mail aliases map to encrypted P09 allowlisted templates', asy
   assert.equal(saved.length, source.length);
 });
 
+test('P05, P06, and P07 mail keys map to supported templates and encrypt only rendered fields', async () => {
+  const saved = [];
+  const OutboxEvent = {
+    async findOneAndUpdate(_filter, update) {
+      const row = { _id: `mail-${saved.length + 1}`, ...update.$setOnInsert };
+      saved.push(row);
+      return row;
+    },
+    async findOne(filter) { return saved.find((row) => row.eventKey === filter.eventKey) || null; },
+  };
+  const cipher = createOutboxPayloadCipher({ key: Buffer.alloc(32, 6) });
+  const ports = createOperationsPorts({ models: { OutboxEvent, AuditLog: {} }, encryptMailPayload: cipher.encrypt });
+  const source = [
+    ['order-confirmation', {
+      orderCode: 'TL-2026-1', recipientName: 'Lan', totalVnd: 150000, itemCount: 2,
+    }, 'order_confirmation', { orderCode: 'TL-2026-1' }],
+    ['guest-order-access-code', {
+      orderCode: 'TL-2026-1', verificationCode: '012345', expiresAt: '2026-10-06T00:00:00.000Z',
+    }, 'order_access_code', { code: '012345' }],
+    ['order_update', { orderCode: 'TL-2026-1', status: 'shipped' }, 'order_update', { orderCode: 'TL-2026-1', status: 'shipped' }],
+    ['ticket_reply', { ticketCode: 'TL-ABC' }, 'ticket_reply', { ticketCode: 'TL-ABC' }],
+    ['new_lead', { reference: 'contact-1' }, 'new_lead', { reference: 'contact-1' }],
+  ];
+
+  for (const [sourceTemplate, data, expectedTemplate, expectedData] of source) {
+    await ports.enqueueMail(sourceTemplate, 'buyer@example.test', data);
+    const encrypted = saved.at(-1).payload.deliveries[0].encryptedMail;
+    assert.deepEqual(cipher.decrypt(encrypted), {
+      template: expectedTemplate, recipient: 'buyer@example.test', data: expectedData,
+    });
+  }
+  assert.throws(
+    () => ports.enqueueMail('guest-order-access-code', 'buyer@example.test', { verificationCode: '123' }),
+    /Commerce order access code is invalid/,
+  );
+  assert.equal(saved.length, source.length);
+});
+
 test('mail payload encryption protects retry data and detects tampering', () => {
   const cipher = createOutboxPayloadCipher({ key: Buffer.alloc(32, 7) });
   const original = { template: 'order_access_code', recipient: 'guest@example.test', data: { code: '123456' } };
