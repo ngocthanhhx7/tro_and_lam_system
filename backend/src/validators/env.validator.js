@@ -143,6 +143,13 @@ export function validateEnv(source) {
     if (mediaPublicBaseUrl !== '/media/products') throw new Error('MEDIA_PUBLIC_BASE_URL của kho media cục bộ phải là /media/products');
   }
 
+  const supportStorageDriver = source.SUPPORT_STORAGE_DRIVER || (nodeEnv === 'development' ? 'local' : 'disabled');
+  if (!['local', 'disabled'].includes(supportStorageDriver)) throw new Error('SUPPORT_STORAGE_DRIVER chỉ nhận local/disabled');
+  if (nodeEnv === 'production' && supportStorageDriver === 'local') {
+    throw new Error('SUPPORT_STORAGE_DRIVER=local chỉ dùng cho phát triển cục bộ; production cần kho riêng tư bền vững được duyệt');
+  }
+  const supportStoragePath = resolve(source.SUPPORT_STORAGE_PATH || '.data/private-support-attachments');
+
   return {
     nodeEnv, port, mongoUri, corsOrigin, origins, trustProxy, csrfSecret, publicWebUrl: publicWebOrigin,
     sessionCookieName: cookieName(source, 'SESSION_COOKIE_NAME', 'tl_session'),
@@ -157,5 +164,6 @@ export function validateEnv(source) {
     geminiApiKey, geminiModel, aiTimeoutMs, aiDailyBudget,
     reservationSweepIntervalMs, paymentReconciliationIntervalMs,
     backgroundWorkersEnabled, mediaStorageDriver, mediaStoragePath, mediaPublicBaseUrl,
+    supportStorageDriver, supportStoragePath,
   };
 }

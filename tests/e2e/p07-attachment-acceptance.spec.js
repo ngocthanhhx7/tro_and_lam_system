@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import argon2 from 'argon2';
 import mongoose from 'mongoose';
@@ -38,8 +37,7 @@ async function login(page, user) {
   await page.getByLabel('Email', { exact: true }).fill(user.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(P07_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  const destination = user.role === 'customer' ? 'Hồ sơ của tôi' : 'Bảng công việc';
-  await expect(page.getByRole('heading', { name: destination, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: user.role === 'customer' ? 'Hồ sơ của tôi' : 'Bảng công việc', exact: true })).toBeVisible();
 }
 
 async function withP07Database(callback) {
@@ -48,174 +46,134 @@ async function withP07Database(callback) {
   try {
     if (connection.name !== databaseName) throw new Error('P07 attachment fixture connected to an unexpected test database.');
     return await callback(connection);
-  } finally {
-    await connection.close();
-  }
+  } finally { await connection.close(); }
 }
 
 async function seedSyntheticUsers() {
   return withP07Database(async (connection) => {
     const UserFixture = connection.model('P07AttachmentUserFixture', User.schema);
     const passwordHash = await argon2.hash(P07_PASSWORD);
-    const users = await UserFixture.create(Object.values(P07_USERS).map((user) => ({
-      ...user,
-      emailNormalized: user.email,
-      passwordHash,
-      status: 'active',
-      emailVerifiedAt: new Date(),
-      authVersion: 0,
-      version: 0,
+    await UserFixture.create(Object.values(P07_USERS).map((user) => ({
+      ...user, emailNormalized: user.email, passwordHash, status: 'active', emailVerifiedAt: new Date(), authVersion: 0, version: 0,
     })));
-    return Object.fromEntries(users.map((user) => [user.emailNormalized, String(user._id)]));
   });
 }
 
-async function seedSyntheticAttachmentMetadata(ticketId, userIds) {
-  return withP07Database(async (connection) => {
-    const AttachmentFixture = connection.model('P07AttachmentFixture', SupportAttachment.schema);
+async function uploadBinary(page, upload, bytes) {
+  const encoded = Buffer.from(bytes).toString('base64');
+  return page.evaluate(async ({ uploadUrl, method, headers, encodedBytes }) => {
+    const binary = Uint8Array.from(atob(encodedBytes), (character) => character.charCodeAt(0));
+    const response = await fetch(uploadUrl, { method, headers, body: binary, credentials: 'omit' });
+    return response.status;
+  }, { uploadUrl: upload.uploadUrl, method: upload.method, headers: upload.headers, encodedBytes: encoded });
+}
 
-    const ids = {
-      pending: new mongoose.Types.ObjectId(),
-      customerReady: new mongoose.Types.ObjectId(),
-      internalLinked: new mongoose.Types.ObjectId(),
-    };
-    const fixtureKey = randomUUID();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await AttachmentFixture.create([
-      {
-        _id: ids.pending,
-        storageKey: `p07-e2e-fixture/${fixtureKey}/pending-no-object`,
-        uploadedByUserId: userIds[P07_USERS.customer.email],
-        purpose: 'ticket',
-        mimeType: 'image/png',
-        bytes: 8,
-        state: 'pending_upload',
-        visibility: 'customer',
-        expiresAt,
-        version: 0,
-      },
-      {
-        _id: ids.customerReady,
-        storageKey: `p07-e2e-fixture/${fixtureKey}/ready-no-object`,
-        uploadedByUserId: userIds[P07_USERS.customer.email],
-        purpose: 'ticket',
-        mimeType: 'image/png',
-        bytes: 8,
-        state: 'ready',
-        visibility: 'customer',
-        expiresAt,
-        version: 0,
-      },
-      {
-        _id: ids.internalLinked,
-        storageKey: `p07-e2e-fixture/${fixtureKey}/internal-no-object`,
-        uploadedByUserId: userIds[P07_USERS.staff.email],
-        purpose: 'ticket',
-        ticketId,
-        mimeType: 'image/png',
-        bytes: 8,
-        state: 'linked',
-        visibility: 'internal',
-        expiresAt,
-        version: 1,
-      },
-    ]);
-    return Object.fromEntries(Object.entries(ids).map(([key, value]) => [key, String(value)]));
-  });
+async function fetchAttachment(page, id) {
+  return page.evaluate(async (attachmentId) => {
+    const response = await fetch(`/api/v1/attachments/${encodeURIComponent(attachmentId)}/download`, { credentials: 'include' });
+    const bytes = await response.arrayBuffer();
+    return { status: response.status, contentType: response.headers.get('content-type'), bytes: bytes.byteLength };
+  }, id);
 }
 
 async function readAttachmentAudit(ticketId) {
   return withP07Database(async (connection) => {
     const AttachmentRead = connection.model('P07AttachmentAudit', SupportAttachment.schema);
-    return await AttachmentRead.find({ $or: [{ ticketId }, { storageKey: /^p07-e2e-fixture\// }] })
-      .sort({ storageKey: 1 }).lean().exec();
+    return AttachmentRead.find({ ticketId }).sort({ storageKey: 1 }).lean().exec();
   });
 }
 
-function expectUnavailable(response) {
-  expect(response.status).toBe(503);
-  expect(response.body.error?.code).toBe('MEDIA_UNAVAILABLE');
-  expect(response.body.data).toBeUndefined();
-  expect(JSON.stringify(response.body)).not.toContain('https://');
-}
-
-test('P07 customer and staff attachment routes fail closed and preserve owner privacy without storage', async ({ page, browser }) => {
+test('P07 customer and staff upload, finalize, link, and download private attachments with owner privacy', async ({ page, browser }) => {
   const subject = 'P07 synthetic attachment storage acceptance';
-  const initialMessage = 'Synthetic support message for attachment storage acceptance.';
-  const userIds = await seedSyntheticUsers();
+  await seedSyntheticUsers();
 
   await login(page, P07_USERS.customer);
   await page.goto('/tai-khoan/ho-tro');
   const createForm = page.locator('.support-stack > form.support-card');
-  await expect(createForm).toHaveCount(1);
   await createForm.getByRole('combobox', { name: 'Chủ đề', exact: true }).selectOption('complaint');
   await createForm.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill(subject);
-  await createForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(initialMessage);
-  const createTicketResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/tickets')
-    && response.request().method() === 'POST');
+  await createForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill('Synthetic support message for attachment acceptance.');
+  const ticketResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/tickets') && response.request().method() === 'POST');
   await createForm.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).click();
-  const createTicketResponse = await createTicketResponsePromise;
-  const createTicketBody = await createTicketResponse.json();
-  expect(createTicketResponse.status(), JSON.stringify(createTicketBody)).toBe(201);
-  const ticketId = createTicketBody.data.ticket.id;
+  const ticketResponse = await ticketResponsePromise;
+  expect(ticketResponse.status()).toBe(201);
+  const ticketId = (await ticketResponse.json()).data.ticket.id;
 
-  const customerUpload = await browserApi(page, '/api/v1/attachments/uploads', {
-    method: 'POST',
-    body: { purpose: 'ticket', ticketId, mimeType: 'image/png', bytes: 8, visibility: 'customer' },
+  const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const customerUploadResponse = await browserApi(page, '/api/v1/attachments/uploads', {
+    method: 'POST', body: { purpose: 'ticket', ticketId, mimeType: 'image/png', bytes: pngSignature.length, visibility: 'customer' },
   });
-  expectUnavailable(customerUpload);
+  expect(customerUploadResponse.status).toBe(201);
+  const customerUpload = customerUploadResponse.body.data;
+  expect(customerUpload.state).toBe('pending_upload');
+  expect(customerUpload.uploadUrl).toMatch(/^\/api\/v1\/attachments\/private\/uploads\//u);
+  expect(await uploadBinary(page, customerUpload, pngSignature)).toBe(204);
 
   const staffContext = await browser.newContext();
   const otherCustomerContext = await browser.newContext();
   try {
-    const staffPage = await staffContext.newPage();
-    await login(staffPage, P07_USERS.staff);
-    await staffPage.goto('/staff/support');
-    const ticketLink = staffPage.locator('.support-ticket-list').getByRole('link').filter({ hasText: subject });
-    await expect(ticketLink).toBeVisible();
-    await ticketLink.click();
-    await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
-
-    const staffUpload = await browserApi(staffPage, '/api/v1/attachments/uploads', {
-      method: 'POST',
-      body: { purpose: 'ticket', ticketId, mimeType: 'image/png', bytes: 8, visibility: 'internal' },
-    });
-    expectUnavailable(staffUpload);
-
-    const beforeSeed = await readAttachmentAudit(ticketId);
-    expect(beforeSeed).toEqual([]);
-    const ids = await seedSyntheticAttachmentMetadata(ticketId, userIds);
     const otherCustomerPage = await otherCustomerContext.newPage();
     await login(otherCustomerPage, P07_USERS.otherCustomer);
-
-    const ownerFinalize = await browserApi(page, `/api/v1/attachments/${ids.pending}/finalize`, {
-      method: 'POST', body: {},
-    });
-    expectUnavailable(ownerFinalize);
-    const nonOwnerFinalize = await browserApi(otherCustomerPage, `/api/v1/attachments/${ids.pending}/finalize`, {
-      method: 'POST', body: {},
-    });
+    const nonOwnerFinalize = await browserApi(otherCustomerPage, `/api/v1/attachments/${customerUpload.id}/finalize`, { method: 'POST', body: {} });
     expect(nonOwnerFinalize.status).toBe(404);
     expect(nonOwnerFinalize.body.error?.code).toBe('NOT_FOUND');
 
-    const ownerDownload = await browserApi(page, `/api/v1/attachments/${ids.customerReady}/download`);
-    expectUnavailable(ownerDownload);
-
-    const nonOwnerDownload = await browserApi(otherCustomerPage, `/api/v1/attachments/${ids.customerReady}/download`);
+    const customerFinalize = await browserApi(page, `/api/v1/attachments/${customerUpload.id}/finalize`, { method: 'POST', body: {} });
+    expect(customerFinalize.status).toBe(200);
+    expect(customerFinalize.body.data.state).toBe('ready');
+    const customerMessage = await browserApi(page, `/api/v1/tickets/${ticketId}/messages`, {
+      method: 'POST', body: { body: 'Synthetic customer message with a private image.', attachmentIds: [customerUpload.id], visibility: 'customer' },
+    });
+    expect(customerMessage.status).toBe(201);
+    expect(customerMessage.body.data.attachmentIds).toContain(customerUpload.id);
+    expect(await fetchAttachment(page, customerUpload.id)).toEqual({ status: 200, contentType: 'image/png', bytes: 8 });
+    const nonOwnerDownload = await browserApi(otherCustomerPage, `/api/v1/attachments/${customerUpload.id}/download`);
     expect(nonOwnerDownload.status).toBe(404);
     expect(nonOwnerDownload.body.error?.code).toBe('NOT_FOUND');
 
-    const customerInternalDownload = await browserApi(page, `/api/v1/attachments/${ids.internalLinked}/download`);
+    await page.goto(`/tai-khoan/ho-tro/${ticketId}`);
+    const replyForm = page.locator('form.support-card.support-form');
+    const picker = replyForm.locator('.support-attachment-picker');
+    await picker.getByLabel('Chọn ảnh đính kèm', { exact: true }).setInputFiles({
+      name: 'p07-customer-ui.png', mimeType: 'image/png', buffer: pngSignature,
+    });
+    await picker.getByRole('button', { name: 'Tải 1 ảnh lên', exact: true }).click();
+    await expect(picker.getByRole('status')).toContainText('Đã tải 1 ảnh');
+    await replyForm.getByLabel('Phản hồi', { exact: true }).fill('Synthetic customer reply sent from the attachment UI.');
+    await replyForm.getByRole('button', { name: 'Gửi phản hồi', exact: true }).click();
+    await expect(page.getByText('Synthetic customer reply sent from the attachment UI.')).toBeVisible();
+
+    const staffPage = await staffContext.newPage();
+    await login(staffPage, P07_USERS.staff);
+    await staffPage.goto(`/staff/support/${ticketId}`);
+    await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
+
+    const staffUploadResponse = await browserApi(staffPage, '/api/v1/attachments/uploads', {
+      method: 'POST', body: { purpose: 'ticket', ticketId, mimeType: 'image/png', bytes: pngSignature.length, visibility: 'internal' },
+    });
+    expect(staffUploadResponse.status).toBe(201);
+    const staffUpload = staffUploadResponse.body.data;
+    expect(await uploadBinary(staffPage, staffUpload, pngSignature)).toBe(204);
+    const staffFinalize = await browserApi(staffPage, `/api/v1/attachments/${staffUpload.id}/finalize`, { method: 'POST', body: {} });
+    expect(staffFinalize.status).toBe(200);
+    const internalMessage = await browserApi(staffPage, `/api/v1/tickets/${ticketId}/messages`, {
+      method: 'POST', body: { body: 'Synthetic staff internal note with private evidence.', attachmentIds: [staffUpload.id], visibility: 'internal' },
+    });
+    expect(internalMessage.status).toBe(201);
+
+    const customerInternalDownload = await browserApi(page, `/api/v1/attachments/${staffUpload.id}/download`);
     expect(customerInternalDownload.status).toBe(404);
     expect(customerInternalDownload.body.error?.code).toBe('NOT_FOUND');
-    const staffInternalDownload = await browserApi(staffPage, `/api/v1/attachments/${ids.internalLinked}/download`);
-    expectUnavailable(staffInternalDownload);
+    expect(await fetchAttachment(staffPage, staffUpload.id)).toEqual({ status: 200, contentType: 'image/png', bytes: 8 });
+
+    await page.goto(`/tai-khoan/ho-tro/${ticketId}`);
+    await expect(page.getByRole('link', { name: 'Mở ảnh đính kèm', exact: true })).toHaveCount(2);
+    await expect(page.getByText('Synthetic staff internal note with private evidence.')).toHaveCount(0);
 
     const persisted = await readAttachmentAudit(ticketId);
     expect(persisted).toHaveLength(3);
-    expect(persisted.map((attachment) => attachment.state).sort()).toEqual(['linked', 'pending_upload', 'ready']);
-    expect(persisted.every((attachment) => attachment.storageKey.startsWith('p07-e2e-fixture/'))).toBe(true);
-    expect(persisted.every((attachment) => attachment.storageKey.includes('-no-object'))).toBe(true);
+    expect(persisted.every((attachment) => attachment.state === 'linked')).toBe(true);
+    expect(persisted.every((attachment) => attachment.storageKey.startsWith('support/'))).toBe(true);
   } finally {
     await Promise.all([staffContext.close(), otherCustomerContext.close()]);
   }

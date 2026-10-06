@@ -152,6 +152,12 @@ function safeHttpsUrl(value) {
   } catch { return false; }
 }
 
+function safeStorageUrl(value, operation) {
+  if (safeHttpsUrl(value)) return true;
+  if (typeof value !== 'string' || value.length > 4096) return false;
+  return new RegExp(`^/api/v1/attachments/private/${operation}/[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$`, 'u').test(value);
+}
+
 function orderItems(order) {
   return (order?.items ?? order?.itemsSnapshot ?? []).map((item) => ({
     productId: idOf(item.productId), quantity: item.quantity,
@@ -705,7 +711,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       const storageKey = `support/${randomUUID()}`;
       let upload;
       try { upload = await storage.createUpload({ storageKey, mimeType: data.mimeType, bytes: data.bytes, expiresAt }); } catch { throw errorMissing('MEDIA_UNAVAILABLE', 'Không thể tạo đường tải tệp an toàn'); }
-      if (!safeHttpsUrl(upload?.uploadUrl) || !upload?.headers || typeof upload.headers !== 'object' || Array.isArray(upload.headers)) {
+      if (!safeStorageUrl(upload?.uploadUrl, 'uploads') || !upload?.headers || typeof upload.headers !== 'object' || Array.isArray(upload.headers)) {
         throw errorMissing('MEDIA_UNAVAILABLE', 'Kho tệp chưa trả về URL tải riêng hợp lệ');
       }
       const row = await repo.createAttachment({
@@ -770,7 +776,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       if (!['ready', 'linked'].includes(attachment.state)) throw notFound();
       if (!storage || typeof storage.createDownload !== 'function') throw errorMissing('MEDIA_UNAVAILABLE', 'Kho tệp hỗ trợ chưa sẵn sàng');
       const url = await storage.createDownload(attachment.storageKey, { expiresInSeconds: 60 });
-      if (!safeHttpsUrl(url)) throw errorMissing('MEDIA_UNAVAILABLE', 'Kho tệp không trả về liên kết riêng hợp lệ');
+      if (!safeStorageUrl(url, 'downloads')) throw errorMissing('MEDIA_UNAVAILABLE', 'Kho tệp không trả về liên kết riêng hợp lệ');
       return url;
     },
 

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { cookieValue } from './services/identity/identity.security.js';
 import { createIdentityRouter } from './routes/identity/identity.routes.js';
 import { createAccountRouter } from './routes/account/account.routes.js';
@@ -8,6 +8,7 @@ import { createPaymentsRouter } from './routes/payments/payments.routes.js';
 import { createOperationsRouter } from './routes/operations.routes.js';
 import { createContentRouter } from './content/content.routes.js';
 import { createSupportRouter } from './support/support.routes.js';
+import { createLocalPrivateSupportStorage } from './support/local-private-storage.js';
 import { createAssistantRouter } from './assistant/assistant.routes.js';
 import { createAssistantTranscriptPort } from './assistant/assistant.ports.js';
 import { createPublishedContentPort } from './content/content.ports.js';
@@ -194,6 +195,12 @@ export async function createDomainComposition(env) {
   });
   contentService = contentRouter.contentService;
   const publishedContentPort = createPublishedContentPort(contentService);
+  const supportStorage = env.supportStorageDriver === 'local'
+    ? createLocalPrivateSupportStorage({
+      storageDir: env.supportStoragePath,
+      secret: createHmac('sha256', env.csrfSecret).update('tro-lam-support-private-storage-v1').digest('base64url'),
+    })
+    : null;
 
   const accountService = createAccountService({ ports: { catalogService }, config });
   const actorResolvers = makeActorResolvers(identity, identityService, config);
@@ -258,6 +265,7 @@ export async function createDomainComposition(env) {
       catalog: catalogService,
       operations: operationsPorts,
       assistantTranscript,
+      storage: supportStorage,
     },
     config,
   });

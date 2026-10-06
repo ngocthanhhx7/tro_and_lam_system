@@ -98,6 +98,13 @@
 .support-message > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .support-message time { margin-left: auto; color: var(--text-secondary); font-size: .76rem; }
 .support-message p { margin: 8px 0 0; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.support-attachment-picker { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px; }
+.support-attachment-picker legend { padding-inline: 5px; color: var(--text-primary); font-weight: 700; }
+.support-attachment-picker > p { margin: 0; color: var(--text-secondary); font-size: .85rem; }
+.support-attachment-picker .support-field { gap: 6px; }
+.support-attachment-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.support-attachment-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; overflow-wrap: anywhere; }
+.support-attachment-list a { color: var(--brand-blue); font-weight: 700; }
 .support-staff-ticket-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .support-staff-ticket-tools p { margin: 0; }
 .support-staff-ticket-tools select { width: auto; min-width: 180px; }

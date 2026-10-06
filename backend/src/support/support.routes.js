@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { createIdentityMiddleware } from '../middlewares/identity/identity.middleware.js';
 import { cookieValue } from '../services/identity/identity.security.js';
 import { assistantGuestOwnerFromRequest } from '../assistant/assistant.routes.js';
@@ -65,6 +65,7 @@ function adminOnly(identity) {
 
 export function createSupportRouter({ ports = {}, config = {}, supportService, reviewService } = {}) {
   const identity = authFrom(ports, config);
+  const privateStorage = ports.storage || null;
   const support = supportService || createSupportService({ ports, config });
   const reviews = reviewService || createReviewService({ ports, config });
   const router = Router();
@@ -75,6 +76,28 @@ export function createSupportRouter({ ports = {}, config = {}, supportService, r
   const staffContacts = identity.requireCapability('contacts.operate');
   const admin = adminOnly(identity);
   const selfReviews = identity.requireCapability('self.reviews');
+
+  router.put('/attachments/private/uploads/:token', express.raw({
+    type: ['image/jpeg', 'image/png', 'image/webp'],
+    limit: '5mb',
+  }), asyncRoute(async (req, res) => {
+    if (!privateStorage || typeof privateStorage.acceptUpload !== 'function') return res.sendStatus(404);
+    const contentType = String(req.get('Content-Type') || '').split(';', 1)[0].trim().toLowerCase();
+    await privateStorage.acceptUpload(req.params.token, req.body, contentType);
+    return res.sendStatus(204);
+  }));
+
+  router.get('/attachments/private/downloads/:token', asyncRoute(async (req, res) => {
+    if (!privateStorage || typeof privateStorage.readDownload !== 'function') return res.sendStatus(404);
+    const file = await privateStorage.readDownload(req.params.token);
+    res.set({
+      'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Length': String(file.buffer.length),
+      'Content-Security-Policy': "default-src 'none'; sandbox",
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.type(file.mimeType).send(file.buffer);
+  }));
 
   router.post('/contacts', csrf, optionalPrincipal(identity, ['guest.order.read']), asyncRoute(async (req, res) => {
     return sendAccepted(res, await support.createContact(req.actor || null, req.body, contextOf(req, res)));

@@ -337,6 +337,7 @@ export async function startRuntime() {
   assertNoLiveProviderConfiguration();
   const { uri, databaseName } = assertDedicatedLocalMongoUri(process.env.P11_E2E_MONGODB_URI);
   const mediaStorageDirectory = resolve(tmpdir(), `tro-lam-p11-media-${randomBytes(12).toString('hex')}`);
+  const supportStorageDirectory = resolve(tmpdir(), `tro-lam-p11-private-support-${randomBytes(12).toString('hex')}`);
   const mailEncryptionKey = randomBytes(32).toString('base64');
   process.env.P11_E2E_MAIL_ENCRYPTION_KEY = mailEncryptionKey;
   process.env.NODE_ENV = 'test';
@@ -354,9 +355,11 @@ export async function startRuntime() {
     MEDIA_STORAGE_DRIVER: 'local',
     MEDIA_STORAGE_PATH: mediaStorageDirectory,
     MEDIA_PUBLIC_BASE_URL: '/media/products',
+    SUPPORT_STORAGE_DRIVER: 'local',
+    SUPPORT_STORAGE_PATH: supportStorageDirectory,
   });
 
-  const runtime = { databaseName, mediaStorageDirectory, composition: null, api: null, vite: null };
+  const runtime = { databaseName, mediaStorageDirectory, supportStorageDirectory, composition: null, api: null, vite: null };
   try {
     await connectDatabase(uri);
     const fixture = await seedSyntheticFixture();
@@ -412,6 +415,12 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
     || !basename(mediaDirectory).startsWith('tro-lam-p11-media-')) {
     throw new Error('Refusing to remove a media directory outside the dedicated P11 temp path.');
   }
+  const supportDirectory = resolve(runtime.supportStorageDirectory);
+  const supportRelativePath = relative(mediaRoot, supportDirectory);
+  if (!supportRelativePath || supportRelativePath.startsWith('..') || isAbsolute(supportRelativePath)
+    || !basename(supportDirectory).startsWith('tro-lam-p11-private-support-')) {
+    throw new Error('Refusing to remove a private support directory outside the dedicated P11 temp path.');
+  }
   let orderCount = null;
   if (mongoose.connection.readyState === 1) {
     orderCount = await Order.countDocuments({}).exec().catch(() => null);
@@ -420,6 +429,7 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
   await closeHttpServer(runtime.api).catch(() => {});
   await runtime.composition?.stopWorkers().catch(() => {});
   await rm(mediaDirectory, { recursive: true, force: true });
+  await rm(supportDirectory, { recursive: true, force: true });
   if (mongoose.connection.readyState === 1) {
     await mongoose.connection.db.dropDatabase();
     await disconnectDatabase();

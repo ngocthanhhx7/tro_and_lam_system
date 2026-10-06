@@ -57,7 +57,9 @@ test('production requires CSRF secret, HTTPS web origin, and secure cookies', ()
   assert.throws(() => validateEnv({ ...configured, PUBLIC_WEB_URL: 'http://store.example' }), /PUBLIC_WEB_URL/);
   assert.throws(() => validateEnv({ ...configured, SECURE_COOKIES: 'false' }), /SECURE_COOKIES/);
   assert.equal(validateEnv(configured).mediaStorageDriver, 'disabled');
+  assert.equal(validateEnv(configured).supportStorageDriver, 'disabled');
   assert.throws(() => validateEnv({ ...configured, MEDIA_STORAGE_DRIVER: 'local' }), /chỉ dùng cho phát triển cục bộ/u);
+  assert.throws(() => validateEnv({ ...configured, SUPPORT_STORAGE_DRIVER: 'local' }), /kho riêng tư bền vững/u);
 });
 
 test('local media storage validates a public base URL and driver setting', () => {
@@ -66,6 +68,8 @@ test('local media storage validates a public base URL and driver setting', () =>
   assert.throws(() => validateEnv({ ...valid, MEDIA_PUBLIC_BASE_URL: '//example.test/media' }), /MEDIA_PUBLIC_BASE_URL/u);
   assert.throws(() => validateEnv({ ...valid, MEDIA_PUBLIC_BASE_URL: '/media/../private' }), /MEDIA_PUBLIC_BASE_URL/u);
   assert.equal(validateEnv({ ...valid, MEDIA_STORAGE_DRIVER: 'disabled' }).mediaStorageDriver, 'disabled');
+  assert.equal(validateEnv({ ...valid, SUPPORT_STORAGE_DRIVER: 'local' }).supportStorageDriver, 'local');
+  assert.throws(() => validateEnv({ ...valid, SUPPORT_STORAGE_DRIVER: 's3' }), /SUPPORT_STORAGE_DRIVER/u);
 });
 
 test('provider config stays disabled until complete credentials are supplied', () => {

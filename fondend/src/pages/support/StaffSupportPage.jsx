@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import { supportApi } from '../../services/support/support.api.js';
+import SupportAttachmentPicker from './SupportAttachmentPicker.jsx';
 import './support.css';
 
 const TICKET_STATUS = {
@@ -20,6 +21,8 @@ function StaffThread({ ticketId }) {
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
+  const [attachmentIds, setAttachmentIds] = useState([]);
+  const [attachmentPickerKey, setAttachmentPickerKey] = useState(0);
   const [visibility, setVisibility] = useState('customer');
   const [nextStatus, setNextStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -53,8 +56,8 @@ function StaffThread({ ticketId }) {
   async function sendMessage(event) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      await supportApi.createTicketMessage(ticketId, { body: body.trim(), attachmentIds: [], visibility });
-      setBody(''); await load();
+      await supportApi.createTicketMessage(ticketId, { body: body.trim(), attachmentIds, visibility });
+      setBody(''); setAttachmentIds([]); setAttachmentPickerKey((key) => key + 1); await load();
     } catch (requestError) { setError(requestError.message || 'Không thể gửi tin nhắn.'); }
     finally { setBusy(false); }
   }
@@ -82,11 +85,13 @@ function StaffThread({ ticketId }) {
       {messages.map((message) => <article className={`support-message${message.visibility === 'internal' ? ' support-message--internal' : ''}`} key={message.id}>
         <div><strong>{message.authorRole === 'customer' || message.authorRole === 'guest' ? 'Khách hàng' : message.authorRole === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</strong><span className="support-status">{message.visibility === 'internal' ? 'Ghi chú nội bộ' : 'Khách có thể xem'}</span><time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time></div>
         <p>{message.body}</p>
+        {message.attachmentIds?.length > 0 && <ul className="support-attachment-list">{message.attachmentIds.map((id) => <li key={id}><a href={`/api/v1/attachments/${encodeURIComponent(id)}/download`} target="_blank" rel="noreferrer">Mở ảnh đính kèm</a></li>)}</ul>}
       </article>)}
     </section>
     {ticket.status !== 'closed' && <form className="support-card support-form" onSubmit={sendMessage}>
-      <div className="support-form__grid"><label className="support-field">Loại tin nhắn<select value={visibility} onChange={(event) => setVisibility(event.target.value)}><option value="customer">Phản hồi khách hàng</option><option value="internal">Ghi chú nội bộ</option></select></label></div>
+      <div className="support-form__grid"><label className="support-field">Loại tin nhắn<select value={visibility} onChange={(event) => { setVisibility(event.target.value); setAttachmentIds([]); setAttachmentPickerKey((key) => key + 1); }}><option value="customer">Phản hồi khách hàng</option><option value="internal">Ghi chú nội bộ</option></select></label></div>
       <label className="support-field">Nội dung<textarea required rows="4" maxLength="10000" value={body} onChange={(event) => setBody(event.target.value)} /></label>
+      <SupportAttachmentPicker key={`${ticketId}-${visibility}-${attachmentPickerKey}`} ticketId={ticketId} orderId={ticket.orderId} visibility={visibility} onAttachmentsChange={setAttachmentIds} disabled={busy} />
       {error && <p className="support-feedback support-feedback--error" role="alert">{error}</p>}
       <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi tin nhắn'}</button>
     </form>}

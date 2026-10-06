@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { createSupportIdempotencyKey, supportApi } from '../../services/support/support.api.js';
+import SupportAttachmentPicker from './SupportAttachmentPicker.jsx';
 import './support.css';
 
 const TICKET_STATUS = {
@@ -17,6 +18,8 @@ function TicketThread({ ticketId }) {
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
+  const [attachmentIds, setAttachmentIds] = useState([]);
+  const [attachmentPickerKey, setAttachmentPickerKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,8 +48,10 @@ function TicketThread({ ticketId }) {
     setBusy(true);
     setError('');
     try {
-      await supportApi.createTicketMessage(ticketId, { body: body.trim(), attachmentIds: [], visibility: 'customer' });
+      await supportApi.createTicketMessage(ticketId, { body: body.trim(), attachmentIds, visibility: 'customer' });
       setBody('');
+      setAttachmentIds([]);
+      setAttachmentPickerKey((key) => key + 1);
       await load();
     } catch (requestError) {
       setError(requestError.message || 'Chưa thể gửi phản hồi.');
@@ -69,12 +74,14 @@ function TicketThread({ ticketId }) {
       {messages.map((message) => <article className={`support-message${message.authorRole === 'customer' ? ' support-message--own' : ''}`} key={message.id}>
         <div><strong>{message.authorRole === 'customer' ? 'Bạn' : message.authorRole === 'guest' ? 'Bạn (khách)' : 'TRO & LAM'}</strong><time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time></div>
         <p>{message.body}</p>
+        {message.attachmentIds?.length > 0 && <ul className="support-attachment-list">{message.attachmentIds.map((id) => <li key={id}><a href={`/api/v1/attachments/${encodeURIComponent(id)}/download`} target="_blank" rel="noreferrer">Mở ảnh đính kèm</a></li>)}</ul>}
       </article>)}
     </section>
     {ticket.status !== 'closed' && <form className="support-card support-form" onSubmit={submit}>
       <label className="support-field">Phản hồi
         <textarea rows="4" required maxLength="10000" value={body} onChange={(event) => setBody(event.target.value)} />
       </label>
+      <SupportAttachmentPicker key={`${ticketId}-${attachmentPickerKey}`} ticketId={ticketId} orderId={ticket.orderId} onAttachmentsChange={setAttachmentIds} disabled={busy} />
       {error && <p className="support-feedback support-feedback--error" role="alert">{error}</p>}
       <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi phản hồi'}</button>
     </form>}
@@ -87,18 +94,22 @@ function TicketCreateForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
+  const [attachmentIds, setAttachmentIds] = useState([]);
+  const [attachmentPickerKey, setAttachmentPickerKey] = useState(0);
 
   async function submit(event) {
     event.preventDefault();
     setBusy(true); setError(''); setCreated(null);
     try {
       const body = {
-        kind: form.kind, subject: form.subject.trim(), body: form.body.trim(), attachmentIds: [],
+        kind: form.kind, subject: form.subject.trim(), body: form.body.trim(), attachmentIds,
         ...(form.orderId.trim() ? { orderId: form.orderId.trim() } : {}),
       };
       const response = await supportApi.createTicket(body);
       setCreated(response.data.ticket);
       setForm({ kind: 'support', subject: '', body: '', orderId: '' });
+      setAttachmentIds([]);
+      setAttachmentPickerKey((key) => key + 1);
     } catch (requestError) {
       setError(requestError.message || 'Chưa thể tạo yêu cầu hỗ trợ.');
     } finally { setBusy(false); }
@@ -120,6 +131,7 @@ function TicketCreateForm() {
     <label className="support-field">Nội dung
       <textarea required rows="5" maxLength="10000" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
     </label>
+    <SupportAttachmentPicker key={attachmentPickerKey} orderId={form.orderId.trim() || undefined} onAttachmentsChange={setAttachmentIds} disabled={busy} />
     {error && <p className="support-feedback support-feedback--error" role="alert">{error}</p>}
     {created && <p className="support-feedback support-feedback--success" role="status">Đã tạo yêu cầu {created.code}. <Link to={`/tai-khoan/ho-tro/${created.id}`}>Mở cuộc trao đổi</Link></p>}
     <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Tạo yêu cầu'}</button>
