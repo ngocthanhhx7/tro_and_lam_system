@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import mongoose from 'mongoose';
+import { randomBytes } from 'node:crypto';
 import { createServer as createHttpServer } from 'node:http';
 import { resolve } from 'node:path';
 import { createServer as createViteServer } from 'vite';
@@ -22,6 +23,7 @@ import {
   API_PORT,
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
+  GUEST_ORDER_EMAIL,
   PUBLISHED_PRODUCT,
   USERS,
   STAFF_ORDER_CODE,
@@ -171,7 +173,7 @@ async function seedSyntheticFixture() {
       paymentMethod: 'cod',
       paymentStatus: 'pending',
       recipientName: 'P11 Guest Private Name',
-      email: 'guest.private.p11@example.test',
+      email: GUEST_ORDER_EMAIL,
       phone: '0900000014',
       address: '14 Đường Riêng tư',
       history: [{ toStatus: 'pending', createdAt: now }],
@@ -275,6 +277,8 @@ function closeHttpServer(server) {
 export async function startRuntime() {
   assertNoLiveProviderConfiguration();
   const { uri, databaseName } = assertDedicatedLocalMongoUri(process.env.P11_E2E_MONGODB_URI);
+  const mailEncryptionKey = randomBytes(32).toString('base64');
+  process.env.P11_E2E_MAIL_ENCRYPTION_KEY = mailEncryptionKey;
   process.env.NODE_ENV = 'test';
   const env = validateEnv({
     NODE_ENV: 'test',
@@ -285,6 +289,7 @@ export async function startRuntime() {
     BACKGROUND_WORKERS_ENABLED: 'false',
     PAYOS_ENABLED: 'false',
     AI_DAILY_BUDGET: '0',
+    OUTBOX_ENCRYPTION_KEY: mailEncryptionKey,
   });
 
   const runtime = { databaseName, composition: null, api: null, vite: null };

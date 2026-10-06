@@ -7,9 +7,12 @@ import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
+import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
 import {
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
+  GUEST_ORDER_CODE,
+  GUEST_ORDER_EMAIL,
   PUBLISHED_PRODUCT,
   STAFF_ORDER_CODE,
   USERS,
@@ -366,6 +369,76 @@ test('guest cannot read private order data without order proof', async ({ page }
   expect(renderedText).not.toContain('guest.private.p11@example.test');
   expect(renderedText).not.toContain('0900000014');
   expect(renderedText).not.toContain('14 Đường Riêng tư');
+});
+
+test('guest order email lookup keeps credentials generic and reveals the order only after a valid code', async ({ page }) => {
+  await page.goto('/tra-cuu-don-hang');
+  await page.getByLabel('Mã đơn hàng', { exact: true }).fill('TL-P11-NOT-AN-ORDER');
+  await page.getByLabel('Email đặt hàng', { exact: true }).fill('missing.p11@example.test');
+  const missingChallengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Gửi mã xác minh', exact: true }).click();
+  const missingChallengeResponse = await missingChallengeResponsePromise;
+  const missingChallengeBody = await missingChallengeResponse.json();
+  expect(missingChallengeResponse.status(), JSON.stringify(missingChallengeBody)).toBe(202);
+  expect(missingChallengeBody.data.accepted).toBe(true);
+  expect(missingChallengeBody.data.challengeId).toEqual(expect.any(String));
+  await expect(page.getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
+  await page.getByRole('button', { name: 'Dùng mã đơn hoặc email khác', exact: true }).click();
+
+  await page.getByLabel('Mã đơn hàng', { exact: true }).fill(GUEST_ORDER_CODE);
+  await page.getByLabel('Email đặt hàng', { exact: true }).fill(GUEST_ORDER_EMAIL);
+  const validChallengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Gửi mã xác minh', exact: true }).click();
+  const validChallengeResponse = await validChallengeResponsePromise;
+  const validChallengeBody = await validChallengeResponse.json();
+  expect(validChallengeResponse.status()).toBe(missingChallengeResponse.status());
+  expect(Object.keys(validChallengeBody.data).sort()).toEqual(Object.keys(missingChallengeBody.data).sort());
+  expect(validChallengeBody.data.accepted).toBe(true);
+  await expect(page.getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
+  await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(GUEST_ORDER_EMAIL, { exact: true })).toHaveCount(0);
+  await expect(page.getByText('14 Đường Riêng tư, Việt Nam', { exact: true })).toHaveCount(0);
+
+  const mailDecrypt = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+  const mailedAccessCode = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
+    const events = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
+    const messages = events.flatMap((event) => event.payload.deliveries
+      .filter((delivery) => delivery.encryptedMail)
+      .map((delivery) => mailDecrypt(delivery.encryptedMail)));
+    return messages.find((message) => message.template === 'order_access_code' && message.recipient === GUEST_ORDER_EMAIL)?.data.code;
+  });
+  expect(mailedAccessCode).toMatch(/^\d{6}$/u);
+
+  const missingProof = await browserApi(page, '/api/v1/order-access/verify', {
+    method: 'POST', body: { challengeId: 'p11-missing-order-challenge-00001', verificationCode: '000000' },
+  });
+  const wrongAccessCode = await browserApi(page, '/api/v1/order-access/verify', {
+    method: 'POST',
+    body: { challengeId: validChallengeBody.data.challengeId, verificationCode: mailedAccessCode === '000000' ? '000001' : '000000' },
+  });
+  const errorShape = (response) => ({
+    status: response.status,
+    code: response.body.error?.code,
+    message: response.body.error?.message,
+    details: response.body.error?.details,
+  });
+  expect(errorShape(wrongAccessCode)).toEqual(errorShape(missingProof));
+  await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
+
+  await page.getByLabel('Mã xác minh gồm 6 chữ số', { exact: true }).fill(mailedAccessCode);
+  const orderId = process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID;
+  const orderDetailResponsePromise = page.waitForResponse((response) => response.url().endsWith(`/api/v1/orders/${orderId}`)
+    && response.request().method() === 'GET');
+  await page.getByRole('button', { name: 'Xác minh và xem đơn', exact: true }).click();
+  const orderDetailResponse = await orderDetailResponsePromise;
+  const orderDetailBody = await orderDetailResponse.json();
+  expect(orderDetailResponse.status(), JSON.stringify(orderDetailBody)).toBe(200);
+  expect(orderDetailBody.data.recipient.recipientName).toBe('P11 Guest Private Name');
+  await expect(page.getByRole('heading', { name: GUEST_ORDER_CODE, exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Guest Private Name', { exact: true })).toBeVisible();
+  await expect(page.getByText(GUEST_ORDER_EMAIL, { exact: true })).toBeVisible();
 });
 
 test('PayOS return query flags never mark the order paid without server confirmation', async ({ page }) => {
