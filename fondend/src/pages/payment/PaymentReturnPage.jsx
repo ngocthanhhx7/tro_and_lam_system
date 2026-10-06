@@ -56,7 +56,7 @@ export default function PaymentReturnPage() {
                 : <p role="status">Đang kiểm tra giao dịch đã ký từ PayOS. Tham số trên đường dẫn không xác nhận thanh toán.</p>}
       {!invalid && <div className="payment-actions">
         <button type="button" className="payment-button" onClick={() => void refresh()} disabled={checking}>Kiểm tra lại</button>
-        <Link className="payment-link" to={`/tra-cuu-don-hang?orderId=${encodeURIComponent(orderId)}`}>Quay lại tra cứu đơn hàng</Link>
+        <Link className="payment-link" to={`/don-hang/${encodeURIComponent(orderId)}`}>Mở đơn hàng</Link>
       </div>}
     </div>
   </main>;

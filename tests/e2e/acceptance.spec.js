@@ -10,6 +10,7 @@ import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.mo
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
 import { Address } from '../../backend/src/models/account/address.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
+import { PaymentAttempt } from '../../backend/src/models/payments/payment-attempt.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
 import { Review } from '../../backend/src/reviews/review.models.js';
 import { AccountAppeal } from '../../backend/src/models/identity/account-appeal.model.js';
@@ -24,6 +25,7 @@ import {
   GUEST_ORDER_CODE,
   GUEST_ORDER_EMAIL,
   PUBLISHED_PRODUCT,
+  PAYMENT_ORDER_CODE,
   REVIEW_ORDER_CODE,
   STAFF_ORDER_CODE,
   USERS,
@@ -78,6 +80,7 @@ async function inspectP11Database(read) {
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Address: connection.model('P11AddressRead', Address.schema),
       Order: connection.model('P11OrderRead', Order.schema),
+      PaymentAttempt: connection.model('P11PaymentAttemptRead', PaymentAttempt.schema),
       CatalogProduct: connection.model('P11CatalogProductRead', CatalogProduct.schema),
       AccountAppeal: connection.model('P11AccountAppealRead', AccountAppeal.schema),
       AuthChallenge: connection.model('P11AuthChallengeRead', AuthChallenge.schema),
@@ -87,6 +90,22 @@ async function inspectP11Database(read) {
   } finally {
     await connection.close();
   }
+}
+
+async function expectSyntheticPendingPayment(orderId) {
+  // The P06 payment order is a synthetic P11 E2E fixture in the validated disposable loopback database.
+  await inspectP11Database(async ({ Order: TestOrder, PaymentAttempt: TestPaymentAttempt }) => {
+    const order = await TestOrder.findById(orderId).lean().exec();
+    expect(order).toMatchObject({
+      code: PAYMENT_ORDER_CODE,
+      status: 'pending',
+      paymentMethod: 'payos',
+      paymentStatus: 'pending',
+      paidAmountVnd: 0,
+      refundedAmountVnd: 0,
+    });
+    expect(await TestPaymentAttempt.countDocuments({ orderId }).exec()).toBe(0);
+  });
 }
 
 test('public catalog hides drafts and guest cart reaches the truthful R06-unconfigured checkout state', async ({ page }) => {
@@ -768,6 +787,73 @@ test('PayOS return query flags never mark the order paid without server confirma
   expect((await statusResponse.json()).data.paymentStatus).toBe('pending');
   await expect(page.getByRole('heading', { name: 'Đã xác nhận thanh toán', exact: true })).toHaveCount(0);
   await expect(page.getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
+  await expectSyntheticPendingPayment(orderId);
+  await expect(page.getByRole('link', { name: 'Mở đơn hàng', exact: true })).toHaveAttribute('href', `/don-hang/${orderId}`);
+});
+
+test('PayOS cancellation return keeps the synthetic order pending and opens its recovery page', async ({ page }) => {
+  await login(page, USERS.customer);
+  const orderId = process.env.P11_E2E_FIXTURE_PAYMENT_ORDER_ID;
+  const paymentStatusResponse = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}/payment`));
+  await page.goto(`/payment/cancel?orderId=${orderId}&status=CANCELLED&cancel=true&code=01`);
+  const statusResponse = await paymentStatusResponse;
+  expect(statusResponse.status()).toBe(200);
+  expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
+  await expect(page.getByRole('heading', { name: 'Chưa hoàn tất thanh toán', exact: true })).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Trang quay lại không thay đổi trạng thái giao dịch');
+  await expectSyntheticPendingPayment(orderId);
+
+  await page.getByRole('link', { name: 'Mở đơn hàng', exact: true }).click();
+  await expect(page).toHaveURL(`/don-hang/${orderId}`);
+  await expect(page.getByRole('heading', { name: PAYMENT_ORDER_CODE, exact: true })).toBeVisible();
+  await expect(page.getByText('Chờ thanh toán', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+  await expectSyntheticPendingPayment(orderId);
+});
+
+test('PayOS failure return query does not replace persisted payment status or recovery', async ({ page }) => {
+  await login(page, USERS.customer);
+  const orderId = process.env.P11_E2E_FIXTURE_PAYMENT_ORDER_ID;
+  const paymentStatusResponse = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}/payment`));
+  await page.goto(`/payment/return?orderId=${orderId}&status=FAILED&amount=120000&code=01&signature=forged`);
+  const statusResponse = await paymentStatusResponse;
+  expect(statusResponse.status()).toBe(200);
+  expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
+  await expect(page.getByRole('heading', { name: 'Đã xác nhận thanh toán', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
+  await expectSyntheticPendingPayment(orderId);
+
+  await page.getByRole('link', { name: 'Mở đơn hàng', exact: true }).click();
+  await expect(page).toHaveURL(`/don-hang/${orderId}`);
+  await expect(page.getByRole('heading', { name: PAYMENT_ORDER_CODE, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+});
+
+test('PayOS provider unavailable leaves the persisted synthetic order pending and retryable', async ({ page }) => {
+  await login(page, USERS.customer);
+  const orderId = process.env.P11_E2E_FIXTURE_PAYMENT_ORDER_ID;
+  await page.goto(`/don-hang/${orderId}`);
+  await expect(page.getByRole('heading', { name: PAYMENT_ORDER_CODE, exact: true })).toBeVisible();
+
+  for (let attemptNumber = 0; attemptNumber < 2; attemptNumber += 1) {
+    const attemptResponse = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}/payment-attempts`)
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true }).click();
+    const response = await attemptResponse;
+    const body = await response.json();
+    expect(response.status(), JSON.stringify(body)).toBe(503);
+    expect(body.error?.code).toBe('PAYMENT_PROVIDER_UNAVAILABLE');
+    await expect(page.getByRole('alert')).toContainText('Thanh toán trực tuyến hiện chưa được cấu hình');
+    await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+  }
+
+  const paymentStatus = await browserApi(page, `/api/v1/orders/${orderId}/payment`);
+  expect(paymentStatus.status).toBe(200);
+  expect(paymentStatus.body.data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
+  const orderDetail = await browserApi(page, `/api/v1/orders/${orderId}`);
+  expect(orderDetail.status).toBe(200);
+  expect(orderDetail.body.data).toMatchObject({ status: 'pending', paymentStatus: 'pending', paidAmountVnd: 0 });
+  await expectSyntheticPendingPayment(orderId);
 });
 
 test('admin session can read admin statistics and catalog while anonymous callers remain denied', async ({ page }) => {

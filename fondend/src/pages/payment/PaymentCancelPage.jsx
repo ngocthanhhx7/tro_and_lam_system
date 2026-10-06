@@ -28,7 +28,7 @@ export default function PaymentCancelPage() {
         : payment?.paymentStatus === 'paid' ? <p role="status">Hệ thống đã nhận xác nhận từ PayOS. Bạn không cần thanh toán lại.</p>
           : <p role="status">Trang quay lại không thay đổi trạng thái giao dịch. Đơn của bạn vẫn được lưu; hãy tiếp tục từ trang đơn hàng khi sẵn sàng.</p>}
       <div className="payment-actions">
-        {ORDER_ID.test(orderId) && <Link className="payment-link" to={`/tra-cuu-don-hang?orderId=${encodeURIComponent(orderId)}`}>Mở đơn hàng</Link>}
+        {ORDER_ID.test(orderId) && <Link className="payment-link" to={`/don-hang/${encodeURIComponent(orderId)}`}>Mở đơn hàng</Link>}
         <Link className="payment-link" to="/">Về trang chủ</Link>
       </div>
     </div>
