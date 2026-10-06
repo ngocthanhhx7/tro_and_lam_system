@@ -37,4 +37,8 @@ Order/ticket/contact/inbox counts use persisted models. Low-stock, delivery/assi
 
 ## Evidence boundaries
 
-Unit tests cover owner filters, role denial, redaction, version conflicts, worker retries/dead-letter, encrypted mail payloads, SMTP rendering and unavailable fallback. A real MongoDB replica set is still required to verify unique-index races and settings transaction behavior. Live SMTP, credentials, and worker process supervision are deployment checks, not verified here.
+`operations.delivery` notification items pass through `createOutboxWorker.runOnce()` into `createNotificationService.appendForDelivery()`. The consumer writes one notification per recipient with the unchanged outbox `eventKey`; the `{userId,eventKey}` unique index and `$setOnInsert` make replay safe. Inbox reads and read mutations continue to filter by the authenticated owner. Guests have no user inbox and receive mail only.
+
+`backend/tests/operations/outbox-notification.replica-set.test.js` is the P09 persistence evidence. With `P09_TEST_REPLICA_SET_URI` set to a loopback MongoDB replica-set URI, it stores a validated `operations.delivery` outbox event, invokes the real worker and Mongoose models, verifies one persisted row per recipient, simulates a lost sent acknowledgement and retries, then verifies stable row IDs and owner-scoped list/read behavior. The test creates and drops only its randomly named `tro_lam_p09_test_<hex>` database; it does not contact SMTP or another provider.
+
+Unit tests cover owner filters, role denial, redaction, version conflicts, worker retries/dead-letter, encrypted mail payloads, SMTP rendering and unavailable fallback. The replica-set test does not replace owner UAT, live SMTP/deliverability checks, credentials, or worker process supervision. Settings transaction behavior and other unique-index races remain separate replica-set checks.
