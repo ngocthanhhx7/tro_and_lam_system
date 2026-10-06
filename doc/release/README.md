@@ -251,3 +251,9 @@ In the isolated `feature/p02-last-admin-race` worktree, `npm run check` passed c
 The admin role-change browser flow now follows its real persisted audit event into `/admin/logs`. It filters by action, target ID and a date range, verifies the query sent to the live test API, opens the redacted detail, and checks the affected customer's email is absent.
 
 The targeted browser flow passed **1/1**; the complete suite passed **26/26**. On the same worktree, `npm run check` passed contracts, lint, backend **197/197 with 0 skipped**, and the 132-module build. The read-only database-prefix audit returned `[]` for P02/P05/P06/P11 after teardown. No provider or production database was used. A full sensitive-log scan and manual accessibility review remain open.
+
+## P11 catalog API-error recovery browser follow-up (2026-10-07)
+
+The catalog browser flow receives a test-only 503 from the list endpoint, checks the visible error and retry control, then retries into a separately stubbed empty 200 response. The page renders its empty state and clears the error alert. No sample listing or provider result is fabricated.
+
+The focused test passed **1/1**; the complete `npm run test:e2e` passed **27/27**. `npm run check` passed contracts, lint, backend **197/197 with 0 skipped**, and Vite build (132 modules). The local read-only test-database-prefix audit returned `[]` for P02/P05/P06/P11 after teardown. WCAG review and owner catalog UAT remain open.

@@ -138,6 +138,43 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
 });
 
+test('catalog explains an API failure and recovers through the retry action into a truthful empty state', async ({ page }) => {
+  let listRequests = 0;
+  await page.route('**/*', async (route) => {
+    if (new URL(route.request().url()).pathname !== '/api/v1/products') return route.continue();
+    listRequests += 1;
+    if (listRequests <= 2) {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'DATABASE_UNAVAILABLE', message: 'Danh mục tạm thời chưa sẵn sàng.' } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: [],
+        meta: { requestId: 'p11-catalog-retry', pagination: { page: 1, limit: 12, total: 0, totalPages: 0 } },
+      }),
+    });
+  });
+
+  await page.goto('/san-pham');
+  const error = page.getByRole('alert');
+  await expect(error.getByRole('heading', { name: 'Chưa tải được danh mục', exact: true })).toBeVisible();
+  await expect(error).toContainText('Danh mục tạm thời chưa sẵn sàng.');
+  const retryResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/products'
+    && response.request().method() === 'GET');
+  await error.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  const retryResponse = await retryResponsePromise;
+  expect(retryResponse.status()).toBe(200);
+  await expect(page.getByRole('heading', { name: 'Chưa có sản phẩm phù hợp', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  expect(listRequests).toBe(3);
+});
+
 test('public pages expose working Zalo, Messenger, and hotline quick-contact links without covering the assistant', async ({ page }) => {
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 360, height: 780 }]) {
     await page.setViewportSize(viewport);
