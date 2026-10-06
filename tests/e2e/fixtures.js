@@ -31,6 +31,11 @@ export const PUBLISHED_PRODUCT = Object.freeze({
   sku: 'P11-E2E-PUBLISHED',
   name: 'P11 Fixture — bình gốm kiểm thử',
   priceVnd: 120_000,
+  images: [
+    { url: '/assets/products/concepts/lifestyle/hu-tra-01-front.jpg', alt: 'Ảnh concept AI P11, góc chính; không phải SKU thật', sortOrder: 0 },
+    { url: '/assets/products/concepts/lifestyle/hu-tra-02-detail.jpg', alt: 'Ảnh concept AI P11, chi tiết; không phải SKU thật', sortOrder: 1 },
+    { url: '/assets/products/concepts/lifestyle/hu-tra-03-context.jpg', alt: 'Ảnh concept AI P11, bối cảnh; không phải SKU thật', sortOrder: 2 },
+  ],
 });
 
 export const DRAFT_PRODUCT = Object.freeze({

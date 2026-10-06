@@ -33,6 +33,21 @@ test('admin product edits can clear an optional story reference', () => {
   assert.equal(patch.storyId, null);
 });
 
+test('draft products can wait for media, but published products require at least three gallery images', () => {
+  assert.equal(validateProductWrite(productWrite).status, 'draft');
+  const gallery = [1, 2, 3].map((sortOrder) => ({
+    url: `/assets/products/concepts/lifestyle/hu-tra-0${sortOrder}-front.jpg`,
+    alt: `Ảnh concept sản phẩm kiểm thử, góc ${sortOrder}`,
+    sortOrder,
+  }));
+  assert.equal(validateProductWrite({ ...productWrite, status: 'published', saleMode: 'buy', priceVnd: 120000, images: gallery }).images.length, 3);
+  assert.throws(
+    () => validateProductWrite({ ...productWrite, status: 'published' }),
+    (error) => error.code === 'VALIDATION_ERROR'
+      && error.details.some((detail) => detail.field === 'images' && detail.code === 'INVALID_MEDIA'),
+  );
+});
+
 test('image URLs allow HTTPS and same-site paths while rejecting credentials, traversal, and protocol-relative paths', () => {
   assert.equal(isSafePublicImageUrl('https://media.example/products/cup.webp'), true);
   assert.equal(isSafePublicImageUrl('/assets/products/cup.webp'), true);

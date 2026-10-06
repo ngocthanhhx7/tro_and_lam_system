@@ -15,6 +15,7 @@ import { AccountAppeal } from '../../backend/src/models/identity/account-appeal.
 import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.model.js';
 import { AuthSession } from '../../backend/src/models/identity/session.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
+import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
 import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   DRAFT_PRODUCT,
@@ -74,6 +75,7 @@ async function inspectP11Database(read) {
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
+      CatalogProduct: connection.model('P11CatalogProductRead', CatalogProduct.schema),
       AccountAppeal: connection.model('P11AccountAppealRead', AccountAppeal.schema),
       AuthChallenge: connection.model('P11AuthChallengeRead', AuthChallenge.schema),
       AuthSession: connection.model('P11AuthSessionRead', AuthSession.schema),
@@ -699,6 +701,103 @@ test('admin session can read admin statistics and catalog while anonymous caller
   await expect(page.getByRole('heading', { name: 'Đối soát trong kỳ', exact: true })).toBeVisible();
   const catalogAdmin = await browserApi(page, '/api/v1/admin/products');
   expect(catalogAdmin.status).toBe(200);
+});
+
+test('admin can create, version-update and archive a product while order snapshots and audit history persist', async ({ page }) => {
+  await login(page, USERS.admin);
+  await page.goto('/admin/products/new');
+  await expect(page.getByRole('heading', { name: 'Thêm sản phẩm', exact: true })).toBeVisible();
+  const productForm = page.locator('.admin-editor .catalog-form');
+
+  await page.getByLabel('Tên sản phẩm', { exact: true }).fill('P11 Admin CRUD Fixture');
+  await page.getByLabel('Đường dẫn').fill('p11-admin-crud-fixture');
+  await page.getByLabel('SKU', { exact: true }).fill('P11-ADMIN-CRUD');
+  await productForm.locator('select').nth(0).selectOption('lifestyle');
+  await productForm.locator('select').nth(1).selectOption({ label: 'P11 Fixture Category · published' });
+  await page.getByLabel('Mô tả', { exact: true }).fill('Synthetic catalog-management acceptance fixture.');
+  await page.getByLabel('Chất liệu', { exact: true }).fill('Test fixture only');
+  await productForm.locator('select').nth(2).selectOption('buy');
+  await page.getByLabel('Giá công bố (VND)', { exact: true }).fill('120000');
+  await productForm.locator('select').nth(3).selectOption('draft');
+  await page.getByRole('button', { name: 'Tạo sản phẩm', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu thông tin sản phẩm.');
+
+  const productId = page.url().match(/\/admin\/products\/([a-f0-9]{24})\/edit$/u)?.[1];
+  expect(productId).toBeTruthy();
+  await productForm.locator('select').nth(3).selectOption('published');
+  await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('tối thiểu 3 ảnh');
+  const blockedPublication = await browserApi(page, `/api/v1/admin/products/${productId}`, {
+    method: 'PATCH', body: { status: 'published', expectedVersion: 0 },
+  });
+  expect(blockedPublication.status).toBe(400);
+  expect(blockedPublication.body.error.code).toBe('VALIDATION_ERROR');
+
+  const snapshotOrderCode = 'TL-P11-PRODUCT-SNAPSHOT';
+  await inspectP11Database(async ({ CatalogProduct: Product, Order: TestOrder, User: TestUser }) => {
+    const prepared = await Product.updateOne(
+      { _id: productId, version: 0 },
+      { $set: { status: 'published', images: PUBLISHED_PRODUCT.images }, $inc: { version: 1 } },
+    ).exec();
+    expect(prepared.modifiedCount).toBe(1);
+    const product = await Product.findById(productId).lean().exec();
+    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture', sku: 'P11-ADMIN-CRUD', status: 'published', version: 1 });
+    expect(product.images).toHaveLength(3);
+    const customer = await TestUser.findOne({ emailNormalized: USERS.otherCustomer.email }).exec();
+    const now = new Date();
+    const history = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'].map((toStatus, index, statuses) => ({
+      ...(index ? { fromStatus: statuses[index - 1] } : {}),
+      toStatus,
+      createdAt: new Date(now.getTime() + index),
+    }));
+    await TestOrder.create({
+      code: snapshotOrderCode,
+      userId: customer._id,
+      recipientSnapshot: {
+        recipientName: 'P11 Snapshot Recipient', email: customer.emailNormalized, phone: '0900000198',
+        line1: '18 Đường kiểm thử', countryCode: 'VN', formattedAddress: '18 Đường kiểm thử, Việt Nam',
+      },
+      itemsSnapshot: [{ productId: product._id, sku: product.sku, name: product.name, quantity: 1, unitPriceVnd: product.priceVnd }],
+      subtotalVnd: product.priceVnd, shippingFeeVnd: 0, discountVnd: 0, totalVnd: product.priceVnd,
+      status: 'delivered', paymentMethod: 'cod', paymentStatus: 'paid', paidAmountVnd: product.priceVnd,
+      refundedAmountVnd: 0, reservationId: new mongoose.Types.ObjectId(), statusHistory: history, version: history.length - 1,
+    });
+  });
+
+  await page.goto(`/admin/products/${productId}/edit`);
+  await expect(page.getByRole('heading', { name: 'Chỉnh sửa sản phẩm', exact: true })).toBeVisible();
+  await page.getByLabel('Tên sản phẩm', { exact: true }).fill('P11 Admin CRUD Fixture Updated');
+  await page.getByLabel('Giá công bố (VND)', { exact: true }).fill('240000');
+  await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu thông tin sản phẩm.');
+  const staleUpdate = await browserApi(page, `/api/v1/admin/products/${productId}`, {
+    method: 'PATCH', body: { name: 'Stale write must not replace the current product', expectedVersion: 1 },
+  });
+  expect(staleUpdate.status).toBe(409);
+  expect(staleUpdate.body.error.code).toBe('VERSION_CONFLICT');
+
+  await page.goto('/admin/products');
+  await expect(page.getByRole('button', { name: 'Lưu trữ sản phẩm P11 Admin CRUD Fixture Updated', exact: true })).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Lưu trữ sản phẩm P11 Admin CRUD Fixture Updated', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu trữ sản phẩm. Lịch sử đơn hàng không bị xóa.');
+
+  const publicDetail = await browserApi(page, '/api/v1/products/p11-admin-crud-fixture');
+  expect(publicDetail.status).toBe(404);
+  await inspectP11Database(async ({ CatalogProduct: Product, Order: TestOrder, AuditLog: TestAuditLog }) => {
+    const product = await Product.findById(productId).lean().exec();
+    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture Updated', priceVnd: 240000, status: 'archived', version: 3 });
+    const order = await TestOrder.findOne({ code: snapshotOrderCode }).lean().exec();
+    expect(order.itemsSnapshot).toHaveLength(1);
+    expect(String(order.itemsSnapshot[0].productId)).toBe(productId);
+    expect(order.itemsSnapshot[0]).toMatchObject({
+      sku: 'P11-ADMIN-CRUD', name: 'P11 Admin CRUD Fixture', quantity: 1, unitPriceVnd: 120000,
+    });
+    const audit = await TestAuditLog.find({ targetType: 'catalog_product', targetId: productId }).sort({ createdAt: 1 }).lean().exec();
+    expect(audit.map((event) => event.action)).toEqual([
+      'catalog.product.created', 'catalog.product.updated', 'catalog.product.archived',
+    ]);
+  });
 });
 
 test('customer notifications stay owner-scoped and read changes persist without affecting another owner', async ({ page }) => {

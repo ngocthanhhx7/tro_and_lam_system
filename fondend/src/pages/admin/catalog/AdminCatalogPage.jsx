@@ -111,7 +111,12 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   function updateCategory(field, value) { setCategoryDraft((current) => ({ ...current, [field]: value })); }
 
   async function handleProductSave(event) {
-    event.preventDefault(); setSaving(true); setFormError(''); setFormMessage('');
+    event.preventDefault();
+    if (productDraft.status === 'published' && productDraft.images.length < 3) {
+      setFormError('Sản phẩm cần tối thiểu 3 ảnh trước khi công bố.'); setFormMessage('');
+      return;
+    }
+    setSaving(true); setFormError(''); setFormMessage('');
     const payload = {
       name: productDraft.name.trim(), slug: productDraft.slug.trim(), sku: productDraft.sku.trim(),
       line: productDraft.line, categoryId: productDraft.categoryId,
@@ -222,6 +227,8 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
             <Link className="admin-record" to={`/admin/products/${product.id}/edit`}><span><strong>{product.name}</strong><small>{product.sku} · {product.status}</small></span><span aria-hidden="true">→</span></Link>
             <button className="icon-button admin-record__archive" type="button" onClick={() => handleProductArchive(product)} disabled={product.status === 'archived'} aria-label={`Lưu trữ sản phẩm ${product.name}`}>⌫</button>
           </li>)}</ul>
+          {!productEditorOpen && formError && <p className="form-feedback form-feedback--error" role="alert">{formError}</p>}
+          {!productEditorOpen && formMessage && <p className="form-feedback form-feedback--success" role="status">{formMessage}</p>}
           {!products.length && <p>Chưa có sản phẩm. Tạo bản nháp sau khi được cung cấp mã SKU và nội dung đã xác nhận.</p>}
         </section>
         <section className="admin-editor" aria-labelledby="admin-product-form-title">
@@ -239,11 +246,11 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
               </div>
               <div className="catalog-form__grid"><label>Trạng thái<select value={productDraft.status} onChange={(event) => updateProduct('status', event.target.value)}><option value="draft">Bản nháp</option><option value="published">Đã công bố</option><option value="archived">Đã lưu trữ</option></select></label><label>Mã câu chuyện đã duyệt (tùy chọn)<input value={productDraft.storyId || ''} onChange={(event) => updateProduct('storyId', event.target.value)} /></label></div>
               <label className="check-label"><input type="checkbox" checked={Boolean(productDraft.featured)} onChange={(event) => updateProduct('featured', event.target.checked)} /><span>Đưa vào mục nổi bật</span></label>
-              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Chỉ thêm ảnh có quyền sử dụng. Không dùng minh họa biên tập như ảnh của SKU.</p>
+              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Sản phẩm công bố cần tối thiểu 3 ảnh có quyền sử dụng. Không dùng minh họa biên tập như ảnh của SKU.</p>
                 {productDraft.images.length > 0 && <ul className="media-list">{productDraft.images.map((image, index) => <li key={`${image.url}-${index}`}><img src={image.url} alt="" width="64" height="64" /><span><strong>{image.alt}</strong><small>{image.url}</small></span><button type="button" className="icon-button" aria-label={`Xóa ảnh ${image.alt}`} onClick={() => updateProduct('images', productDraft.images.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
                 <div className="media-upload">
                   <label>Tệp ảnh<input type="file" accept="image/jpeg,image/png,image/webp" disabled={productDraft.images.length >= 12} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></label>
-                  <label>Mô tả ảnh<input value={imageAlt} required maxLength="250" onChange={(event) => setImageAlt(event.target.value)} /></label>
+                  <label>Mô tả ảnh<input value={imageAlt} required={Boolean(selectedFile)} maxLength="250" onChange={(event) => setImageAlt(event.target.value)} /></label>
                   {mediaState.previewUrl && <div className="media-preview"><img src={mediaState.previewUrl} alt={imageAlt || 'Xem trước ảnh cục bộ'} width="100" height="100" /><p>Chỉ là bản xem trước trên thiết bị; chưa được lưu hoặc công bố.</p></div>}
                   <button type="button" className="button button--outline" onClick={handleImageUpload} disabled={mediaState.status === 'uploading' || productDraft.images.length >= 12}>{mediaState.status === 'uploading' ? 'Đang tải…' : 'Tải ảnh lên kho media'}</button>
                   {mediaState.message && <p className={`form-feedback${mediaState.status === 'ready' ? ' form-feedback--success' : ' form-feedback--warning'}`} role="status">{mediaState.message}</p>}

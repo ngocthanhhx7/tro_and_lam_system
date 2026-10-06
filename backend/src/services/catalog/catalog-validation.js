@@ -142,6 +142,9 @@ export function validateProductWrite(value, { partial = false } = {}) {
     && (!partial || value.priceVnd !== undefined)) {
     details.push(issue('priceVnd', 'PRICE_REQUIRED', 'Sản phẩm bán trực tiếp cần giá VND lớn hơn 0'));
   }
+  if (!partial && value.status === 'published' && (!Array.isArray(value.images) || value.images.length < 3)) {
+    details.push(issue('images', 'INVALID_MEDIA', 'Sản phẩm công bố cần tối thiểu 3 hình ảnh'));
+  }
   if (partial) {
     if (!Number.isSafeInteger(value.expectedVersion) || value.expectedVersion < 0) {
       details.push(issue('expectedVersion', 'REQUIRED', 'Cần tải lại phiên bản hiện tại'));

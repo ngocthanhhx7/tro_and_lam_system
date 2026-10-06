@@ -114,7 +114,7 @@ async function seedSyntheticFixture() {
       categoryId: category._id,
       description: 'Synthetic test-only item. Not a real offer.',
       material: 'Fixture only',
-      images: [],
+      images: PUBLISHED_PRODUCT.images,
       saleMode: 'buy',
       status: 'published',
       featured: true,
@@ -304,7 +304,7 @@ async function seedSyntheticFixture() {
     customerNotificationIds: notifications.slice(0, 2).map((notification) => String(notification._id)),
     otherCustomerNotificationId: String(notifications[2]._id),
     seededOrderCount: orderRecords.length,
-    expectedAdditionalOrderCount: 1,
+    expectedAdditionalOrderCount: 2,
   };
 }
 
