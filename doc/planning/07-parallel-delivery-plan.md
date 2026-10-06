@@ -15,7 +15,7 @@ Các package P01–P11 đã có implementation trong source tích hợp. Điều
 | P03 | Address, guest/customer cart, ownership, merge và manual geolocation fallback có tests | Browser geolocation và geocoder staging |
 | P04 | Catalog public/admin, demo seed và storefront hai dòng sản phẩm tích hợp | SKU/giá/tồn kho/ảnh sản phẩm thật và quyền media cần chủ dự án duyệt |
 | P05 | Order, checkout, reservation, guest proof, fulfillment/COD và race suite có; shipping-zone quote đã nối composition, có E2E guest COD và idempotent retry trên test DB riêng | Chủ dự án nhập/duyệt vùng phí và COD thật theo R06; mail staging/UAT; đưa replica-set suites vào CI |
-| P06 | PayOS adapter, payment/refund ledger và webhook handling có tests | PayOS sandbox/merchant/webhook và CI replica-set |
+| P06 | PayOS adapter, payment/refund ledger và webhook handling có tests; internal refund-failure service restores the paid aggregate and rejects stale versions | Admin operation to record manual refund failure is absent from the frozen API and awaits the owner's contract decision; PayOS sandbox/merchant/webhook and CI replica-set |
 | P07 | Contact, ticket, review, return và moderation logic có tests | Browser UAT, storage staging và SMTP |
 | P08 | CMS/story locale, NFC routing and safe-content handling have tests; P11 browser acceptance now covers draft/published locale visibility and active/revoked NFC behavior | Owner approval of cultural sources, content and media rights; broader UAT |
 | P09 | Notifications, audit, metrics và encrypted SMTP outbox/worker có tests | SMTP staging/deliverability, worker supervision và audit persistence UAT |
