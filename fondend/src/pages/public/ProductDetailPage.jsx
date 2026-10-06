@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogStates.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
+import { PublicProductReviews } from '../support/CustomerReviewsPage.jsx';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 
 function QuoteForm({ product }) {
@@ -126,6 +127,7 @@ export default function ProductDetailPage() {
       </section>
     </div>
     {['quote', 'both'].includes(product.saleMode) && <div id="quote-form" className="product-detail__quote"><QuoteForm product={product} /></div>}
+    <PublicProductReviews productId={product.id} />
     {product.relatedProducts?.length > 0 && <section className="related-products"><div className="section-heading"><p className="eyebrow">KHÁM PHÁ THÊM</p><h2>Cùng dòng sản phẩm</h2></div><div className="product-grid">{product.relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}</div></section>}
   </div>;
 }

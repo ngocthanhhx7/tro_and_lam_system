@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { createHash } from 'node:crypto';
 import express from 'express';
 import { createSupportRouter } from '../../src/support/support.routes.js';
 import { createSupportService } from '../../src/support/support.service.js';
@@ -411,6 +412,52 @@ test('guest ticket route requires the guest.ticket.create proof scope and passes
   assert.equal(allowed.status, 201);
   assert.deepEqual(seenScopes, [['guest.ticket.create'], ['guest.ticket.create']]);
   assert.deepEqual(createdActors[0], { orderId: ORDER, role: 'guest', kind: 'guest' });
+});
+
+test('anonymous assistant handoff uses only its own assistant guest cookie and never downgrades a bad session', async (t) => {
+  const actors = [];
+  const identity = {
+    settings: { sessionCookieName: 'tl_session' },
+    csrfProtection: (_req, _res, next) => next(),
+    requireActor: (_req, _res, next) => next(Object.assign(new Error('expired session'), { status: 401, code: 'SESSION_EXPIRED' })),
+    requireCapability: () => (_req, _res, next) => next(),
+  };
+  const supportService = {
+    createHandoff: async (actor) => {
+      actors.push(actor);
+      return { targetType: 'contact', id: 'contact-id', reference: 'contact-id' };
+    },
+  };
+  const app = express();
+  app.use(express.json());
+  app.use(createSupportRouter({
+    ports: { identityMiddleware: identity }, supportService, reviewService: {},
+  }));
+  app.use((error, _req, res, _next) => res.status(error?.status || 500).json({ code: error?.code }));
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}/assistant/handoffs`;
+  const guestToken = 'A'.repeat(43);
+  const body = { conversationId: 'conversation-1', shareTranscript: false, contact: { name: 'Guest', email: 'guest@example.test' } };
+  const guest = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `tl_assistant_guest=${guestToken}` },
+    body: JSON.stringify(body),
+  });
+  assert.equal(guest.status, 202);
+  assert.equal(actors[0].kind, 'guest');
+  assert.equal(actors[0].assistantGuestHash, createHash('sha256').update(guestToken).digest('hex'));
+  assert.equal(actors[0].orderId, undefined);
+
+  const invalidSession = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `tl_session=expired; tl_assistant_guest=${guestToken}` },
+    body: JSON.stringify(body),
+  });
+  assert.equal(invalidSession.status, 401);
+  assert.equal(invalidSession.headers.get('content-type')?.includes('application/json'), true);
+  assert.equal(actors.length, 1);
 });
 
 test('staff ticket message route checks support.operate and preserves internal note visibility', async (t) => {

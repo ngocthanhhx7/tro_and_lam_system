@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createIdentityMiddleware } from '../middlewares/identity/identity.middleware.js';
 import { cookieValue } from '../services/identity/identity.security.js';
+import { assistantGuestOwnerFromRequest } from '../assistant/assistant.routes.js';
 import { sendAccepted, sendCreated, sendPaginated, sendSuccess } from '../utils/apiResponse.js';
 import { forbidden } from '../utils/serviceError.js';
 import { createReviewService } from '../reviews/review.service.js';
@@ -121,7 +122,10 @@ export function createSupportRouter({ ports = {}, config = {}, supportService, r
   }));
 
   router.post('/assistant/handoffs', csrf, optionalPrincipal(identity), asyncRoute(async (req, res) => {
-    return sendAccepted(res, await support.createHandoff(actorOf(req), req.body, contextOf(req, res)));
+    const actor = actorOf(req) || assistantGuestOwnerFromRequest(req, {
+      cookieName: config.assistantGuestCookieName || 'tl_assistant_guest',
+    });
+    return sendAccepted(res, await support.createHandoff(actor, req.body, contextOf(req, res)));
   }));
 
   router.post('/attachments/uploads', csrf, optionalPrincipal(identity), asyncRoute(async (req, res) => {

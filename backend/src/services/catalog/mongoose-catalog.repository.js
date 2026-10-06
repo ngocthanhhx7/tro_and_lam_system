@@ -59,6 +59,10 @@ export function createMongooseCatalogRepository({
   MediaAsset = CatalogMediaAsset,
 } = {}) {
   return {
+    transaction(callback) {
+      return mongoose.connection.transaction(callback);
+    },
+
     async resolvePublishedCategory(value, { session } = {}) {
       const categoryQuery = mongoose.isValidObjectId(value)
         ? { _id: value, status: 'published' }

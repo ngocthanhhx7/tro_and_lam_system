@@ -23,7 +23,7 @@ The OpenAPI operation IDs are `listProducts`, `getProductBySlug`, `listPublished
 - `inventoryPort.getAvailability(productIds, { session })` returns records with `productId` and boolean `available`. Quote-only products do not query inventory. Browse without a working inventory port labels direct-sale products as unverified and disables purchase; filtering by availability returns `DATABASE_UNAVAILABLE` if availability cannot be confirmed.
 - `storyPort.getPublishedStoryById(storyId, { session })` optionally supplies a published P08 story to the product detail DTO. A missing or unpublished story is omitted without hiding the product.
 - A configured `mediaProvider` must expose `configured: true`, `upload({ buffer, mimeType, alt, actorId })`, and optional `remove(storageKey)`. Uploads are limited to JPEG, PNG, or WebP with recognized leading signatures and a 5 MB size limit. No storage provider is configured in this package, so uploads return `503 MEDIA_UNAVAILABLE`.
-- P09 audit integration is not yet wired. Admin changes currently do not append audit events; resolve the audit port before integrated acceptance.
+- The coordinator injects the P09 audit port. Product, category, and media metadata writes append a redacted audit event in the same Mongo transaction as the catalog change. Admin write routes also require the P02 CSRF middleware; when it is omitted, mutations fail closed.
 
 P08 can use `getPublishedProductsByIds(ids, { session })` for published product references and `getAdminProductReferencesByIds(ids, { actor, session })` for admin references. P05 can use `getCheckoutProducts(ids, { session })`; quote-only, unpublished, unpriced, or otherwise non-buyable products are omitted.
 

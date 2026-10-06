@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
 
 const publicLinks = [
   { to: '/san-pham', label: 'Sản phẩm' },
@@ -29,6 +30,8 @@ function HeaderSearch({ mobile = false, onSubmitted }) {
 
 export default function PublicCatalogLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+  const showAssistant = !/^\/(?:admin|staff)(?:\/|$)/u.test(pathname);
   const menuDialog = useRef(null);
   const menuButton = useRef(null);
 
@@ -87,5 +90,6 @@ export default function PublicCatalogLayout() {
         <small className="catalog-footer__note">Thông tin sản phẩm, giá và khả năng đặt mua được cập nhật theo danh mục đã công bố.</small>
       </div>
     </footer>
+    {showAssistant && <AssistantWidget />}
   </div>;
 }

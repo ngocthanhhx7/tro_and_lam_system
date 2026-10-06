@@ -6,6 +6,7 @@ import { validateImageUploadAlt } from '../services/catalog/catalog-validation.j
 const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 const MAX_MULTIPART_BYTES = MAX_MEDIA_BYTES + 64 * 1024;
 const DEFAULT_ADMIN_DENY = (_req, _res, next) => next(forbidden());
+const DEFAULT_CSRF_DENY = (_req, _res, next) => next(new ServiceError(403, 'CSRF_INVALID', 'Yêu cầu không vượt qua được kiểm tra bảo vệ'));
 
 function mediaError(message, code = 'UNSUPPORTED_MEDIA_TYPE') {
   return new ServiceError(code === 'PAYLOAD_TOO_LARGE' ? 413 : 415, code, message);
@@ -117,14 +118,20 @@ function sendMediaUnavailable(error, req, res, next) {
 export function createCatalogRouter({
   service,
   requireAdmin = DEFAULT_ADMIN_DENY,
+  csrfProtection = DEFAULT_CSRF_DENY,
   actorFromRequest = (req) => req.actor,
   sessionFromRequest = () => undefined,
   mediaParser = parseCatalogMediaUpload,
 } = {}) {
   if (!service) throw new TypeError('Thiếu catalog service');
   if (typeof requireAdmin !== 'function') throw new TypeError('requireAdmin phải là Express middleware');
+  if (typeof csrfProtection !== 'function') throw new TypeError('csrfProtection phải là Express middleware');
   const router = Router();
   const admin = requireAdmin;
+  const actorContext = (req, res) => {
+    const actor = actorFromRequest(req);
+    return actor ? { ...actor, requestId: res.locals.requestId } : undefined;
+  };
 
   router.get('/products', async (req, res) => {
     const result = await service.listPublishedProducts(req.query, { session: sessionFromRequest(req) });
@@ -140,37 +147,41 @@ export function createCatalogRouter({
     const result = await service.listAdminProducts(req.query, { session: sessionFromRequest(req) });
     return sendPaginated(res, result.items, result.pagination);
   });
-  router.post('/admin/products', admin, async (req, res) => {
+  router.post('/admin/products', admin, csrfProtection, async (req, res) => {
     const product = await service.createProduct(req.body, {
-      actor: actorFromRequest(req), session: sessionFromRequest(req),
+      actor: actorContext(req, res), session: sessionFromRequest(req),
     });
     return sendCreated(res, product);
   });
   router.get('/admin/products/:id', admin, async (req, res) => sendSuccess(res, await service.getAdminProduct(req.params.id, {
     actor: actorFromRequest(req), session: sessionFromRequest(req),
   })));
-  router.patch('/admin/products/:id', admin, async (req, res) => sendSuccess(res, await service.updateProduct(req.params.id, req.body, {
-    actor: actorFromRequest(req), session: sessionFromRequest(req),
+  router.patch('/admin/products/:id', admin, csrfProtection, async (req, res) => sendSuccess(res, await service.updateProduct(req.params.id, req.body, {
+    actor: actorContext(req, res), session: sessionFromRequest(req),
   })));
-  router.delete('/admin/products/:id', admin, async (req, res) => {
-    await service.archiveProduct(req.params.id, req.query.expectedVersion, { session: sessionFromRequest(req) });
+  router.delete('/admin/products/:id', admin, csrfProtection, async (req, res) => {
+    await service.archiveProduct(req.params.id, req.query.expectedVersion, {
+      actor: actorContext(req, res), session: sessionFromRequest(req),
+    });
     return sendNoContent(res);
   });
 
   router.get('/admin/categories', admin, async (req, res) => sendSuccess(res, await service.listAdminCategories({ session: sessionFromRequest(req) })));
-  router.post('/admin/categories', admin, async (req, res) => sendCreated(res, await service.createCategory(req.body, {
-    actor: actorFromRequest(req), session: sessionFromRequest(req),
+  router.post('/admin/categories', admin, csrfProtection, async (req, res) => sendCreated(res, await service.createCategory(req.body, {
+    actor: actorContext(req, res), session: sessionFromRequest(req),
   })));
-  router.patch('/admin/categories/:id', admin, async (req, res) => sendSuccess(res, await service.updateCategory(req.params.id, req.body, {
-    actor: actorFromRequest(req), session: sessionFromRequest(req),
+  router.patch('/admin/categories/:id', admin, csrfProtection, async (req, res) => sendSuccess(res, await service.updateCategory(req.params.id, req.body, {
+    actor: actorContext(req, res), session: sessionFromRequest(req),
   })));
-  router.delete('/admin/categories/:id', admin, async (req, res) => {
-    await service.archiveCategory(req.params.id, req.query.expectedVersion, { session: sessionFromRequest(req) });
+  router.delete('/admin/categories/:id', admin, csrfProtection, async (req, res) => {
+    await service.archiveCategory(req.params.id, req.query.expectedVersion, {
+      actor: actorContext(req, res), session: sessionFromRequest(req),
+    });
     return sendNoContent(res);
   });
 
-  router.post('/admin/media', admin, mediaParser, async (req, res) => sendCreated(res, await service.createMediaAsset(req.catalogMedia, {
-    actor: actorFromRequest(req), session: sessionFromRequest(req),
+  router.post('/admin/media', admin, csrfProtection, mediaParser, async (req, res) => sendCreated(res, await service.createMediaAsset(req.catalogMedia, {
+    actor: actorContext(req, res), session: sessionFromRequest(req),
   })));
   router.use(sendMediaUnavailable);
   return router;

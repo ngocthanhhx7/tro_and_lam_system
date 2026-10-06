@@ -27,13 +27,14 @@ export function createContentRouter({
   models = { Story, Page, NfcTag },
   connection = models.Story?.db,
   idGenerator,
+  service: suppliedService,
 } = {}) {
   if (typeof requireCapability !== 'function' || typeof csrfProtection !== 'function') {
     throw new TypeError('P08 router requires P02 capability and CSRF middleware');
   }
   const admin = requireCapability('content.manage');
   if (typeof admin !== 'function') throw new TypeError('P02 content.manage middleware is invalid');
-  const service = createContentService({ ...models, connection, productPort, auditPort, idGenerator });
+  const service = suppliedService || createContentService({ ...models, connection, productPort, auditPort, idGenerator });
   const router = Router();
 
   router.get('/stories/:slug', asyncRoute(async (req, res) => {
@@ -99,6 +100,7 @@ export function createContentRouter({
     return sendSuccess(res, await service.revokeNfcTag(validateDocumentId(req.params.id), req.body, actorOf(req, res)));
   }));
 
+  router.contentService = service;
   return router;
 }
 

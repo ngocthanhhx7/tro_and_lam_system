@@ -56,6 +56,79 @@ export function validateEnv(source) {
   const cookiePath = source.COOKIE_PATH || '/api/v1';
   if (!cookiePath.startsWith('/') || /[;\r\n]/.test(cookiePath)) throw new Error('COOKIE_PATH không hợp lệ');
 
+  const configuredOutboxKey = source.OUTBOX_ENCRYPTION_KEY || '';
+  if (configuredOutboxKey) {
+    const decoded = Buffer.from(configuredOutboxKey, 'base64');
+    if (decoded.length !== 32 || decoded.toString('base64').replace(/=+$/u, '') !== configuredOutboxKey.replace(/=+$/u, '')) {
+      throw new Error('OUTBOX_ENCRYPTION_KEY phải là Base64 của 32 byte ngẫu nhiên');
+    }
+  } else if (nodeEnv === 'production') {
+    throw new Error('Cần cấu hình OUTBOX_ENCRYPTION_KEY trong production');
+  }
+
+  const smtpHost = source.SMTP_HOST || '';
+  const smtpPortSource = source.SMTP_PORT || '';
+  const smtpUser = source.SMTP_USER || '';
+  const smtpPassword = source.SMTP_PASSWORD || '';
+  const smtpFrom = source.SMTP_FROM || '';
+  const smtpConfigured = [smtpHost, smtpPortSource, smtpUser, smtpPassword, smtpFrom].some(Boolean);
+  const smtpSecure = booleanSetting(source, 'SMTP_SECURE', false);
+  const smtpTimeoutMs = Number(source.SMTP_TIMEOUT_MS || 15_000);
+  let smtpPort;
+  if (smtpConfigured) {
+    if (![smtpHost, smtpPortSource, smtpUser, smtpPassword, smtpFrom].every(Boolean)) {
+      throw new Error('Cấu hình SMTP cần có đầy đủ SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD và SMTP_FROM');
+    }
+    smtpPort = Number(smtpPortSource);
+    if (!/^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/u.test(smtpHost)
+      || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535
+      || !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/u.test(smtpFrom)
+      || /[\r\n]/u.test(smtpUser) || /[\r\n]/u.test(smtpPassword)) {
+      throw new Error('Cấu hình SMTP không hợp lệ');
+    }
+  }
+  if (!Number.isInteger(smtpTimeoutMs) || smtpTimeoutMs < 100 || smtpTimeoutMs > 120_000) {
+    throw new Error('SMTP_TIMEOUT_MS phải nằm trong 100–120000');
+  }
+
+  const supportInboxEmail = source.SUPPORT_INBOX_EMAIL || '';
+  if (supportInboxEmail && !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/u.test(supportInboxEmail)) {
+    throw new Error('SUPPORT_INBOX_EMAIL không hợp lệ');
+  }
+
+  const payosEnabled = booleanSetting(source, 'PAYOS_ENABLED', false);
+  const payosClientId = source.PAYOS_CLIENT_ID || '';
+  const payosApiKey = source.PAYOS_API_KEY || '';
+  const payosChecksumKey = source.PAYOS_CHECKSUM_KEY || '';
+  const payosTimeoutMs = Number(source.PAYOS_TIMEOUT_MS || 10_000);
+  if (payosEnabled && ![payosClientId, payosApiKey, payosChecksumKey].every(Boolean)) {
+    throw new Error('PAYOS_ENABLED yêu cầu cấu hình PAYOS_CLIENT_ID, PAYOS_API_KEY và PAYOS_CHECKSUM_KEY');
+  }
+  if (!Number.isInteger(payosTimeoutMs) || payosTimeoutMs < 100 || payosTimeoutMs > 60_000) {
+    throw new Error('PAYOS_TIMEOUT_MS phải nằm trong 100–60000');
+  }
+
+  const geminiApiKey = source.GEMINI_API_KEY || '';
+  const geminiModel = source.GEMINI_MODEL || '';
+  if (geminiModel && !/^[A-Za-z0-9._-]{1,128}$/u.test(geminiModel)) throw new Error('GEMINI_MODEL không hợp lệ');
+  const aiTimeoutMs = Number(source.AI_TIMEOUT_MS || 10_000);
+  const aiDailyBudget = Number(source.AI_DAILY_BUDGET || 0);
+  if (!Number.isInteger(aiTimeoutMs) || aiTimeoutMs < 100 || aiTimeoutMs > 15_000) {
+    throw new Error('AI_TIMEOUT_MS phải nằm trong 100–15000');
+  }
+  if (!Number.isSafeInteger(aiDailyBudget) || aiDailyBudget < 0 || aiDailyBudget > 100_000_000) {
+    throw new Error('AI_DAILY_BUDGET phải là số nguyên từ 0 đến 100000000');
+  }
+
+  const reservationSweepIntervalMs = Number(source.RESERVATION_SWEEP_INTERVAL_MS || 30_000);
+  const paymentReconciliationIntervalMs = Number(source.PAYMENT_RECONCILIATION_INTERVAL_MS || 60_000);
+  for (const [name, value] of Object.entries({ reservationSweepIntervalMs, paymentReconciliationIntervalMs })) {
+    if (!Number.isInteger(value) || value < 1_000 || value > 3_600_000) {
+      throw new Error(`${name === 'reservationSweepIntervalMs' ? 'RESERVATION_SWEEP_INTERVAL_MS' : 'PAYMENT_RECONCILIATION_INTERVAL_MS'} phải nằm trong 1000–3600000`);
+    }
+  }
+  const backgroundWorkersEnabled = booleanSetting(source, 'BACKGROUND_WORKERS_ENABLED', true);
+
   return {
     nodeEnv, port, mongoUri, corsOrigin, origins, trustProxy, csrfSecret, publicWebUrl: publicWebOrigin,
     sessionCookieName: cookieName(source, 'SESSION_COOKIE_NAME', 'tl_session'),
@@ -63,5 +136,12 @@ export function validateEnv(source) {
     guestOrderCookieName: cookieName(source, 'GUEST_ORDER_COOKIE_NAME', 'tl_guest_order'),
     csrfCookieName: cookieName(source, 'CSRF_COOKIE_NAME', 'tl_csrf'),
     cookiePath, sameSite, secureCookies,
+    outboxEncryptionKey: configuredOutboxKey || randomBytes(32).toString('base64'),
+    smtpConfigured, smtpHost, smtpPort, smtpUser, smtpPassword, smtpFrom, smtpSecure, smtpTimeoutMs,
+    supportInboxEmail,
+    payosEnabled, payosClientId, payosApiKey, payosChecksumKey, payosTimeoutMs,
+    geminiApiKey, geminiModel, aiTimeoutMs, aiDailyBudget,
+    reservationSweepIntervalMs, paymentReconciliationIntervalMs,
+    backgroundWorkersEnabled,
   };
 }

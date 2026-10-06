@@ -12,9 +12,11 @@ function adminGate(req, _res, next) {
   next();
 }
 
+function csrfGate(_req, _res, next) { next(); }
+
 function appFor(service, options = {}) {
   return createApp({
-    domainRouters: [{ prefix: '', router: createCatalogRouter({ service, requireAdmin: adminGate, ...options }) }],
+    domainRouters: [{ prefix: '', router: createCatalogRouter({ service, requireAdmin: adminGate, csrfProtection: csrfGate, ...options }) }],
   });
 }
 
@@ -40,6 +42,17 @@ test('admin routes deny access when no admin middleware is injected', async () =
 
   assert.equal(response.status, 403);
   assert.equal(response.body.error.code, 'FORBIDDEN');
+});
+
+test('catalog mutation routes fail closed when no CSRF middleware is injected', async () => {
+  const service = { updateProduct: async () => { throw new Error('must not execute'); } };
+  const router = createCatalogRouter({ service, requireAdmin: adminGate });
+  const response = await request(createApp({ domainRouters: [{ router }] }))
+    .patch('/api/v1/admin/products/64f000000000000000000001')
+    .send({ name: 'New name', expectedVersion: 3 });
+
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error.code, 'CSRF_INVALID');
 });
 
 test('product PATCH passes expectedVersion to the service and returns its new version', async () => {

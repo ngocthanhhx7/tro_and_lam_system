@@ -11,6 +11,7 @@ import { adminContentRouteFragments, publicContentRouteFragments } from './modul
 import { operationsRoutes } from './modules/operations.routes.jsx';
 import { commerceRoutes } from './modules/commerce.routes.jsx';
 import { paymentRoutes } from './modules/payments.routes.jsx';
+import { supportRoutes } from './modules/support.routes.jsx';
 
 function guardedOperationsRoute(route) {
   const roles = route.path.startsWith('/admin')
@@ -30,6 +31,7 @@ export default function AppRoutes() {
     ...publicContentRouteFragments.map((route) => <Route key={route.path} path={route.path} element={route.element} />),
     ...accountRoutes.map((route) => <Route key={route.path} path={route.path.slice(1)} element={route.element} />),
     ...commerceRoutes.map((route) => <Route key={route.path} path={route.path.slice(1)} element={route.element} />),
+    ...supportRoutes.filter((route) => !route.path.startsWith('/admin/')).map((route) => <Route key={route.path} path={route.path.slice(1)} element={route.element} />),
     ...paymentRoutes.filter((route) => route.path.startsWith('/payment/')).map((route) => <Route key={route.path} path={route.path.slice(1)} element={route.element} />),
     ...operationsRoutes.map(guardedOperationsRoute),
     <Route key="story-landing" path="cau-chuyen" element={<PublishedPage pageSlug="cau-chuyen" />} />,
@@ -42,6 +44,7 @@ export default function AppRoutes() {
     </Route>
     {integratedCatalogShell}
     {adminCatalogRoutes}
+    {supportRoutes.filter((route) => route.path.startsWith('/admin/')).map((route) => <Route key={route.path} path={route.path} element={route.element} />)}
     {paymentRoutes.filter((route) => route.path.startsWith('/admin/')).map((route) => <Route key={route.path} path={route.path} element={route.element} />)}
     {adminContentRouteFragments.map((route) => <Route
       key={route.path}

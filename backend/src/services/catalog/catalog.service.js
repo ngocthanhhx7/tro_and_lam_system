@@ -130,6 +130,19 @@ function duplicateConflict(error, entity) {
   return conflict('VERSION_CONFLICT', `${entity} có ${field} đã được sử dụng`);
 }
 
+function actorContext(actorIdOf, actor, action, targetId, fields = []) {
+  return {
+    ...(actorIdOf(actor) ? { actorId: actorIdOf(actor) } : {}),
+    actorRole: actor?.role || 'admin',
+    requestId: actor?.requestId || `catalog:${action}:${targetId || 'new'}`,
+    action,
+    targetType: action.includes('category') ? 'catalog_category' : action.includes('media') ? 'catalog_media' : 'catalog_product',
+    ...(targetId ? { targetId: String(targetId) } : {}),
+    outcome: 'success',
+    changesRedacted: { fields: [...new Set(fields)].sort() },
+  };
+}
+
 function isAdminRole(actor) {
   return actor?.role === 'admin' && actor?.status !== 'blocked';
 }
@@ -143,6 +156,18 @@ export function createCatalogService({
   actorIdOf = (actor) => actor?.id ?? actor?._id,
 }) {
   if (!productRepository) throw new TypeError('Thiếu catalog repository');
+
+  async function withWriteSession(session, work) {
+    if (session) return work(session);
+    if (typeof productRepository.transaction === 'function') return productRepository.transaction(work);
+    return work(undefined);
+  }
+
+  async function appendCatalogAudit(actor, action, targetId, fields, session) {
+    if (!auditPort) return;
+    if (typeof auditPort.appendAudit !== 'function') throw new TypeError('P04 auditPort.appendAudit phải là function');
+    await auditPort.appendAudit(actorContext(actorIdOf, actor, action, targetId, fields), { session });
+  }
 
   async function availabilityFor(products, { session, required = false } = {}) {
     const quoteOnly = products.filter((product) => product.saleMode === 'quote');
@@ -307,94 +332,114 @@ export function createCatalogService({
       return toAdminProduct(product);
     },
 
-    async createProduct(input, { actor: _actor, session } = {}) {
+    async createProduct(input, { actor, session } = {}) {
       const data = validateProductWrite(input);
-      await ensureProductCategory(data, { session, requirePublished: data.status === 'published' });
-      try {
-        const product = await productRepository.createProduct(data, { session });
-        return toAdminProduct(product);
-      } catch (error) { throw duplicateConflict(error, 'Sản phẩm'); }
+      return withWriteSession(session, async (writeSession) => {
+        await ensureProductCategory(data, { session: writeSession, requirePublished: data.status === 'published' });
+        try {
+          const product = await productRepository.createProduct(data, { session: writeSession });
+          await appendCatalogAudit(actor, 'catalog.product.created', plainId(product), Object.keys(data), writeSession);
+          return toAdminProduct(product);
+        } catch (error) { throw duplicateConflict(error, 'Sản phẩm'); }
+      });
     },
 
-    async updateProduct(id, input, { actor: _actor, session } = {}) {
+    async updateProduct(id, input, { actor, session } = {}) {
       const patch = validateProductWrite(input, { partial: true });
       const expectedVersion = validateExpectedVersion(input.expectedVersion);
-      const current = await productRepository.findAdminProductById(id, { session });
-      if (!current) throw notFound();
-      if (current.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
-      const next = { ...productBase(current), ...patch };
-      await validateProductWrite(next);
-      await ensureProductCategory(next, { session, requirePublished: next.status === 'published' });
-      const changes = Object.fromEntries(Object.entries(patch).filter(([key]) => key !== 'expectedVersion'));
-      try {
-        const product = await productRepository.updateProduct(id, changes, { session, expectedVersion });
-        if (!product) throw conflict('VERSION_CONFLICT');
-        return toAdminProduct(product);
-      } catch (error) { throw duplicateConflict(error, 'Sản phẩm'); }
+      return withWriteSession(session, async (writeSession) => {
+        const current = await productRepository.findAdminProductById(id, { session: writeSession });
+        if (!current) throw notFound();
+        if (current.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
+        const next = { ...productBase(current), ...patch };
+        await validateProductWrite(next);
+        await ensureProductCategory(next, { session: writeSession, requirePublished: next.status === 'published' });
+        const changes = Object.fromEntries(Object.entries(patch).filter(([key]) => key !== 'expectedVersion'));
+        try {
+          const product = await productRepository.updateProduct(id, changes, { session: writeSession, expectedVersion });
+          if (!product) throw conflict('VERSION_CONFLICT');
+          await appendCatalogAudit(actor, 'catalog.product.updated', id, Object.keys(changes), writeSession);
+          return toAdminProduct(product);
+        } catch (error) { throw duplicateConflict(error, 'Sản phẩm'); }
+      });
     },
 
-    async archiveProduct(id, expectedVersionValue, { session } = {}) {
+    async archiveProduct(id, expectedVersionValue, { actor, session } = {}) {
       const expectedVersion = validateExpectedVersion(expectedVersionValue);
-      const product = await productRepository.findAdminProductById(id, { session });
-      if (!product) throw notFound();
-      if (product.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
-      const archived = await productRepository.archiveProduct(id, expectedVersion, { session });
-      if (!archived) throw conflict('VERSION_CONFLICT');
-      return null;
+      return withWriteSession(session, async (writeSession) => {
+        const product = await productRepository.findAdminProductById(id, { session: writeSession });
+        if (!product) throw notFound();
+        if (product.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
+        const archived = await productRepository.archiveProduct(id, expectedVersion, { session: writeSession });
+        if (!archived) throw conflict('VERSION_CONFLICT');
+        await appendCatalogAudit(actor, 'catalog.product.archived', id, ['status'], writeSession);
+        return null;
+      });
     },
 
     async listAdminCategories({ session } = {}) {
       return (await categoryRepository.listAdminCategories({ session })).map(toCategory);
     },
 
-    async createCategory(input, { session } = {}) {
+    async createCategory(input, { actor, session } = {}) {
       const data = validateCategoryWrite(input);
-      if (data.parentId && !await categoryRepository.findCategoryById(data.parentId, { session })) {
-        throw badRequest('VALIDATION_ERROR', 'Danh mục cha không tồn tại', [{ field: 'parentId', code: 'NOT_FOUND', message: 'Chọn một danh mục hiện có' }]);
-      }
-      const createData = { ...data };
-      delete createData.expectedVersion;
-      try { return toCategory(await categoryRepository.createCategory(createData, { session })); }
-      catch (error) { throw duplicateConflict(error, 'Danh mục'); }
+      return withWriteSession(session, async (writeSession) => {
+        if (data.parentId && !await categoryRepository.findCategoryById(data.parentId, { session: writeSession })) {
+          throw badRequest('VALIDATION_ERROR', 'Danh mục cha không tồn tại', [{ field: 'parentId', code: 'NOT_FOUND', message: 'Chọn một danh mục hiện có' }]);
+        }
+        const createData = { ...data };
+        delete createData.expectedVersion;
+        try {
+          const category = await categoryRepository.createCategory(createData, { session: writeSession });
+          await appendCatalogAudit(actor, 'catalog.category.created', plainId(category), Object.keys(createData), writeSession);
+          return toCategory(category);
+        } catch (error) { throw duplicateConflict(error, 'Danh mục'); }
+      });
     },
 
-    async updateCategory(id, input, { session } = {}) {
+    async updateCategory(id, input, { actor, session } = {}) {
       const patch = validateCategoryWrite(input, { partial: true });
       const expectedVersion = validateExpectedVersion(patch.expectedVersion);
-      const current = await categoryRepository.findCategoryById(id, { session });
-      if (!current) throw notFound();
-      if (current.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
-      const next = { ...current, ...patch };
-      if (next.parentId) {
-        if (String(next.parentId) === String(id)) throw badRequest('VALIDATION_ERROR', 'Danh mục không thể là cha của chính nó');
-        let parent = await categoryRepository.findCategoryById(next.parentId, { session });
-        if (!parent) throw badRequest('VALIDATION_ERROR', 'Danh mục cha không tồn tại');
-        const visited = new Set([String(id)]);
-        while (parent) {
-          const parentId = plainId(parent);
-          if (visited.has(parentId)) throw badRequest('VALIDATION_ERROR', 'Danh mục cha không thể tạo vòng');
-          visited.add(parentId);
-          parent = parent.parentId ? await categoryRepository.findCategoryById(parent.parentId, { session }) : null;
+      return withWriteSession(session, async (writeSession) => {
+        const current = await categoryRepository.findCategoryById(id, { session: writeSession });
+        if (!current) throw notFound();
+        if (current.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
+        const next = { ...current, ...patch };
+        if (next.parentId) {
+          if (String(next.parentId) === String(id)) throw badRequest('VALIDATION_ERROR', 'Danh mục không thể là cha của chính nó');
+          let parent = await categoryRepository.findCategoryById(next.parentId, { session: writeSession });
+          if (!parent) throw badRequest('VALIDATION_ERROR', 'Danh mục cha không tồn tại');
+          const visited = new Set([String(id)]);
+          while (parent) {
+            const parentId = plainId(parent);
+            if (visited.has(parentId)) throw badRequest('VALIDATION_ERROR', 'Danh mục cha không thể tạo vòng');
+            visited.add(parentId);
+            parent = parent.parentId ? await categoryRepository.findCategoryById(parent.parentId, { session: writeSession }) : null;
+          }
         }
-      }
-      const changes = Object.fromEntries(Object.entries(patch).filter(([key]) => key !== 'expectedVersion'));
-      try {
-        const category = await categoryRepository.updateCategory(id, changes, { session, expectedVersion });
-        if (!category) throw conflict('VERSION_CONFLICT');
-        return toCategory(category);
-      } catch (error) { throw duplicateConflict(error, 'Danh mục'); }
+        const changes = Object.fromEntries(Object.entries(patch).filter(([key]) => key !== 'expectedVersion'));
+        try {
+          const category = await categoryRepository.updateCategory(id, changes, { session: writeSession, expectedVersion });
+          if (!category) throw conflict('VERSION_CONFLICT');
+          await appendCatalogAudit(actor, 'catalog.category.updated', id, Object.keys(changes), writeSession);
+          return toCategory(category);
+        } catch (error) { throw duplicateConflict(error, 'Danh mục'); }
+      });
     },
 
-    async archiveCategory(id, expectedVersionValue, { session } = {}) {
+    async archiveCategory(id, expectedVersionValue, { actor, session } = {}) {
       const expectedVersion = validateExpectedVersion(expectedVersionValue);
-      const category = await categoryRepository.findCategoryById(id, { session });
-      if (!category) throw notFound();
-      if (category.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
-      if (await categoryRepository.hasProductsInCategory(id, { session })) {
-        throw conflict('VERSION_CONFLICT', 'Chuyển sản phẩm sang danh mục khác trước khi lưu trữ danh mục này');
-      }
-      const archived = await categoryRepository.archiveCategory(id, expectedVersion, { session });
-      if (!archived) throw conflict('VERSION_CONFLICT');
+      return withWriteSession(session, async (writeSession) => {
+        const category = await categoryRepository.findCategoryById(id, { session: writeSession });
+        if (!category) throw notFound();
+        if (category.version !== expectedVersion) throw conflict('VERSION_CONFLICT');
+        if (await categoryRepository.hasProductsInCategory(id, { session: writeSession })) {
+          throw conflict('VERSION_CONFLICT', 'Chuyển sản phẩm sang danh mục khác trước khi lưu trữ danh mục này');
+        }
+        const archived = await categoryRepository.archiveCategory(id, expectedVersion, { session: writeSession });
+        if (!archived) throw conflict('VERSION_CONFLICT');
+        await appendCatalogAudit(actor, 'catalog.category.archived', id, ['status'], writeSession);
+      });
     },
 
     async createMediaAsset({ file, alt }, { actor, session } = {}) {
@@ -408,16 +453,19 @@ export function createCatalogService({
       try {
         stored = await mediaProvider.upload({ ...file, alt, actorId: actorIdOf(actor) });
         if (!stored?.storageKey || !stored?.publicUrl) throw new Error('Media adapter did not return a storage reference');
-        const asset = await productRepository.createMediaAsset({
-          storageKey: stored.storageKey,
-          publicUrl: stored.publicUrl,
-          mimeType: file.mimeType,
-          bytes: file.bytes,
-          alt,
-          createdBy: actorIdOf(actor),
-          status: 'ready',
-        }, { session });
-        return { id: plainId(asset), url: asset.publicUrl, alt: asset.alt, status: 'ready' };
+        return await withWriteSession(session, async (writeSession) => {
+          const asset = await productRepository.createMediaAsset({
+            storageKey: stored.storageKey,
+            publicUrl: stored.publicUrl,
+            mimeType: file.mimeType,
+            bytes: file.bytes,
+            alt,
+            createdBy: actorIdOf(actor),
+            status: 'ready',
+          }, { session: writeSession });
+          await appendCatalogAudit(actor, 'catalog.media.created', plainId(asset), ['alt', 'bytes', 'mimeType'], writeSession);
+          return { id: plainId(asset), url: asset.publicUrl, alt: asset.alt, status: 'ready' };
+        });
       } catch (error) {
         if (stored?.storageKey && typeof mediaProvider.remove === 'function') {
           await mediaProvider.remove(stored.storageKey).catch(() => {});

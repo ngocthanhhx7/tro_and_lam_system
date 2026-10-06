@@ -230,6 +230,45 @@ test('stale product edits conflict and duplicate SKU maps to HTTP 409', async ()
   );
 });
 
+test('catalog product creation writes its redacted P09 audit event in the Mongo transaction', async () => {
+  const session = { transaction: 'catalog-create' };
+  let createdWith;
+  let auditEvent;
+  let auditSession;
+  const { service } = serviceFor({
+    repository: {
+      transaction: (work) => work(session),
+      findCategoryById: async (_id, options) => {
+        assert.equal(options.session, session);
+        return category();
+      },
+      createProduct: async (input, options) => {
+        createdWith = options.session;
+        return { _id: '64f000000000000000000010', version: 0, ...input };
+      },
+    },
+    auditPort: {
+      appendAudit: async (event, options) => {
+        auditEvent = event;
+        auditSession = options.session;
+      },
+    },
+  });
+
+  await service.createProduct({
+    name: 'Cup', slug: 'cup', sku: 'SKU-1', line: 'lifestyle', categoryId,
+    description: 'A cup', material: 'Ceramic', images: [], saleMode: 'buy', priceVnd: 100,
+    status: 'draft', featured: false,
+  }, { actor: { id: adminId, role: 'admin', requestId: 'request-1' } });
+
+  assert.equal(createdWith, session);
+  assert.equal(auditSession, session);
+  assert.equal(auditEvent.action, 'catalog.product.created');
+  assert.equal(auditEvent.targetId, '64f000000000000000000010');
+  assert.equal(auditEvent.requestId, 'request-1');
+  assert.deepEqual(auditEvent.changesRedacted.fields, ['categoryId', 'description', 'featured', 'images', 'line', 'material', 'name', 'priceVnd', 'saleMode', 'sku', 'slug', 'status']);
+});
+
 test('the deterministic media fake stores repeatable content and unavailable media reports the contract code', async () => {
   const mediaProvider = createDeterministicFakeMediaProvider();
   const { service } = serviceFor({ mediaProvider });
