@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "node node_modules/concurrently/dist/bin/concurrently.js -k -n web,api \"npm run dev -w fondend\" \"npm run dev -w backend\"",
+    "dev:demo": "node scripts/dev-demo.js",
     "dev:web": "npm run dev -w fondend",
     "dev:api": "npm run dev -w backend",
     "build": "npm run build -w fondend",
