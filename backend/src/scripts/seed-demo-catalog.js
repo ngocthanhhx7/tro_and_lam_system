@@ -91,8 +91,8 @@ export async function readConceptManifest() {
     if (!Object.hasOwn(PRODUCT_COPY, entry.slug) || PRODUCT_COPY[entry.slug].line !== entry.line) {
       throw new Error(`Unexpected demo product in concept image manifest: ${entry.slug}`);
     }
-    if (!Array.isArray(entry.images) || entry.images.length < 3) {
-      throw new Error(`Demo product ${entry.slug} needs at least three concept images.`);
+    if (!Array.isArray(entry.images) || entry.images.length !== 3) {
+      throw new Error(`Demo product ${entry.slug} needs exactly three gallery images.`);
     }
     if (new Set(entry.images.map((image) => image.url)).size !== entry.images.length) {
       throw new Error(`Demo product ${entry.slug} must use three distinct gallery image files.`);
@@ -190,7 +190,7 @@ export async function seedDemoCatalog(uri) {
       byLine,
       quoteOnly: products.every((product) => product.saleMode === 'quote'),
       pricesUnset: products.every((product) => product.priceVnd === undefined),
-      threeImagesEach: products.every((product) => product.images.length >= 3),
+      threeImagesEach: products.every((product) => product.images.length === 3),
       publicLocalPreviewOnly: products.every((product) => product.status === 'published'),
     };
     if (result.demoProducts !== Object.keys(PRODUCT_COPY).length

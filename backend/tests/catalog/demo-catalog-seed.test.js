@@ -9,7 +9,7 @@ test('demo catalog seed accepts only its dedicated unauthenticated loopback data
   );
 });
 
-test('demo catalog manifest has at least three existing images per product and discloses each image source', async () => {
+test('demo catalog manifest has exactly three existing images per product and discloses each image source', async () => {
   const products = await readConceptManifest();
   assert.equal(products.length, 8);
   assert.deepEqual(
@@ -20,7 +20,7 @@ test('demo catalog manifest has at least three existing images per product and d
     { lifestyle: 3, diplomacy: 5 },
   );
   for (const product of products) {
-    assert.ok(product.images.length >= 3, `${product.slug} has at least three images`);
+    assert.equal(product.images.length, 3, `${product.slug} has exactly three images`);
     assert.equal(new Set(product.images.map((image) => image.url)).size, product.images.length, `${product.slug} has distinct images`);
     assert.deepEqual(product.images.map((image) => image.sortOrder), product.images.map((_, index) => index));
     for (const image of product.images) {

@@ -28,7 +28,7 @@ Provider staging/merchant test là kiểm tra riêng có secret do owner cấu h
 | A-BLK-01 | Blocked appeal | Full session bị revoke; restricted session chỉ gửi/xem appeal; approve/reject admin có reason/audit |
 | A-STF-01 | Staff | Dashboard/queue/fulfillment/support được phép; product/user/role/audit admin APIs trả 403 |
 | A-ADM-01 | Admin | Bao gồm staff; không khóa/demote admin cuối; role/status change invalidates session ngay |
-| A-PRD-01 | Product CRUD | Slug/SKU unique, optimistic concurrency; soft delete referenced product, old order vẫn đọc snapshot; drafts may be created without images, but public publication requires at least three images with confirmed usage rights |
+| A-PRD-01 | Product CRUD | Slug/SKU unique, optimistic concurrency; soft delete referenced product, old order vẫn đọc snapshot; drafts may be created with zero images; published products require 1–5 images with confirmed usage rights; demo catalog has exactly three images per product |
 | A-NOT-01 | Notification | Read/mark all chỉ owner, unread đúng, duplicated event không tạo trùng |
 | A-MAIL-01 | SMTP/outbox | Retry lease/dead-letter, header injection blocked; mail failure không mất đơn/ticket |
 | A-AI-01 | Gemini | Grounded public context; PII redaction, invalid product ID filtered; quota/timeout → human fallback |

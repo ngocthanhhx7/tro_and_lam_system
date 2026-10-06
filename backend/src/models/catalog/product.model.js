@@ -18,7 +18,11 @@ const productSchema = new Schema({
   material: { type: String, default: '', maxlength: 500 },
   dimensions: { type: String, maxlength: 300 },
   careInstructions: { type: String, maxlength: 3000 },
-  images: { type: [productImageSchema], default: [] },
+  images: {
+    type: [productImageSchema],
+    default: [],
+    validate: { validator: (images) => images.length <= 5, message: 'Mỗi sản phẩm có thể có tối đa 5 hình ảnh' },
+  },
   storyId: { type: Schema.Types.ObjectId },
   saleMode: { type: String, enum: ['buy', 'quote', 'both'], required: true },
   priceVnd: { type: Number, min: 1, validate: Number.isSafeInteger },
@@ -30,6 +34,9 @@ const productSchema = new Schema({
 productSchema.index({ status: 1, line: 1, categoryId: 1, priceVnd: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.pre('validate', function validateDirectPrice() {
+  if (this.status === 'published' && this.images.length < 1) {
+    this.invalidate('images', 'Sản phẩm công bố cần tối thiểu 1 hình ảnh');
+  }
   if (['buy', 'both'].includes(this.saleMode) && !Number.isSafeInteger(this.priceVnd)) {
     this.invalidate('priceVnd', 'Sản phẩm mua trực tiếp cần có giá VND nguyên lớn hơn 0');
   }

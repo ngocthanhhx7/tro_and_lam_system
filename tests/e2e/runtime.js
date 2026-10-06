@@ -98,7 +98,7 @@ async function seedSyntheticFixture() {
       categoryId: category._id,
       description: 'Synthetic pagination fixture. Not a real offer.',
       material: 'Fixture only',
-      images: [],
+      images: [PUBLISHED_PRODUCT.images[0]],
       saleMode: 'quote',
       status: 'published',
       featured: false,

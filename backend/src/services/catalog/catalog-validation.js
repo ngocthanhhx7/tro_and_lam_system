@@ -4,6 +4,7 @@ export const PRODUCT_LINES = Object.freeze(['lifestyle', 'diplomacy']);
 export const PRODUCT_STATUSES = Object.freeze(['draft', 'published', 'archived']);
 export const SALE_MODES = Object.freeze(['buy', 'quote', 'both']);
 export const PRODUCT_SORTS = Object.freeze(['name', 'price_asc', 'price_desc', 'newest']);
+export const MAX_PRODUCT_IMAGES = 5;
 export const PRODUCT_WRITE_FIELDS = Object.freeze([
   'name', 'slug', 'sku', 'line', 'categoryId', 'description', 'material',
   'dimensions', 'careInstructions', 'images', 'saleMode', 'priceVnd', 'storyId', 'status', 'featured',
@@ -120,8 +121,8 @@ export function validateProductWrite(value, { partial = false } = {}) {
     details.push(issue('priceVnd', 'INVALID_PRICE', 'Giá phải là số VND nguyên lớn hơn 0'));
   }
   if (value.images !== undefined) {
-    if (!Array.isArray(value.images) || value.images.length > 12) {
-      details.push(issue('images', 'INVALID_MEDIA', 'Tối đa 12 ảnh'));
+    if (!Array.isArray(value.images) || value.images.length > MAX_PRODUCT_IMAGES) {
+      details.push(issue('images', 'INVALID_MEDIA', `Tối đa ${MAX_PRODUCT_IMAGES} ảnh`));
     } else {
       value.images.forEach((image, index) => {
         if (!image || typeof image !== 'object' || Array.isArray(image)) {
@@ -142,8 +143,8 @@ export function validateProductWrite(value, { partial = false } = {}) {
     && (!partial || value.priceVnd !== undefined)) {
     details.push(issue('priceVnd', 'PRICE_REQUIRED', 'Sản phẩm bán trực tiếp cần giá VND lớn hơn 0'));
   }
-  if (!partial && value.status === 'published' && (!Array.isArray(value.images) || value.images.length < 3)) {
-    details.push(issue('images', 'INVALID_MEDIA', 'Sản phẩm công bố cần tối thiểu 3 hình ảnh'));
+  if (!partial && value.status === 'published' && (!Array.isArray(value.images) || value.images.length < 1)) {
+    details.push(issue('images', 'INVALID_MEDIA', 'Sản phẩm công bố cần tối thiểu 1 hình ảnh'));
   }
   if (partial) {
     if (!Number.isSafeInteger(value.expectedVersion) || value.expectedVersion < 0) {

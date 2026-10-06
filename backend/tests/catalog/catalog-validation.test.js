@@ -33,16 +33,22 @@ test('admin product edits can clear an optional story reference', () => {
   assert.equal(patch.storyId, null);
 });
 
-test('draft products can wait for media, but published products require at least three gallery images', () => {
+test('draft products may omit media; published products accept one to five gallery images', () => {
   assert.equal(validateProductWrite(productWrite).status, 'draft');
-  const gallery = [1, 2, 3].map((sortOrder) => ({
+  const gallery = [1, 2, 3, 4, 5].map((sortOrder) => ({
     url: `/assets/products/concepts/lifestyle/hu-tra-0${sortOrder}-front.jpg`,
     alt: `Ảnh concept sản phẩm kiểm thử, góc ${sortOrder}`,
     sortOrder,
   }));
-  assert.equal(validateProductWrite({ ...productWrite, status: 'published', saleMode: 'buy', priceVnd: 120000, images: gallery }).images.length, 3);
+  assert.equal(validateProductWrite({ ...productWrite, status: 'published', saleMode: 'buy', priceVnd: 120000, images: [gallery[0]] }).images.length, 1);
+  assert.equal(validateProductWrite({ ...productWrite, status: 'published', saleMode: 'buy', priceVnd: 120000, images: gallery }).images.length, 5);
   assert.throws(
     () => validateProductWrite({ ...productWrite, status: 'published' }),
+    (error) => error.code === 'VALIDATION_ERROR'
+      && error.details.some((detail) => detail.field === 'images' && detail.code === 'INVALID_MEDIA'),
+  );
+  assert.throws(
+    () => validateProductWrite({ ...productWrite, images: [...gallery, gallery[0]] }),
     (error) => error.code === 'VALIDATION_ERROR'
       && error.details.some((detail) => detail.field === 'images' && detail.code === 'INVALID_MEDIA'),
   );

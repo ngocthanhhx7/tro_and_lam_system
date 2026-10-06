@@ -1,6 +1,6 @@
 # Dữ liệu xem trước catalog trên máy local
 
-Script tạo 8 sản phẩm xem trước trong database riêng `tro_lam_dev_catalog_demo`: 3 mẫu Lifestyle và 5 mẫu Diplomacy. Mỗi sản phẩm có ít nhất ba tệp gallery khác nhau. Ảnh gốc do chủ dự án cung cấp được ưu tiên; các detail crop được ghi rõ là crop từ ảnh gốc, không phải góc chụp mới. Lư xông trầm mini vẫn dùng concept AI vì thư mục ảnh không có ảnh khớp. Nhãn nguồn thay đổi theo từng ảnh đang xem. Các bản ghi chỉ dùng để xem bố cục và luồng giao diện; tất cả ở chế độ hỏi tư vấn, không ghi giá hay tồn kho.
+Script tạo 8 sản phẩm xem trước trong database riêng `tro_lam_dev_catalog_demo`: 3 mẫu Lifestyle và 5 mẫu Diplomacy. Mỗi sản phẩm có đúng ba tệp gallery khác nhau. Ảnh gốc do chủ dự án cung cấp được ưu tiên; các detail crop được ghi rõ là crop từ ảnh gốc, không phải góc chụp mới. Lư xông trầm mini vẫn dùng concept AI vì thư mục ảnh không có ảnh khớp. Nhãn nguồn thay đổi theo từng ảnh đang xem. Các bản ghi chỉ dùng để xem bố cục và luồng giao diện; tất cả ở chế độ hỏi tư vấn, không ghi giá hay tồn kho.
 
 ## Điều kiện
 

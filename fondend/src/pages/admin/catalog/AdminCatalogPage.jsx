@@ -112,8 +112,12 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
 
   async function handleProductSave(event) {
     event.preventDefault();
-    if (productDraft.status === 'published' && productDraft.images.length < 3) {
-      setFormError('Sản phẩm cần tối thiểu 3 ảnh trước khi công bố.'); setFormMessage('');
+    if (productDraft.status === 'published' && productDraft.images.length < 1) {
+      setFormError('Sản phẩm cần tối thiểu 1 ảnh trước khi công bố.'); setFormMessage('');
+      return;
+    }
+    if (productDraft.images.length > 5) {
+      setFormError('Mỗi sản phẩm có thể dùng tối đa 5 ảnh.'); setFormMessage('');
       return;
     }
     setSaving(true); setFormError(''); setFormMessage('');
@@ -179,7 +183,7 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
     setFormError('');
     try {
       if (!selectedFile || !imageAlt.trim()) throw new Error('Chọn ảnh và nhập mô tả trước khi tải lên.');
-      if (productDraft.images.length >= 12) throw new Error('Mỗi sản phẩm có thể dùng tối đa 12 ảnh.');
+      if (productDraft.images.length >= 5) throw new Error('Mỗi sản phẩm có thể dùng tối đa 5 ảnh.');
       const response = await uploadCatalogImage(selectedFile, imageAlt.trim());
       const media = response.data;
       if (!media?.url || media.status !== 'ready') throw new Error('Kho ảnh chưa xác nhận URL công khai. Ảnh vẫn ở trạng thái bản nháp.');
@@ -246,13 +250,13 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
               </div>
               <div className="catalog-form__grid"><label>Trạng thái<select value={productDraft.status} onChange={(event) => updateProduct('status', event.target.value)}><option value="draft">Bản nháp</option><option value="published">Đã công bố</option><option value="archived">Đã lưu trữ</option></select></label><label>Mã câu chuyện đã duyệt (tùy chọn)<input value={productDraft.storyId || ''} onChange={(event) => updateProduct('storyId', event.target.value)} /></label></div>
               <label className="check-label"><input type="checkbox" checked={Boolean(productDraft.featured)} onChange={(event) => updateProduct('featured', event.target.checked)} /><span>Đưa vào mục nổi bật</span></label>
-              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Sản phẩm công bố cần tối thiểu 3 ảnh có quyền sử dụng. Không dùng minh họa biên tập như ảnh của SKU.</p>
+              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Sản phẩm công bố cần từ 1 đến 5 ảnh có quyền sử dụng. Có thể thêm ảnh lần lượt; dữ liệu demo dùng 3 ảnh mỗi sản phẩm. Không dùng minh họa biên tập như ảnh của SKU.</p><p>Đã chọn {productDraft.images.length}/5 ảnh.</p>
                 {productDraft.images.length > 0 && <ul className="media-list">{productDraft.images.map((image, index) => <li key={`${image.url}-${index}`}><img src={image.url} alt="" width="64" height="64" /><span><strong>{image.alt}</strong><small>{image.url}</small></span><button type="button" className="icon-button" aria-label={`Xóa ảnh ${image.alt}`} onClick={() => updateProduct('images', productDraft.images.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
                 <div className="media-upload">
-                  <label>Tệp ảnh<input type="file" accept="image/jpeg,image/png,image/webp" disabled={productDraft.images.length >= 12} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></label>
+                  <label>Tệp ảnh<input type="file" accept="image/jpeg,image/png,image/webp" disabled={productDraft.images.length >= 5} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></label>
                   <label>Mô tả ảnh<input value={imageAlt} required={Boolean(selectedFile)} maxLength="250" onChange={(event) => setImageAlt(event.target.value)} /></label>
                   {mediaState.previewUrl && <div className="media-preview"><img src={mediaState.previewUrl} alt={imageAlt || 'Xem trước ảnh cục bộ'} width="100" height="100" /><p>Chỉ là bản xem trước trên thiết bị; chưa được lưu hoặc công bố.</p></div>}
-                  <button type="button" className="button button--outline" onClick={handleImageUpload} disabled={mediaState.status === 'uploading' || productDraft.images.length >= 12}>{mediaState.status === 'uploading' ? 'Đang tải…' : 'Tải ảnh lên kho media'}</button>
+                  <button type="button" className="button button--outline" onClick={handleImageUpload} disabled={mediaState.status === 'uploading' || productDraft.images.length >= 5}>{mediaState.status === 'uploading' ? 'Đang tải…' : 'Tải ảnh lên kho media'}</button>
                   {mediaState.message && <p className={`form-feedback${mediaState.status === 'ready' ? ' form-feedback--success' : ' form-feedback--warning'}`} role="status">{mediaState.message}</p>}
                 </div>
               </fieldset>

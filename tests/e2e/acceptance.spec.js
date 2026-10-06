@@ -969,22 +969,27 @@ test('admin can create, version-update and archive a product while order snapsho
   expect(productId).toBeTruthy();
   await productForm.locator('select').nth(3).selectOption('published');
   await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('tối thiểu 3 ảnh');
+  await expect(page.getByRole('alert')).toContainText('tối thiểu 1 ảnh');
   const blockedPublication = await browserApi(page, `/api/v1/admin/products/${productId}`, {
     method: 'PATCH', body: { status: 'published', expectedVersion: 0 },
   });
   expect(blockedPublication.status).toBe(400);
   expect(blockedPublication.body.error.code).toBe('VALIDATION_ERROR');
+  const oneImagePublication = await browserApi(page, `/api/v1/admin/products/${productId}`, {
+    method: 'PATCH', body: { status: 'published', images: [PUBLISHED_PRODUCT.images[0]], expectedVersion: 0 },
+  });
+  expect(oneImagePublication.status).toBe(200);
+  expect(oneImagePublication.body.data.images).toHaveLength(1);
 
   const snapshotOrderCode = 'TL-P11-PRODUCT-SNAPSHOT';
   await inspectP11Database(async ({ CatalogProduct: Product, Order: TestOrder, User: TestUser }) => {
     const prepared = await Product.updateOne(
-      { _id: productId, version: 0 },
+      { _id: productId, version: 1 },
       { $set: { status: 'published', images: PUBLISHED_PRODUCT.images }, $inc: { version: 1 } },
     ).exec();
     expect(prepared.modifiedCount).toBe(1);
     const product = await Product.findById(productId).lean().exec();
-    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture', sku: 'P11-ADMIN-CRUD', status: 'published', version: 1 });
+    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture', sku: 'P11-ADMIN-CRUD', status: 'published', version: 2 });
     expect(product.images).toHaveLength(3);
     const customer = await TestUser.findOne({ emailNormalized: USERS.otherCustomer.email }).exec();
     const now = new Date();
@@ -1029,7 +1034,7 @@ test('admin can create, version-update and archive a product while order snapsho
   expect(publicDetail.status).toBe(404);
   await inspectP11Database(async ({ CatalogProduct: Product, Order: TestOrder, AuditLog: TestAuditLog }) => {
     const product = await Product.findById(productId).lean().exec();
-    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture Updated', priceVnd: 240000, status: 'archived', version: 3 });
+    expect(product).toMatchObject({ name: 'P11 Admin CRUD Fixture Updated', priceVnd: 240000, status: 'archived', version: 4 });
     const order = await TestOrder.findOne({ code: snapshotOrderCode }).lean().exec();
     expect(order.itemsSnapshot).toHaveLength(1);
     expect(String(order.itemsSnapshot[0].productId)).toBe(productId);
@@ -1038,7 +1043,7 @@ test('admin can create, version-update and archive a product while order snapsho
     });
     const audit = await TestAuditLog.find({ targetType: 'catalog_product', targetId: productId }).sort({ createdAt: 1 }).lean().exec();
     expect(audit.map((event) => event.action)).toEqual([
-      'catalog.product.created', 'catalog.product.updated', 'catalog.product.archived',
+      'catalog.product.created', 'catalog.product.updated', 'catalog.product.updated', 'catalog.product.archived',
     ]);
   });
 });

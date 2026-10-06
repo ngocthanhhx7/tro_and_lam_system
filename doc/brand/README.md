@@ -62,7 +62,7 @@ Chi tiết token, breakpoint và yêu cầu component xem tại
 - Ảnh trong `fondend/public/assets/products/concepts/` do AI tạo hoặc dẫn xuất từ concept.
   Chúng không xác nhận sản phẩm vật lý, màu men, kích thước, nguồn gốc hay tồn kho. Luôn
   giữ thông báo concept kề gallery; thay bằng ảnh thật đã được duyệt trước khi mở bán.
-- Mỗi gallery có thể chứa ít nhất ba hình để hỗ trợ bố cục xem sản phẩm. Nguồn ảnh ghi rõ
+- Mỗi gallery sản phẩm đã công bố có từ một đến năm hình; gallery của sản phẩm demo có đúng ba hình. Nguồn ảnh ghi rõ
   ảnh tạo mới, crop hay ghép; không gọi ảnh dẫn xuất là góc chụp riêng.
 
 ## Cách viết

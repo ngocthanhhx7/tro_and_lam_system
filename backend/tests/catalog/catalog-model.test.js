@@ -36,3 +36,18 @@ test('product pre-validation accepts direct-sale VND and rejects a missing or in
 test('quote-only product may omit a direct-sale price', async () => {
   await assert.doesNotReject(() => product({ saleMode: 'quote', priceVnd: undefined }).validate());
 });
+
+test('published products require one to five images at the model boundary', async () => {
+  const images = (count) => Array.from({ length: count }, (_, sortOrder) => ({
+    url: `/assets/products/model-fixture-${sortOrder + 1}.webp`,
+    alt: `Model fixture image ${sortOrder + 1}`,
+    sortOrder,
+  }));
+  await assert.doesNotReject(() => product({ status: 'published', images: images(1) }).validate());
+  await assert.doesNotReject(() => product({ status: 'published', images: images(5) }).validate());
+
+  const noImages = await product({ status: 'published', images: [] }).validate().then(() => null, (error) => error);
+  assert.ok(noImages?.errors?.images);
+  const tooManyImages = await product({ images: images(6) }).validate().then(() => null, (error) => error);
+  assert.ok(tooManyImages?.errors?.images);
+});
