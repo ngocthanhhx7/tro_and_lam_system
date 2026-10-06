@@ -9,7 +9,7 @@ test('demo catalog seed accepts only its dedicated unauthenticated loopback data
   );
 });
 
-test('demo catalog manifest contains three existing same-site concept images for each approved preview entry', async () => {
+test('demo catalog manifest has at least three existing images per product and discloses each image source', async () => {
   const products = await readConceptManifest();
   assert.equal(products.length, 8);
   assert.deepEqual(
@@ -21,12 +21,32 @@ test('demo catalog manifest contains three existing same-site concept images for
   );
   for (const product of products) {
     assert.ok(product.images.length >= 3, `${product.slug} has at least three images`);
+    assert.equal(new Set(product.images.map((image) => image.url)).size, product.images.length, `${product.slug} has distinct images`);
     assert.deepEqual(product.images.map((image) => image.sortOrder), product.images.map((_, index) => index));
     for (const image of product.images) {
-      assert.match(image.url, /^\/assets\/products\/concepts\//u);
-      assert.match(image.alt, /concept AI/u);
+      assert.match(image.url, /^\/assets\/products\/(?:concepts|generated|owner-provided|derived)\//u);
+      if (image.url.startsWith('/assets/products/concepts/') || image.url.startsWith('/assets/products/generated/')) {
+        assert.match(image.alt, /concept AI/u);
+      } else if (image.url.startsWith('/assets/products/derived/')) {
+        assert.match(image.alt, /cắt từ ảnh/iu);
+        assert.match(image.alt, /chủ dự án cung cấp/iu);
+      } else {
+        assert.match(image.alt, /chủ dự án cung cấp/iu);
+      }
     }
   }
+  for (const slug of [
+    'hu-tra',
+    'bo-chen-doc-am',
+    'binh-thien-nga',
+    'binh-phu-quy',
+    'binh-giot-ngoc',
+    'binh-hoa-lam',
+    'binh-ty-ba',
+  ]) {
+    assert.ok(products.find((product) => product.slug === slug).images.some((image) => image.url.startsWith('/assets/products/owner-provided/')), `${slug} includes its supplied product photo`);
+  }
+  assert.ok(products.find((product) => product.slug === 'lu-xong-tram-mini').images.every((image) => image.url.startsWith('/assets/products/concepts/')));
 });
 
 test('demo catalog seed rejects missing, remote, authenticated, configured, and wrong-database URIs', () => {

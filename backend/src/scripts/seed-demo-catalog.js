@@ -62,9 +62,15 @@ const CATEGORY_DATA = Object.freeze({
   }),
 });
 
-function resolveConceptAsset(url) {
-  if (typeof url !== 'string' || !url.startsWith('/assets/products/concepts/')) {
-    throw new Error('Demo product image must use a same-site concept asset URL.');
+function resolveDemoAsset(url) {
+  const allowedPrefixes = [
+    '/assets/products/concepts/',
+    '/assets/products/generated/',
+    '/assets/products/owner-provided/',
+    '/assets/products/derived/',
+  ];
+  if (typeof url !== 'string' || !allowedPrefixes.some((prefix) => url.startsWith(prefix))) {
+    throw new Error('Demo product image must use an approved same-site product asset URL.');
   }
   const path = resolve(PUBLIC_ROOT, url.replace(/^\/+/, ''));
   const relativePath = relative(PUBLIC_ROOT, path);
@@ -78,7 +84,7 @@ export async function readConceptManifest() {
   const manifestPath = resolve(PUBLIC_ROOT, 'assets/products/concepts/manifest.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   if (!Array.isArray(manifest.products) || manifest.products.length !== Object.keys(PRODUCT_COPY).length) {
-    throw new Error('The concept image manifest does not match the fixed demo catalog.');
+    throw new Error('The product image manifest does not match the fixed demo catalog.');
   }
 
   for (const entry of manifest.products) {
@@ -88,7 +94,24 @@ export async function readConceptManifest() {
     if (!Array.isArray(entry.images) || entry.images.length < 3) {
       throw new Error(`Demo product ${entry.slug} needs at least three concept images.`);
     }
-    for (const image of entry.images) resolveConceptAsset(image.url);
+    if (new Set(entry.images.map((image) => image.url)).size !== entry.images.length) {
+      throw new Error(`Demo product ${entry.slug} must use three distinct gallery image files.`);
+    }
+    for (const image of entry.images) {
+      resolveDemoAsset(image.url);
+      const isConcept = image.url.startsWith('/assets/products/concepts/')
+        || image.url.startsWith('/assets/products/generated/');
+      const isDerived = image.url.startsWith('/assets/products/derived/');
+      if (isConcept && !/concept AI/iu.test(image.alt)) {
+        throw new Error(`Demo concept image needs an honest AI disclosure: ${entry.slug}`);
+      }
+      if (isDerived && (!/cắt từ ảnh/iu.test(image.alt) || !/chủ dự án cung cấp/iu.test(image.alt))) {
+        throw new Error(`Demo derived image needs a source description: ${entry.slug}`);
+      }
+      if (!isConcept && !isDerived && !/chủ dự án cung cấp/iu.test(image.alt)) {
+        throw new Error(`Demo owner-provided image needs a source description: ${entry.slug}`);
+      }
+    }
   }
   return manifest.products;
 }
@@ -116,22 +139,33 @@ export async function seedDemoCatalog(uri) {
       throw new Error('A demo category already exists but is not published; refusing to change it.');
     }
     const categoryByLine = { lifestyle: lifestyleCategory, diplomacy: diplomacyCategory };
-    const demoNotice = 'Mẫu dữ liệu chỉ dùng xem giao diện trên máy local. Ảnh là concept AI, không phải ảnh chụp hàng hóa. Giá, thông số, tồn kho và khả năng cung cấp chưa được xác nhận.';
+    const demoNotice = 'Mẫu xem trước chỉ dùng trên máy local. Giá, thông số, tồn kho và khả năng cung cấp chưa được xác nhận. Nguồn từng ảnh được ghi trong gallery.';
 
     for (const product of manifestProducts) {
       const copy = PRODUCT_COPY[product.slug];
       const category = categoryByLine[copy.line];
+      const existing = await CatalogProduct.findOne({ slug: product.slug })
+        .select({ sku: 1, line: 1, categoryId: 1 })
+        .lean()
+        .exec();
+      if (existing && (existing.sku !== copy.sku
+        || existing.line !== copy.line
+        || String(existing.categoryId) !== String(category._id))) {
+        throw new Error(`A non-demo product conflicts with preview slug ${product.slug}; refusing to change it.`);
+      }
       await CatalogProduct.updateOne(
-        { slug: product.slug },
+        { slug: product.slug, sku: copy.sku },
         {
+          $set: {
+            description: demoNotice,
+            images: product.images,
+          },
           $setOnInsert: {
             slug: product.slug,
             sku: copy.sku,
             name: copy.name,
             line: copy.line,
             categoryId: category._id,
-            description: demoNotice,
-            images: product.images,
             saleMode: 'quote',
             status: 'published',
             featured: true,

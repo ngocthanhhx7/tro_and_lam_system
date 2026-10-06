@@ -1,76 +1,172 @@
 {
-  "notice": "Ảnh concept AI, chưa xác nhận là ảnh chụp sản phẩm thực tế. Chỉ dùng sau khi giữ thông báo này hiển thị với khách hàng.",
+  "notice": "Mỗi ảnh có nguồn ghi trong mô tả và nhãn cạnh gallery: ảnh do chủ dự án cung cấp hoặc ảnh concept AI. Giữ nhãn nguồn ảnh khi hiển thị.",
   "products": [
     {
       "slug": "lu-xong-tram-mini",
       "line": "lifestyle",
       "images": [
-        { "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-01-front.jpg", "alt": "Ảnh concept AI của lư xông trầm mini, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-02-detail.jpg", "alt": "Ảnh concept AI cận cảnh men và hoa văn của lư xông trầm mini; chưa xác nhận sản phẩm thực tế.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-03-context.jpg", "alt": "Ảnh concept AI của lư xông trầm mini trong không gian thưởng trà; chưa xác nhận sản phẩm thực tế.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-01-front.jpg",
+          "alt": "Ảnh concept AI của lư xông trầm mini, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-02-detail.jpg",
+          "alt": "Ảnh concept AI cận cảnh men và hoa văn của lư xông trầm mini; chưa xác nhận sản phẩm thực tế.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/concepts/lifestyle/lu-xong-tram-mini-03-context.jpg",
+          "alt": "Ảnh concept AI của lư xông trầm mini trong không gian thưởng trà; chưa xác nhận sản phẩm thực tế.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "hu-tra",
       "line": "lifestyle",
       "images": [
-        { "url": "/assets/products/concepts/lifestyle/hu-tra-01-front.jpg", "alt": "Ảnh concept AI của hũ trà gốm, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/lifestyle/hu-tra-02-detail.jpg", "alt": "Ảnh concept AI cận cảnh nắp và hoa văn hũ trà; chưa xác nhận sản phẩm thực tế.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/lifestyle/hu-tra-03-context.jpg", "alt": "Ảnh concept AI của hũ trà trong bối cảnh bàn trà; chưa xác nhận sản phẩm thực tế.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/hu-tra-chim-lac.webp",
+          "alt": "Hũ trà hoa văn chim lạc, ảnh sản phẩm do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/derived/hu-tra-02-lid-and-motif.webp",
+          "alt": "Chi tiết nắp và dải hoa văn, cắt từ ảnh hũ trà do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/hu-tra-03-motif-detail.webp",
+          "alt": "Chi tiết dải hoa văn hũ trà, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "bo-chen-doc-am",
       "line": "lifestyle",
       "images": [
-        { "url": "/assets/products/concepts/lifestyle/bo-chen-doc-am-01-front.jpg", "alt": "Ảnh concept AI của bộ chén độc ẩm, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/lifestyle/bo-chen-doc-am-02-detail.jpg", "alt": "Bản crop cận cảnh ấm và chén từ ảnh concept AI của bộ độc ẩm; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/lifestyle/bo-chen-doc-am-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI của bộ độc ẩm; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/bo-chen-doc-am.webp",
+          "alt": "Bộ trà gồm gồm ấm và một chén, ảnh sản phẩm do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/derived/bo-chen-02-teapot-detail.webp",
+          "alt": "Chi tiết ấm trong bộ chén độc ẩm, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/bo-chen-03-cup-detail.webp",
+          "alt": "Chi tiết chén trong bộ chén độc ẩm, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "binh-thien-nga",
       "line": "diplomacy",
       "images": [
-        { "url": "/assets/products/concepts/diplomacy/binh-thien-nga-01-front.jpg", "alt": "Ảnh concept AI của bình Thiên Nga, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/diplomacy/binh-thien-nga-02-detail.jpg", "alt": "Bản crop cận cảnh hoa văn trên ảnh concept AI của bình Thiên Nga; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/diplomacy/binh-thien-nga-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI bình Thiên Nga; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/binh-thien-nga-01.webp",
+          "alt": "Bình Thiên Nga, ảnh sản phẩm do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/owner-provided/binh-thien-nga-02.webp",
+          "alt": "Bình Thiên Nga, ảnh thứ hai do chủ dự án cung cấp.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/binh-thien-nga-03-motif-detail.webp",
+          "alt": "Chi tiết họa tiết bình Thiên Nga, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "binh-phu-quy",
       "line": "diplomacy",
       "images": [
-        { "url": "/assets/products/concepts/diplomacy/binh-phu-quy-01-front.jpg", "alt": "Ảnh concept AI của bình Phú Quý, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/diplomacy/binh-phu-quy-02-detail.jpg", "alt": "Bản crop cận cảnh hoa văn trên ảnh concept AI của bình Phú Quý; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/diplomacy/binh-phu-quy-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI bình Phú Quý; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/binh-phu-quy.webp",
+          "alt": "Bình Phú Quý, ảnh sản phẩm do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/derived/binh-phu-quy-02-neck-detail.webp",
+          "alt": "Chi tiết cổ và vai bình Phú Quý, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/binh-phu-quy-03-motif-detail.webp",
+          "alt": "Chi tiết họa tiết thân bình Phú Quý, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "binh-giot-ngoc",
       "line": "diplomacy",
       "images": [
-        { "url": "/assets/products/concepts/diplomacy/binh-giot-ngoc-01-front.jpg", "alt": "Ảnh concept AI của bình Giọt Ngọc, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/diplomacy/binh-giot-ngoc-02-detail.jpg", "alt": "Bản crop cận cảnh hoa văn trên ảnh concept AI của bình Giọt Ngọc; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/diplomacy/binh-giot-ngoc-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI bình Giọt Ngọc; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/binh-giot-ngoc-01.webp",
+          "alt": "Bình Giọt Ngọc, ảnh thứ nhất do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/owner-provided/binh-giot-ngoc-02.webp",
+          "alt": "Bình Giọt Ngọc, ảnh thứ hai do chủ dự án cung cấp.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/owner-provided/binh-giot-ngoc-03.webp",
+          "alt": "Bình Giọt Ngọc, ảnh thứ ba do chủ dự án cung cấp.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "binh-hoa-lam",
       "line": "diplomacy",
       "images": [
-        { "url": "/assets/products/concepts/diplomacy/binh-hoa-lam-01-front.jpg", "alt": "Ảnh concept AI của bình Hoa Lam, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/diplomacy/binh-hoa-lam-02-detail.jpg", "alt": "Bản crop cận cảnh hoa văn trên ảnh concept AI của bình Hoa Lam; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/diplomacy/binh-hoa-lam-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI bình Hoa Lam; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/hoa-lam-ty-ba-pair.webp",
+          "alt": "Ảnh chung của bình Hoa Lam và Tỳ Bà, không phải góc chụp riêng từng bình; ảnh do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/derived/binh-hoa-lam-02-vase-crop.webp",
+          "alt": "Phần bình Hoa Lam được cắt từ ảnh đôi do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/binh-hoa-lam-03-motif-detail.webp",
+          "alt": "Chi tiết họa tiết bình Hoa Lam, cắt từ ảnh đôi do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "slug": "binh-ty-ba",
       "line": "diplomacy",
       "images": [
-        { "url": "/assets/products/concepts/diplomacy/binh-ty-ba-01-front.jpg", "alt": "Ảnh concept AI của bình Tỳ Bà, góc trực diện; chưa xác nhận là ảnh chụp sản phẩm thực tế.", "sortOrder": 0 },
-        { "url": "/assets/products/concepts/diplomacy/binh-ty-ba-02-detail.jpg", "alt": "Bản crop cận cảnh hoa văn trên ảnh concept AI của bình Tỳ Bà; không phải góc chụp riêng.", "sortOrder": 1 },
-        { "url": "/assets/products/concepts/diplomacy/binh-ty-ba-03-composition.jpg", "alt": "Bố cục ghép toàn cảnh và chi tiết crop từ ảnh concept AI bình Tỳ Bà; không phải ảnh chụp riêng.", "sortOrder": 2 }
+        {
+          "url": "/assets/products/owner-provided/hoa-lam-ty-ba-pair.webp",
+          "alt": "Ảnh chung của bình Hoa Lam và Tỳ Bà, không phải góc chụp riêng từng bình; ảnh do chủ dự án cung cấp.",
+          "sortOrder": 0
+        },
+        {
+          "url": "/assets/products/derived/binh-ty-ba-02-vase-crop.webp",
+          "alt": "Phần bình Tỳ Bà được cắt từ ảnh đôi do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 1
+        },
+        {
+          "url": "/assets/products/derived/binh-ty-ba-03-motif-detail.webp",
+          "alt": "Chi tiết họa tiết bình Tỳ Bà, cắt từ ảnh đôi do chủ dự án cung cấp; không phải góc chụp mới.",
+          "sortOrder": 2
+        }
       ]
     }
   ]

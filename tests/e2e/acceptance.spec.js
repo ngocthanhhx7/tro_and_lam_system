@@ -222,7 +222,7 @@ test('public pages expose working Zalo, Messenger, and hotline quick-contact lin
   }
 });
 
-test('home tells the TRO & LAM story, introduces both lines and links to their illustrated landing pages', async ({ page }) => {
+test('home tells the TRO & LAM story, introduces both lines and links to their product-photo landing pages', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Đưa gốm đến gần/u })).toBeVisible();
@@ -235,24 +235,24 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
 
   const homeStories = page.locator('.collection-story');
   await expect(homeStories).toHaveCount(2);
-  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('src', '/assets/products/concepts/lifestyle/hu-tra-03-context.jpg');
-  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('alt', /Ảnh concept AI/u);
-  await expect(homeStories.nth(0).getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
-  await expect(homeStories.nth(1).locator('img')).toHaveAttribute('src', '/assets/products/concepts/diplomacy/binh-thien-nga-01-front.jpg');
-  await expect(homeStories.nth(1).getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('src', '/assets/products/owner-provided/hu-tra-chim-lac.webp');
+  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('alt', /ảnh do chủ dự án cung cấp/u);
+  await expect(homeStories.nth(0).getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
+  await expect(homeStories.nth(1).locator('img')).toHaveAttribute('src', '/assets/products/owner-provided/binh-thien-nga-01.webp');
+  await expect(homeStories.nth(1).getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
 
   await page.getByRole('link', { name: 'Khám phá Lifestyle', exact: true }).click();
   await expect(page).toHaveURL(/\/bo-suu-tap\/lifestyle$/u);
   await expect(page.getByRole('heading', { level: 1, name: 'Một chút gốm. Một khoảng bình yên.', exact: true })).toBeVisible();
-  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/concepts/lifestyle/hu-tra-01-front.jpg');
-  await expect(page.locator('.product-line-intro__feature').getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/owner-provided/hu-tra-chim-lac.webp');
+  await expect(page.locator('.product-line-intro__feature').getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
 
   await page.goto('/');
   await page.getByRole('link', { name: 'Khám phá Diplomacy', exact: true }).click();
   await expect(page).toHaveURL(/\/bo-suu-tap\/diplomacy$/u);
   await expect(page.getByRole('heading', { level: 1, name: 'Gửi một món quà. Gói một tấm lòng.', exact: true })).toBeVisible();
-  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/concepts/diplomacy/binh-thien-nga-01-front.jpg');
-  await expect(page.locator('.product-line-intro__feature').getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/owner-provided/binh-thien-nga-01.webp');
+  await expect(page.locator('.product-line-intro__feature').getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
 
   for (const width of [360, 390, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -266,6 +266,76 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await expect(page.locator('.atelier-hero video')).toHaveJSProperty('paused', true);
+});
+
+test('product gallery labels each owner photo, derived crop and AI concept accurately', async ({ page }) => {
+  const product = {
+    id: '64f000000000000000000031',
+    slug: 'media-source-fixture',
+    name: 'Media Source Fixture',
+    line: 'lifestyle',
+    categoryId: '64f000000000000000000032',
+    description: 'Synthetic media source fixture for browser acceptance.',
+    material: '',
+    images: [
+      {
+        url: '/assets/products/owner-provided/hu-tra-chim-lac.webp',
+        alt: 'Hũ trà, ảnh sản phẩm do chủ dự án cung cấp.',
+        sortOrder: 0,
+      },
+      {
+        url: '/assets/products/concepts/lifestyle/hu-tra-02-detail.jpg',
+        alt: 'Ảnh concept AI hũ trà; không phải ảnh chụp SKU thực tế.',
+        sortOrder: 1,
+      },
+      {
+        url: '/assets/products/derived/hu-tra-03-motif-detail.webp',
+        alt: 'Chi tiết dải hoa văn hũ trà, cắt từ ảnh do chủ dự án cung cấp; không phải góc chụp mới.',
+        sortOrder: 2,
+      },
+    ],
+    saleMode: 'quote',
+    featured: false,
+    availableForPurchase: false,
+    stockLabel: 'Yêu cầu tư vấn',
+  };
+  await page.route('**/api/v1/products/media-source-fixture', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ data: product, meta: { requestId: 'p11-media-source-fixture' } }),
+  }));
+
+  await page.goto('/san-pham/media-source-fixture');
+  await expect(page.getByRole('heading', { level: 1, name: product.name, exact: true })).toBeVisible();
+  const mediaNote = page.locator('.product-gallery__media-note');
+  await expect(mediaNote).toContainText('Ảnh sản phẩm do chủ dự án cung cấp');
+  const mainImage = page.locator('.product-gallery__main img');
+  await expect(mainImage).toHaveAttribute('src', product.images[0].url);
+  await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: /Xem ảnh 2:/u }).click();
+  await expect(mediaNote).toContainText('Ảnh concept AI');
+  await expect(mainImage).toHaveAttribute('src', product.images[1].url);
+  await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: /Xem ảnh 3:/u }).click();
+  await expect(mediaNote).toContainText('Chi tiết được cắt từ ảnh do chủ dự án cung cấp');
+  await expect(mediaNote).toContainText('không phải góc chụp mới');
+  await expect(mainImage).toHaveAttribute('src', product.images[2].url);
+  await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+
+  await page.route(/\/api\/v1\/products(?:\?.*)?$/u, async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      data: [product],
+      meta: { requestId: 'p11-media-source-fixture', pagination: { page: 1, limit: 12, total: 1, totalPages: 1 } },
+    }),
+  }));
+  await page.goto('/san-pham');
+  const productCard = page.locator('.product-card');
+  await expect(productCard).toHaveCount(1);
+  await expect(productCard.locator('.product-card__tag--provided')).toHaveText('Ảnh do chủ dự án cung cấp');
 });
 
 test('published story and NFC browser routes expose only published content and honor tag revocation', async ({ page }) => {

@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
 import { formatVnd } from '../../services/catalog/catalogApi.js';
+import { getProductImageSource } from '../../utils/productMedia.js';
 
 export default function ProductCard({ product }) {
   const image = product.images?.[0];
   const quoteOnly = product.saleMode === 'quote';
-  const hasAiConcept = product.images?.some((item) => item.url?.includes('/assets/products/concepts/'));
+  const imageSource = getProductImageSource(image);
   return <article className="product-card">
     <Link className="product-card__image" to={`/san-pham/${encodeURIComponent(product.slug)}`} aria-label={`Xem ${product.name}`}>
       {image
         ? <img src={image.url} alt={image.alt} width="640" height="520" loading="lazy" />
         : <span className="product-card__image-empty">Ảnh sản phẩm đang chờ cập nhật</span>}
       {quoteOnly && <span className="product-card__tag">Tư vấn theo yêu cầu</span>}
-      {hasAiConcept && <span className="product-card__tag product-card__tag--ai">Ảnh AI minh họa</span>}
+      {imageSource && <span className={`product-card__tag product-card__tag--${imageSource.kind}`}>{imageSource.badge}</span>}
     </Link>
     <div className="product-card__body">
       <p className="eyebrow">{product.line === 'lifestyle' ? 'Lifestyle Line' : 'Diplomacy Line'}</p>
