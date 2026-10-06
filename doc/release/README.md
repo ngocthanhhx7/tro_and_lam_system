@@ -205,3 +205,9 @@ Axe 4.13.0 scans nine public routes at 390px and 1280px and the open mobile navi
 `npm ci` installed 314 packages and reported 0 vulnerabilities. `npm run check` passed contracts (102 paths, 121 operations, 60 schemas, 22 enums, 26 fixtures), lint, backend **195/195 with 0 skipped**, and Vite build (132 modules; the JavaScript bundle remains above the 500 kB advisory threshold). `npm run test:e2e` passed **24/24**.
 
 P11 teardown removed its database. P02/P05 test databases were removed by their tests; the exact P06 database was audited to contain three empty collections and removed. A final read-only prefix audit returned `[]` for dedicated P02/P05/P06/P11 databases. No provider credentials, external provider calls, production data or deployment were used. Gemini staging, cultural-source approval, manual screen-reader/full WCAG review, Atlas restore and owner UAT remain open.
+
+## GitHub Actions quality workflow (2026-10-06)
+
+Added [`.github/workflows/quality.yml`](../../.github/workflows/quality.yml) for pull requests and pushes to `develop`/`main`, plus manual dispatch. It installs the locked Node 24 dependencies and Chromium, starts a disposable MongoDB 7 single-node replica set, sets distinct loopback databases for P02/P05/P06/P11, then runs `npm run check` and `npm run test:e2e`. It has read-only repository permissions and does not configure SMTP, PayOS, Gemini, geocoder, storage, Atlas or production credentials. The test Mongo container is removed even when a preceding step fails.
+
+This turn could not execute the workflow locally because Docker is not installed in the Windows workspace; the workflow has not yet produced a GitHub Actions run. Local clean-worktree verification remains the evidence above. The first remote `quality` run, owner-controlled branch rules, provider staging, restore rehearsal, manual accessibility review and UAT remain open.

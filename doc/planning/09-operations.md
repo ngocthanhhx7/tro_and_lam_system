@@ -85,7 +85,8 @@ cleanup dữ liệu thật. TTL phù hợp challenge/session, không đơn hàng
 Media storage lifecycle/backup và mapping trong DB cần cùng kế hoạch; rollback app không tự rollback payments.
 
 ## Release checklist
-1. CI unit/integration/E2E/build pass; contracts frozen, source diff không chứa secrets.
+1. Workflow [quality](../../.github/workflows/quality.yml) chạy contract/unit/replica-set/E2E/build trên
+   pull request; xác minh run xanh trên GitHub trước release. Contracts frozen, source diff không chứa secrets.
 2. Staging rehearsal: catalog thật hoặc fixture gắn nhãn, roles, guest/customer purchase, block appeal,
    SMTP/PayOS/geolocation/Gemini lỗi bình thường và provider live khi credentials cho phép.
 3. Domain/cookie/CORS, Atlas access list, webhook verification, worker scheduler và upload storage đã xác minh.

@@ -38,7 +38,11 @@ require PR, require CI `quality`, resolve conversations, chặn force push/delet
 Giai đoạn một người không yêu cầu approval. Khi thêm thành viên, bật ít nhất 1 approval,
 dismiss stale approvals,
 và giới hạn merge cho Project Leader.
-PR template/CI trong repository hỗ trợ quy trình; chưa tự bật rulesets phía GitHub.
+Workflow [`.github/workflows/quality.yml`](../.github/workflows/quality.yml) chạy contract validation,
+lint, backend replica-set tests, production build và integrated Playwright acceptance trên pull request
+vào `develop`/`main`, push vào hai nhánh này và khi chạy thủ công. Workflow dùng MongoDB replica set
+dùng một lần, không có provider credentials. GitHub rulesets/branch protection vẫn cần repository owner
+cấu hình; workflow chưa được coi là CI evidence cho đến khi có run xanh trên GitHub.
 
 ## Quy ước code
 - Folder lowercase. React component PascalCase, hook `useX`, JS variable/function camelCase.
