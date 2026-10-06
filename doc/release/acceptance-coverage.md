@@ -1,58 +1,50 @@
-# Ma trận bao phủ acceptance
+# Ma trận coverage nghiệm thu hiện hành
 
-Snapshot baseline: 3939722b2472a8468a55d5f07d8f66d776a78546, 2026-10-06.
-Đây là đối chiếu file và test đã có; không khẳng định test trong bảng đã chạy, trừ kết
-quả lệnh được ghi tại doc/release/README.md.
+Ma trận này phản ánh source P11 `b8d6cae` và lần chạy browser sạch tại source `274aa34` ngày 2026-10-06. Kết quả lệnh đầy đủ và giới hạn môi trường nằm trong [README release](README.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
 
-Status:
+- **Partial**: có unit/service/route hoặc browser evidence cho một phần yêu cầu; còn thiếu tích hợp, browser, replica-set, provider staging hoặc xác nhận của owner.
+- **Pending**: chưa có evidence phù hợp cho điều kiện cốt lõi của acceptance.
 
-- **Partial** — có unit/service/route test liên quan, nhưng chưa có đủ bằng chứng tích hợp
-  hoặc browser theo acceptance.
-- **Pending** — package/route/test chưa có trong baseline hoặc chưa có bằng chứng phù hợp.
-- Không dòng nào được đánh dấu pass đầy đủ cho UAT/release.
-
-| AC | Route / module | Test file hiện có | Bằng chứng còn thiếu | Status |
+| ID | Luồng / module | Bằng chứng test hiện có | Còn thiếu | Status |
 | --- | --- | --- | --- | --- |
-| A-PUB-01 | Public /, /san-pham, /san-pham/:slug; catalog | backend/tests/catalog/catalog.service.test.js; backend/tests/catalog/catalog.routes.test.js | Browser query restore/pagination và API server mount; public flow chưa chạy E2E | Partial |
-| A-GST-01 | /gio-hang; account cart | backend/tests/account/account-service.test.js; backend/tests/account/account-routes.test.js | Browser reload/session policy, cart UI và catalog/cart API trên server tích hợp | Partial |
-| A-GST-02 | /thanh-toan; commerce checkout | backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.routes.test.js | Checkout browser, queue email trên outbox thật trong replica-set test và retry qua server | Partial |
-| A-GST-03 | /tra-cuu-don-hang, /don-hang/:id; commerce guest proof + identity restricted proof | backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.routes.test.js; backend/tests/identity/restricted-proof-model.test.js | OTP delivery/verification browser, response shape cho credential sai và domain router composition | Partial |
-| A-AUTH-01 | /dang-ky, /dang-nhap, /quen-mat-khau, /dat-lai-mat-khau; identity | backend/tests/identity/identity-behavior.test.js; backend/tests/identity/identity-routes.test.js | Email thật trên staging, browser reset/logout và auth API mount | Partial |
-| A-ADR-01 | /tai-khoan/dia-chi; account address | backend/tests/account/account-models-validator.test.js; backend/tests/account/account-service.test.js; backend/tests/account/account-routes.test.js | Address/order snapshot qua DB replica set và browser ownership/error states | Partial |
-| A-ADR-02 | AddressBookPage, /locations/reverse; geolocation adapter | backend/tests/account/account-service.test.js | Browser success/deny/timeout; provider integration có credential/billing; manual fallback đã có unit evidence | Partial |
-| A-ORD-01 | /thanh-toan; commerce pricing/inventory | backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.replica-set.test.js | Race test replica-set chưa chạy; order/reservation API chưa mount ở server | Partial |
-| A-ORD-02 | /thanh-toan; commerce idempotency | backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.routes.test.js; backend/tests/commerce/commerce.replica-set.test.js | Idempotency race/owner isolation trên DB riêng và retry từ browser/API tích hợp | Partial |
-| A-PAY-01 | /payment/return; payments webhook /payments/payos/webhook | backend/tests/payments/payments.service.test.js; backend/tests/payments/payos.adapter.test.js | Signature/webhook qua mounted API + sandbox merchant; chưa có sandbox evidence | Partial |
-| A-PAY-02 | Payment attempts, webhook, expiry/reconciliation | backend/tests/payments/payments.service.test.js; backend/tests/payments/payments.replica-set.test.js; backend/tests/payments/payos.adapter.test.js; backend/tests/commerce/commerce.behavior.test.js | Hai replica-set suites đang skip; chưa có test DB chứng minh race expiry-vs-webhook đồng thời; provider late/out-of-order sandbox rehearsal | Partial |
-| A-PAY-03 | /payment/return, /payment/cancel; payment UI đối soát API | backend/tests/payments/payments.service.test.js | Chưa có frontend test chứng minh query paid=true không đổi trạng thái và UI gọi API thật; API domain chưa mount | Pending |
-| A-COD-01 | /staff/orders, order detail; commerce COD collection | backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.routes.test.js | Browser staff capability/evidence, audit persistence và owner policy COD/fee | Partial |
-| A-REV-01 | Customer review và admin moderation; P07 reviews | Chưa có test review trong baseline | P07 route/service/UI chưa tích hợp; eligibility, owner isolation, duplicate và moderation audit | Pending |
-| A-TKT-01 | Customer/staff support và complaint; P07 support | Chưa có test ticket/support trong baseline | P07 route/service/UI chưa tích hợp; assignment/thread/attachment ACL/return linkage | Pending |
-| A-BLK-01 | /tai-khoan/bi-khoa, /admin/appeals; identity appeal | backend/tests/identity/identity-behavior.test.js; backend/tests/identity/identity-routes.test.js; backend/tests/identity/restricted-proof-model.test.js | Browser restricted-session allowlist, appeal round-trip và admin decision/audit trên API đã mount | Partial |
-| A-STF-01 | /staff, /staff/orders; operations + commerce + P07 support | backend/tests/operations/operations.test.js; backend/tests/commerce/commerce.behavior.test.js; backend/tests/commerce/commerce.routes.test.js | Server/API composition, staff fulfillment browser và support queue chưa có P07 | Partial |
-| A-ADM-01 | /admin/users, /admin/appeals, /admin/products, /admin/logs; identity/catalog/operations | backend/tests/identity/identity-behavior.test.js; backend/tests/identity/identity-routes.test.js; backend/tests/catalog/catalog.routes.test.js; backend/tests/operations/operations.test.js | E2E role/status invalidation, last-admin race DB và kiểm tra mọi admin capability trên server tích hợp | Partial |
-| A-PRD-01 | /admin/products, /admin/products/new, /admin/products/:id/edit; catalog | backend/tests/catalog/catalog-validation.test.js; backend/tests/catalog/catalog.service.test.js; backend/tests/catalog/catalog.routes.test.js | Product CRUD/archive với DB thật, snapshot lịch sử và admin browser flow | Partial |
-| A-NOT-01 | /tai-khoan/thong-bao; operations notifications | backend/tests/operations/operations.test.js | Browser read/mark-all, notification persistence qua server và actor B isolation E2E | Partial |
-| A-MAIL-01 | P09 outbox + SMTP integration | backend/tests/operations/operations.test.js; backend/tests/identity/identity-behavior.test.js | Replica-set durability/recovery và mailbox staging; test adapter không chứng minh deliverability | Partial |
-| A-AI-01 | P10 assistant; chưa có route/module trong baseline | Chưa có P10 assistant test trong baseline | P10 merge, grounded published retrieval, PII/injection/ownership tests và provider unavailable UX | Pending |
-| A-NFC-01 | /nfc/:publicId; P08 content/NFC | backend/tests/content/nfc-public-routing.test.js | NFC flow qua mounted server/browser và owner duyệt nội dung/nguồn story thật | Partial |
-| A-LOG-01 | /admin/logs; operations audit | backend/tests/operations/operations.test.js | Browser/admin route trên server tích hợp, stored audit verify và sensitive-log scan toàn luồng | Partial |
-| A-UI-01 | Tất cả public/customer/staff/admin pages | fondend/tests/operations/business-settings-form.test.js | Chưa có browser runner/a11y suite; chưa ghi viewport, keyboard, labels, alt, validation và reduced-motion evidence | Pending |
-| A-REL-01 | Root check, health/readiness, all modules | backend/tests/health.test.js; scripts/validate-contracts.js | npm run check hoàn chỉnh, build pass, E2E, replica-set races, mounted routers, restore/release rehearsal | Pending |
+| A-PUB-01 | Catalog/search/filter | `backend/tests/catalog/catalog.service.test.js`, `backend/tests/catalog/catalog.routes.test.js`; E2E catalog kiểm tra published/draft | Browser query restore, filter, pagination và đầy đủ viewport | Partial |
+| A-GST-01 | Guest cart | `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js`; E2E thêm sản phẩm và đọc cart API | Browser sửa/xóa, reload/session policy và cart persistence đầy đủ | Partial |
+| A-GST-02 | Guest checkout | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`; E2E quote xác nhận checkout unavailable và order button bị disable | R06 cần owner cấu hình; chưa E2E tạo order, retry/idempotency qua server và email outbox | Partial |
+| A-GST-03 | Guest order tracking/proof | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`, `backend/tests/identity/restricted-proof-model.test.js` | Browser OTP/delivery, sai credential cùng response shape và PII chỉ sau proof | Partial |
+| A-AUTH-01 | Register/login/reset/session | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`; E2E login customer/staff/admin | Browser register/reset/logout, email thật trên staging và no-enumeration UAT | Partial |
+| A-ADR-01 | Address CRUD/ownership | `backend/tests/account/account-models-validator.test.js`, `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js` | Browser ownership/error states và snapshot qua DB replica-set | Partial |
+| A-ADR-02 | Geolocation/manual fallback | `backend/tests/account/account-service.test.js` | Browser success/denied/timeout; geocoder staging key/quota/billing | Partial |
+| A-ORD-01 | Pricing/inventory/race | `backend/tests/commerce/commerce.behavior.test.js`; có `backend/tests/commerce/commerce.replica-set.test.js` | Replica-set test hiện skip; chưa xác minh cuộc đua checkout trong DB thật | Partial |
+| A-ORD-02 | Idempotency/retry | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js` | Replica-set race và retry cùng/khác body qua browser/API tích hợp | Partial |
+| A-PAY-01 | PayOS signature/amount/webhook | `backend/tests/payments/payments.service.test.js`, `backend/tests/payments/payos.adapter.test.js`, `backend/tests/payments/payments.routes.test.js` | PayOS sandbox, webhook URL và merchant evidence | Partial |
+| A-PAY-02 | Duplicate/out-of-order/expiry race | `backend/tests/payments/payments.service.test.js`, `backend/tests/payments/payments.replica-set.test.js` | Replica-set test hiện skip; chưa rehearsal late/out-of-order webhook trên sandbox | Partial |
+| A-PAY-03 | Browser return/cancel | Có `fondend/src/pages/payment/PaymentReturnPage.jsx` và payment service tests | Chưa có browser evidence rằng query string không đổi trạng thái và UI đối soát API | Pending |
+| A-COD-01 | COD/fulfillment/reconciliation | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js` | Browser staff flow, audit persistence và owner duyệt fee/COD policy | Partial |
+| A-REV-01 | Review/moderation | `backend/tests/support/support-review.test.js` kiểm tra order đủ điều kiện, duplicate và audit/moderation | Browser customer/admin round-trip, DB transaction thật và moderation UAT | Partial |
+| A-TKT-01 | Ticket/complaint/attachment | `backend/tests/support/support-review.test.js` kiểm tra owner, staff note, attachment và guest proof | Browser customer/staff flow, storage staging và full assignment/attachment UAT | Partial |
+| A-BLK-01 | Blocked session/appeal | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`, `backend/tests/identity/restricted-proof-model.test.js` | Browser appeal round-trip, admin decision và audit trên DB tích hợp | Partial |
+| A-STF-01 | Staff dashboard/permissions | `backend/tests/operations/operations.test.js`, commerce/support route tests; E2E staff dashboard và từ chối admin API | Browser fulfillment/support queues và toàn bộ staff capability matrix | Partial |
+| A-ADM-01 | Admin users/appeals/catalog/audit | Identity/catalog/operations tests; E2E admin đọc statistics/catalog, customer/staff bị cấm | Browser role/status mutation, appeal, last-admin race và đủ admin API | Partial |
+| A-PRD-01 | Product CRUD/archive/snapshot | `backend/tests/catalog/catalog-validation.test.js`, `backend/tests/catalog/catalog.service.test.js`, `backend/tests/catalog/catalog.routes.test.js` | DB-backed CRUD/archive, optimistic concurrency, history snapshot và admin browser flow | Partial |
+| A-NOT-01 | Notification owner/dedupe | `backend/tests/operations/operations.test.js` | Browser read/mark-all và persistence/actor isolation E2E | Partial |
+| A-MAIL-01 | SMTP/outbox | `backend/tests/operations/operations.test.js` kiểm tra encryption, retry, dead-letter và adapter failure | SMTP mailbox/staging, replica-set recovery và deliverability; không có mail thật trong QA | Partial |
+| A-AI-01 | Assistant grounding/redaction/fallback | `backend/tests/assistant/assistant.models.test.js`, `assistant.routes.test.js`, `assistant.service.test.js`, `gemini.adapter.test.js`; `backend/tests/support/support-review.test.js` kiểm tra handoff ownership | Browser assistant flow và Gemini staging/quota; QA không gọi provider | Partial |
+| A-NFC-01 | Published/draft/revoked story | `backend/tests/content/nfc-public-routing.test.js` | Mounted server/browser flow, owner duyệt nguồn story và bản quyền media | Partial |
+| A-LOG-01 | Audit access/redaction | `backend/tests/operations/operations.test.js` | Browser/admin query trên server tích hợp, stored event verification và full sensitive-log scan | Partial |
+| A-UI-01 | Responsive/accessibility | E2E kiểm tra catalog không overflow ở viewport 390px | Viewport 360/768/1280/1440, keyboard, focus, labels, errors, alt text, reduced motion và audit WCAG | Partial |
+| A-REL-01 | Build/check/E2E/release | `npm run check` pass; `npm run test:e2e` pass 4/4 trong checkout QA sạch | P05/P06 replica-set, provider staging, accessibility, restore/rollback và owner UAT còn thiếu | Partial |
 
-## Gap tích hợp áp dụng toàn ma trận
+## P11 browser evidence
 
-1. backend/src/server.js gọi createApp(env), nhưng backend/src/app.js mặc định
-   domainRouters là []; chưa có server composition nối route/service ports.
-2. Frontend AppRoutes đã lắp các module hiện có, nhưng support P07 chưa được lắp vào
-   baseline. P10 cũng chưa có module/test.
-3. Root không có Playwright dependency hay test:e2e. Không có browser-to-API evidence.
-4. Backend run trên baseline có 139 tests: 137 pass, 2 skip. Hai skip là P05/P06
-   replica-set tests do chưa cấu hình test URI. Unit pass không thay thế transactional
-   race evidence.
-5. Frontend build chưa pass trong P11 worktree vì workspace node_modules chưa được link
-   tới source P11; phải chạy lại bằng dependency install/workspace links của checkout
-   tích hợp.
+`tests/e2e/acceptance.spec.js` có bốn luồng chạy trên checkout QA sạch `D:\WW\tro_lam_integration_verify_20261006`, source `274aa34`, Node 24.21.0:
 
-Không dùng status Partial làm release approval. Khi P07/P10 và composition root được
-merge, cập nhật snapshot commit và chạy lại từng acceptance qua checkout tích hợp.
+1. Public catalog ẩn draft; guest thêm sản phẩm vào cart, đọc cart qua API và thấy checkout fallback thật do cấu hình R06 chưa có. Không tạo order hoặc kết quả thanh toán giả.
+2. Customer đọc identity của mình nhưng không truy cập staff/admin API.
+3. Staff đọc dashboard operations nhưng không truy cập admin API.
+4. Admin đọc statistics/catalog; khách ẩn danh bị từ chối staff API.
+
+Kết quả `npm run test:e2e`: **4 passed, 0 failed**. Database là URI loopback vừa tạo, theo mẫu strict `tro_lam_p11_e2e_test_<12 lowercase hex>`; teardown xóa database. Test dùng fixture tổng hợp và không gọi PayOS, SMTP, Gemini hoặc geocoder. P11 worktree đường dẫn có `&` gặp lỗi Vite dependency optimizer `config.js:32098` thiếu `imports`; cùng source đã pass trong checkout sạch có đường dẫn không chứa `&`.
+
+## Tình trạng tích hợp
+
+Các gap ở baseline cũ về router composition, P07 support/review, P10 assistant và thiếu Playwright runner đã được tích hợp trong source hiện tại. `npm run check` trên P11 source `b8d6cae` pass: contract validation 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures, lint sạch, backend 177 pass và 2 skip, Vite build 123 modules. Hai skip thuộc P05/P06 replica-set do chưa có URI test riêng. Đây là bằng chứng automated check; không thay thế staging, replica-set hoặc UAT.

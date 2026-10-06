@@ -1,5 +1,12 @@
 # Ma trận coverage nghiệm thu
 
+> **Tài liệu snapshot lịch sử.** Các nhận xét trong các bảng P01–P10 bên dưới được ghi
+> trước khi composition/router, P07 support/review và P10 assistant được tích hợp; không
+> dùng các dòng “composition pending” hoặc số lượng test cũ để mô tả trạng thái hiện tại.
+> Acceptance matrix hiện hành và bằng chứng mới nằm ở
+> [doc/release/acceptance-coverage.md](release/acceptance-coverage.md). Blocker owner
+> hiện tại nằm ở [doc/release/README.md](release/README.md). File này được giữ để bảo
+> toàn ánh xạ acceptance ID/package trong các snapshot cũ.
 Ánh xạ acceptance ID trong `doc/planning/01-business-and-permissions.md` tới package, test dự kiến và bằng chứng. Trạng thái được cập nhật sau khi test thực sự chạy; `Chưa chạy` không có nghĩa là đạt.
 
 | Acceptance ID | Package / công việc | Test dự kiến | Bằng chứng hiện có |
