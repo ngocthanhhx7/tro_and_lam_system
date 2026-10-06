@@ -17,6 +17,7 @@ const paymentEventSchema = new mongoose.Schema({
 
 paymentEventSchema.index({ provider: 1, dedupeKey: 1 }, { unique: true });
 paymentEventSchema.index({ processingState: 1, receivedAt: 1 });
+paymentEventSchema.index({ processingState: 1, verifiedAt: 1 });
 paymentEventSchema.index({ orderId: 1, receivedAt: -1 });
 
 export const PaymentEvent = mongoose.models.PaymentEvent

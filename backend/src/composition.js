@@ -21,6 +21,7 @@ import { createOperationsPorts, createOutboxPayloadCipher } from './services/ope
 import { createAuditService } from './services/operations/audit.service.js';
 import { createBusinessSettingsService } from './services/operations/business-settings.service.js';
 import { createDashboardService } from './services/operations/dashboard.service.js';
+import { createFinanceLedgerPort } from './services/operations/finance-ledger.port.js';
 import { createNotificationService } from './services/operations/notification.service.js';
 import { createOutboxService } from './services/operations/outbox.service.js';
 import { createOutboxWorker, startOutboxWorker } from './jobs/operations/outbox.worker.js';
@@ -30,6 +31,9 @@ import { createSmtpProvider } from './services/integrations/smtp/smtp.provider.j
 import { createNodemailerTransport } from './services/integrations/smtp/nodemailer.transport.js';
 import { User } from './models/identity/user.model.js';
 import { Order } from './models/commerce/order.model.js';
+import { CodCollection } from './models/commerce/cod-collection.model.js';
+import { PaymentEvent } from './models/payments/payment-event.model.js';
+import { Refund } from './models/payments/refund.model.js';
 import { BusinessSetting, AuditLog, Notification, OutboxEvent } from './models/operations/index.js';
 import { Ticket, Contact } from './support/support.models.js';
 import { unavailable } from './utils/serviceError.js';
@@ -170,7 +174,13 @@ export async function createDomainComposition(env) {
   const auditService = createAuditService({ AuditLog });
   const notificationService = createNotificationService({ Notification });
   const businessSettingsService = createBusinessSettingsService({ BusinessSetting, auditService });
-  const dashboardService = createDashboardService({ Order, Ticket, Contact, Notification });
+  const dashboardService = createDashboardService({
+    Order,
+    Ticket,
+    Contact,
+    Notification,
+    financeLedger: createFinanceLedgerPort({ PaymentEvent, CodCollection, Refund }),
+  });
   const outboxService = createOutboxService({ OutboxEvent, encryptMailPayload: outboxCipher.encrypt });
 
   const contentRouter = createContentRouter({
@@ -204,9 +214,15 @@ export async function createDomainComposition(env) {
     },
   });
 
+  const commerceCatalogPort = Object.freeze({
+    async getCheckoutProducts(ids, options) {
+      const products = await catalogService.getCheckoutProducts(ids, options);
+      return products.map((product) => ({ ...product, id: product.productId }));
+    },
+  });
   commerceService = createCommerceService({
     ports: {
-      catalog: catalogService,
+      catalog: commerceCatalogPort,
       settings: settingsPort,
       shipping: shippingPort,
       outbox: operationsPorts,

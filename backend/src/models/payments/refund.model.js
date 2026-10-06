@@ -29,6 +29,7 @@ refundSchema.index({ externalReference: 1 }, {
   partialFilterExpression: { externalReference: { $type: 'string' } },
 });
 refundSchema.index({ status: 1, createdAt: -1 });
+refundSchema.index({ status: 1, updatedAt: 1 });
 refundSchema.index({ orderId: 1, status: 1 });
 
 export const Refund = mongoose.models.Refund || mongoose.model('Refund', refundSchema);

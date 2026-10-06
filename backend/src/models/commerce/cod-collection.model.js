@@ -11,6 +11,7 @@ const codCollectionSchema = new mongoose.Schema({
 
 codCollectionSchema.index({ orderId: 1 }, { unique: true });
 codCollectionSchema.index({ idempotencyKey: 1 }, { unique: true });
+codCollectionSchema.index({ recordedAt: 1 });
 
 export const CodCollection = mongoose.models.CodCollection
   || mongoose.model('CodCollection', codCollectionSchema);
