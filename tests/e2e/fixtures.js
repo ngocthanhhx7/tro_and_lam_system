@@ -9,6 +9,11 @@ export const USERS = Object.freeze({
     email: 'customer.p11@example.test',
     role: 'customer',
   }),
+  otherCustomer: Object.freeze({
+    name: 'P11 Other Synthetic Customer',
+    email: 'other.customer.p11@example.test',
+    role: 'customer',
+  }),
   staff: Object.freeze({
     name: 'P11 Synthetic Staff',
     email: 'staff.p11@example.test',
@@ -33,6 +38,10 @@ export const DRAFT_PRODUCT = Object.freeze({
   sku: 'P11-E2E-DRAFT',
   name: 'P11 Fixture — sản phẩm nháp kín',
 });
+
+export const STAFF_ORDER_CODE = 'TL-P11-SHIPMENT';
+export const PAYMENT_ORDER_CODE = 'TL-P11-PAYMENT-RETURN';
+export const GUEST_ORDER_CODE = 'TL-P11-GUEST-PRIVATE';
 
 export function assertDedicatedLocalMongoUri(value) {
   if (typeof value !== 'string' || value.length === 0) {

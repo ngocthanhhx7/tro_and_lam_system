@@ -125,6 +125,18 @@ test('audit redaction strips credential, contact, message, and provider payload 
   assert.equal(safe.changesRedacted.nested.amountVnd, 5000);
 });
 
+test('audit redaction preserves generated UUID request IDs that resemble phone numbers', () => {
+  const requestId = '85819549-bf6f-4133-bc53-a9673811274e';
+  const safe = redactAuditEvent({
+    actorRole: 'staff', requestId, action: 'order.transition', targetType: 'order',
+    targetId: '6ac4c6a4704d6932878cc3ea', outcome: 'success',
+    changesRedacted: { fromStatus: 'processing', toStatus: 'shipped' },
+  });
+
+  assert.equal(safe.requestId, requestId);
+  assert.deepEqual(safe.changesRedacted, { fromStatus: 'processing', toStatus: 'shipped' });
+});
+
 test('admin audit listing uses stable opaque cursors and bounds date filters', async () => {
   const rows = [
     { _id: '507f1f77bcf86cd799439022', requestId: 'req-1', outcome: 'success', action: 'user.block', targetType: 'user', actorId: '507f1f77bcf86cd799439011', createdAt: new Date('2026-10-06T00:00:00.000Z'), changesRedacted: { token: '[REDACTED]' } },
