@@ -14,7 +14,7 @@ function formatTime(value) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(value));
 }
 
-function TicketThread({ ticketId }) {
+function TicketThread({ ticketId, guest = false }) {
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
@@ -67,7 +67,9 @@ function TicketThread({ ticketId }) {
   return <section className="support-thread">
     <header className="support-card support-thread__header">
       <div><p className="support-eyebrow">MÃ YÊU CẦU {ticket.code}</p><h1>{ticket.subject}</h1><p>{TICKET_STATUS[ticket.status] || ticket.status} · Tạo lúc {formatTime(ticket.createdAt)}</p></div>
-      <Link className="support-link" to="/tai-khoan/ho-tro">← Danh sách hỗ trợ</Link>
+      <Link className="support-link" to={guest ? (ticket.orderId ? `/don-hang/${ticket.orderId}` : '/tra-cuu-don-hang') : '/tai-khoan/ho-tro'}>
+        {guest ? '← Quay lại đơn hàng' : '← Danh sách hỗ trợ'}
+      </Link>
     </header>
     <section className="support-card support-conversation" aria-label="Tin nhắn trong yêu cầu">
       {messages.length === 0 && <p className="support-state">Chưa có tin nhắn.</p>}
@@ -275,11 +277,12 @@ export function GuestOrderSupportPage() {
   const [form, setForm] = useState({ kind: 'support', subject: '', body: '' });
   const [error, setError] = useState('');
   const [ticket, setTicket] = useState(null);
+  const [attachmentIds, setAttachmentIds] = useState([]);
   const [busy, setBusy] = useState(false);
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const response = await supportApi.createTicket({ ...form, subject: form.subject.trim(), body: form.body.trim(), orderId, attachmentIds: [] });
+      const response = await supportApi.createTicket({ ...form, subject: form.subject.trim(), body: form.body.trim(), orderId, attachmentIds });
       setTicket(response.data.ticket);
     } catch (requestError) { setError(requestError.message || 'Không thể xác minh quyền truy cập đơn hàng.'); }
     finally { setBusy(false); }
@@ -291,9 +294,15 @@ export function GuestOrderSupportPage() {
       <label className="support-field">Loại yêu cầu<select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value })}><option value="support">Hỗ trợ đơn hàng</option><option value="complaint">Phản ánh</option></select></label>
       <label className="support-field">Tiêu đề<input required maxLength="200" value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} /></label>
       <label className="support-field">Nội dung<textarea required maxLength="10000" rows="6" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} /></label>
+      <SupportAttachmentPicker key={orderId} orderId={orderId} onAttachmentsChange={setAttachmentIds} disabled={busy || Boolean(ticket)} />
       {error && <p className="support-feedback support-feedback--error" role="alert">{error}</p>}
-      {ticket && <p className="support-feedback support-feedback--success" role="status">Đã tạo yêu cầu {ticket.code}. <Link to={`/tai-khoan/ho-tro/${ticket.id}`}>Mở cuộc trao đổi</Link></p>}
-      <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi yêu cầu'}</button>
+      {ticket && <p className="support-feedback support-feedback--success" role="status">Đã tạo yêu cầu {ticket.code}. <Link to={`/ho-tro/${ticket.id}`}>Mở cuộc trao đổi</Link></p>}
+      <button className="support-button" type="submit" disabled={busy || Boolean(ticket)}>{busy ? 'Đang gửi…' : 'Gửi yêu cầu'}</button>
     </form>
   </section>;
+}
+
+export function GuestTicketThreadPage() {
+  const { id } = useParams();
+  return <section className="support-page"><TicketThread ticketId={id} guest /></section>;
 }

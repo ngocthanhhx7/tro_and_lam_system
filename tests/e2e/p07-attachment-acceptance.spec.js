@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
 import argon2 from 'argon2';
 import mongoose from 'mongoose';
-import { SupportAttachment } from '../../backend/src/support/support.models.js';
+import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
+import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
+import { SupportAttachment, Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
-import { assertDedicatedLocalMongoUri } from './fixtures.js';
+import { assertDedicatedLocalMongoUri, GUEST_ORDER_CODE, GUEST_ORDER_EMAIL } from './fixtures.js';
 
 const P07_PASSWORD = 'P07-only synthetic attachment password';
 const P07_USERS = Object.freeze({
@@ -53,7 +55,10 @@ async function seedSyntheticUsers() {
   return withP07Database(async (connection) => {
     const UserFixture = connection.model('P07AttachmentUserFixture', User.schema);
     const passwordHash = await argon2.hash(P07_PASSWORD);
-    await UserFixture.create(Object.values(P07_USERS).map((user) => ({
+    const fixtures = Object.values(P07_USERS);
+    const existingEmails = new Set(await UserFixture.find({ emailNormalized: { $in: fixtures.map((user) => user.email) } })
+      .distinct('emailNormalized').exec());
+    await UserFixture.insertMany(fixtures.filter((user) => !existingEmails.has(user.email)).map((user) => ({
       ...user, emailNormalized: user.email, passwordHash, status: 'active', emailVerifiedAt: new Date(), authVersion: 0, version: 0,
     })));
   });
@@ -80,6 +85,18 @@ async function readAttachmentAudit(ticketId) {
   return withP07Database(async (connection) => {
     const AttachmentRead = connection.model('P07AttachmentAudit', SupportAttachment.schema);
     return AttachmentRead.find({ ticketId }).sort({ storageKey: 1 }).lean().exec();
+  });
+}
+
+async function readGuestOrderAccessCode() {
+  const decrypt = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+  return withP07Database(async (connection) => {
+    const OutboxRead = connection.model('P07OutboxRead', OutboxEvent.schema);
+    const events = await OutboxRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).sort({ createdAt: -1 }).lean().exec();
+    const messages = events.flatMap((event) => event.payload.deliveries
+      .filter((delivery) => delivery.encryptedMail)
+      .map((delivery) => decrypt(delivery.encryptedMail)));
+    return messages.find((message) => message.template === 'order_access_code' && message.recipient === GUEST_ORDER_EMAIL)?.data.code;
   });
 }
 
@@ -177,4 +194,101 @@ test('P07 customer and staff upload, finalize, link, and download private attach
   } finally {
     await Promise.all([staffContext.close(), otherCustomerContext.close()]);
   }
+});
+
+test('P07 guest order owner can attach private evidence and continue the protected ticket thread', async ({ page, browser }) => {
+  const subject = 'P07 synthetic guest order support with private evidence';
+  const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  await seedSyntheticUsers();
+  await page.goto('/tra-cuu-don-hang');
+  await page.getByLabel('Mã đơn hàng', { exact: true }).fill(GUEST_ORDER_CODE);
+  await page.getByLabel('Email đặt hàng', { exact: true }).fill(GUEST_ORDER_EMAIL);
+  const challengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Gửi mã xác minh', exact: true }).click();
+  const challengeResponse = await challengeResponsePromise;
+  expect(challengeResponse.status()).toBe(202);
+  expect((await challengeResponse.json()).data.accepted).toBe(true);
+  const accessCode = await readGuestOrderAccessCode();
+  expect(accessCode).toMatch(/^\d{6}$/u);
+  await page.getByLabel('Mã xác minh gồm 6 chữ số', { exact: true }).fill(accessCode);
+  await page.getByRole('button', { name: 'Xác minh và xem đơn', exact: true }).click();
+
+  const orderId = process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID;
+  await expect(page).toHaveURL(new RegExp(`/don-hang/${orderId}$`, 'u'));
+  await page.getByRole('link', { name: 'Gửi yêu cầu hỗ trợ đơn hàng', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/ho-tro-don-hang/${orderId}$`, 'u'));
+  await page.getByRole('combobox', { name: 'Loại yêu cầu', exact: true }).selectOption('complaint');
+  await page.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill(subject);
+  await page.getByRole('textbox', { name: 'Nội dung', exact: true }).fill('Synthetic guest message tied to the verified order.');
+  const picker = page.locator('.support-attachment-picker');
+  await picker.getByLabel('Chọn ảnh đính kèm', { exact: true }).setInputFiles({
+    name: 'p07-guest-order.png', mimeType: 'image/png', buffer: pngSignature,
+  });
+  await picker.getByRole('button', { name: 'Tải 1 ảnh lên', exact: true }).click();
+  await expect(picker.getByRole('status')).toContainText('Đã tải 1 ảnh');
+
+  const ticketResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/tickets')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Gửi yêu cầu', exact: true }).click();
+  const ticketResponse = await ticketResponsePromise;
+  expect(ticketResponse.status()).toBe(201);
+  const ticket = (await ticketResponse.json()).data.ticket;
+  expect(ticket.orderId).toBe(orderId);
+  await page.getByRole('link', { name: /Mở cuộc trao đổi/u }).click();
+  await expect(page).toHaveURL(new RegExp(`/ho-tro/${ticket.id}$`, 'u'));
+  await expect(page.getByRole('heading', { name: subject, exact: true })).toBeVisible();
+  await expect(page.getByText('Synthetic guest message tied to the verified order.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Mở ảnh đính kèm', exact: true })).toHaveCount(1);
+  expect(await fetchAttachment(page, (await readAttachmentAudit(ticket.id))[0]._id.toString())).toEqual({
+    status: 200, contentType: 'image/png', bytes: pngSignature.length,
+  });
+
+  const strangerContext = await browser.newContext();
+  const staffContext = await browser.newContext();
+  try {
+    const strangerPage = await strangerContext.newPage();
+    await strangerPage.goto('/');
+    const anonymousRead = await browserApi(strangerPage, `/api/v1/tickets/${ticket.id}`);
+    expect(anonymousRead.status).toBe(401);
+
+    const staffPage = await staffContext.newPage();
+    await login(staffPage, P07_USERS.staff);
+    const publicReply = await browserApi(staffPage, `/api/v1/tickets/${ticket.id}/messages`, {
+      method: 'POST', body: { body: 'Synthetic staff reply visible to the guest.', attachmentIds: [], visibility: 'customer' },
+    });
+    expect(publicReply.status).toBe(201);
+    const internalNote = await browserApi(staffPage, `/api/v1/tickets/${ticket.id}/messages`, {
+      method: 'POST', body: { body: 'Synthetic staff-only note must remain hidden.', attachmentIds: [], visibility: 'internal' },
+    });
+    expect(internalNote.status).toBe(201);
+
+    await page.reload();
+    await expect(page.getByText('Synthetic staff reply visible to the guest.')).toBeVisible();
+    await expect(page.getByText('Synthetic staff-only note must remain hidden.')).toHaveCount(0);
+    await page.getByLabel('Phản hồi', { exact: true }).fill('Synthetic guest follow-up through the protected thread.');
+    await page.getByRole('button', { name: 'Gửi phản hồi', exact: true }).click();
+    await expect(page.getByText('Synthetic guest follow-up through the protected thread.')).toBeVisible();
+  } finally {
+    await Promise.all([strangerContext.close(), staffContext.close()]);
+  }
+
+  const persisted = await withP07Database(async (connection) => {
+    const TicketRead = connection.model('P07GuestTicketAudit', Ticket.schema);
+    const MessageRead = connection.model('P07GuestTicketMessageAudit', TicketMessage.schema);
+    const AttachmentRead = connection.model('P07GuestAttachmentAudit', SupportAttachment.schema);
+    const [storedTicket, messages, attachments] = await Promise.all([
+      TicketRead.findById(ticket.id).lean().exec(),
+      MessageRead.find({ ticketId: ticket.id }).sort({ createdAt: 1 }).lean().exec(),
+      AttachmentRead.find({ ticketId: ticket.id }).lean().exec(),
+    ]);
+    return { storedTicket, messages, attachments };
+  });
+  expect(persisted.storedTicket.userId).toBeNull();
+  expect(String(persisted.storedTicket.orderId)).toBe(orderId);
+  expect(persisted.messages[0].authorRole).toBe('guest');
+  expect(persisted.messages[0].attachmentIds).toHaveLength(1);
+  expect(persisted.attachments).toHaveLength(1);
+  expect(persisted.attachments[0].state).toBe('linked');
+  expect(String(persisted.attachments[0].guestOrderId)).toBe(orderId);
 });

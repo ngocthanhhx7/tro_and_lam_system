@@ -120,6 +120,11 @@ export default function OrderDetailPage() {
       {busy === 'claim' ? 'Đang liên kết…' : 'Liên kết đơn với tài khoản của tôi'}
     </button>}
     {error && <p className="commerce-error" role="alert">{errorText(error, 'Không thể cập nhật đơn hàng.')}{error.requestId && <small>Mã yêu cầu: {error.requestId}</small>}</p>}
-    <p className="commerce-actions"><Link to="/tai-khoan/don-hang">Đơn hàng của tôi</Link><Link to="/tra-cuu-don-hang">Tra cứu đơn khác</Link></p>
+    <p className="commerce-actions">
+      {user?.id
+        ? <Link to="/tai-khoan/ho-tro">Gửi yêu cầu hỗ trợ</Link>
+        : <Link to={`/ho-tro-don-hang/${encodeURIComponent(order.id)}`}>Gửi yêu cầu hỗ trợ đơn hàng</Link>}
+      <Link to="/tai-khoan/don-hang">Đơn hàng của tôi</Link><Link to="/tra-cuu-don-hang">Tra cứu đơn khác</Link>
+    </p>
   </section>;
 }
