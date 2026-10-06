@@ -1,7 +1,9 @@
+import { lazy } from 'react';
 import IdentityRouteGuard from '../../pages/identity/IdentityRouteGuard.jsx';
-import AdminRefundsPage from '../../pages/admin/refunds/AdminRefundsPage.jsx';
-import PaymentCancelPage from '../../pages/payment/PaymentCancelPage.jsx';
-import PaymentReturnPage from '../../pages/payment/PaymentReturnPage.jsx';
+
+const AdminRefundsPage = lazy(() => import('../../pages/admin/refunds/AdminRefundsPage.jsx'));
+const PaymentCancelPage = lazy(() => import('../../pages/payment/PaymentCancelPage.jsx'));
+const PaymentReturnPage = lazy(() => import('../../pages/payment/PaymentReturnPage.jsx'));
 
 export const paymentRoutes = Object.freeze([
   { path: '/payment/return', element: <PaymentReturnPage /> },

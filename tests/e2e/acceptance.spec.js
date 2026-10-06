@@ -205,6 +205,9 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Đưa gốm đến gần/u })).toBeVisible();
+  const loadedModulePaths = await page.evaluate(() => performance.getEntriesByType('resource')
+    .map(({ name }) => new URL(name, globalThis.location.href).pathname));
+  expect(loadedModulePaths.some((path) => path.includes('/pages/admin/') || path.includes('/pages/staff/'))).toBe(false);
   await expect(page.getByRole('heading', { name: 'Gốm dành cho bạn', exact: true })).toBeVisible();
   await expect(page.locator('.closing-note__lotus')).toHaveAttribute('src', '/assets/editorial/lotus-line-ornament.svg');
   await expect(page.locator('.closing-note__lotus')).toHaveAttribute('alt', '');

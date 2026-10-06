@@ -1,8 +1,10 @@
-import ContentAdminPage from '../../pages/admin/content/ContentAdminPage.jsx';
-import NfcAdminPage from '../../pages/admin/content/NfcAdminPage.jsx';
-import NfcStoryPage from '../../pages/stories/NfcStoryPage.jsx';
-import PublishedPage from '../../pages/stories/PublishedPage.jsx';
-import StoryPage from '../../pages/stories/StoryPage.jsx';
+import { lazy } from 'react';
+
+const ContentAdminPage = lazy(() => import('../../pages/admin/content/ContentAdminPage.jsx'));
+const NfcAdminPage = lazy(() => import('../../pages/admin/content/NfcAdminPage.jsx'));
+const NfcStoryPage = lazy(() => import('../../pages/stories/NfcStoryPage.jsx'));
+const PublishedPage = lazy(() => import('../../pages/stories/PublishedPage.jsx'));
+const StoryPage = lazy(() => import('../../pages/stories/StoryPage.jsx'));
 
 export const publicContentRouteFragments = Object.freeze([
   { path: 'cau-chuyen/:slug', element: <StoryPage /> },

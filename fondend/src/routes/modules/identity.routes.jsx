@@ -1,11 +1,19 @@
-import { AcceptInvitationPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from '../../pages/identity/IdentityPages.jsx';
-import BlockedAppealPage from '../../pages/identity/BlockedAppealPage.jsx';
+import { lazy } from 'react';
 import IdentityRouteGuard from '../../pages/identity/IdentityRouteGuard.jsx';
-import ProfilePage from '../../pages/account/ProfilePage.jsx';
-import AdminUsersPage from '../../pages/admin/users/AdminUsersPage.jsx';
-import AdminUserDetailPage from '../../pages/admin/users/AdminUserDetailPage.jsx';
-import AdminAppealsPage from '../../pages/admin/appeals/AdminAppealsPage.jsx';
-import AdminAppealDetailPage from '../../pages/admin/appeals/AdminAppealDetailPage.jsx';
+
+const identityPages = () => import('../../pages/identity/IdentityPages.jsx');
+const AcceptInvitationPage = lazy(() => identityPages().then((module) => ({ default: module.AcceptInvitationPage })));
+const ForgotPasswordPage = lazy(() => identityPages().then((module) => ({ default: module.ForgotPasswordPage })));
+const LoginPage = lazy(() => identityPages().then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => identityPages().then((module) => ({ default: module.RegisterPage })));
+const ResetPasswordPage = lazy(() => identityPages().then((module) => ({ default: module.ResetPasswordPage })));
+const VerifyEmailPage = lazy(() => identityPages().then((module) => ({ default: module.VerifyEmailPage })));
+const BlockedAppealPage = lazy(() => import('../../pages/identity/BlockedAppealPage.jsx'));
+const ProfilePage = lazy(() => import('../../pages/account/ProfilePage.jsx'));
+const AdminUsersPage = lazy(() => import('../../pages/admin/users/AdminUsersPage.jsx'));
+const AdminUserDetailPage = lazy(() => import('../../pages/admin/users/AdminUserDetailPage.jsx'));
+const AdminAppealsPage = lazy(() => import('../../pages/admin/appeals/AdminAppealsPage.jsx'));
+const AdminAppealDetailPage = lazy(() => import('../../pages/admin/appeals/AdminAppealDetailPage.jsx'));
 
 export const identityRoutes = Object.freeze([
   { path: '/dang-nhap', element: <LoginPage /> },

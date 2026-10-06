@@ -144,6 +144,15 @@ footer {
   border-top: 1px solid var(--border-subtle);
 }
 
+.route-loading {
+  display: grid;
+  min-height: 40vh;
+  place-items: center;
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 @media (max-width: 639px) {
   header {
     align-items: flex-start;

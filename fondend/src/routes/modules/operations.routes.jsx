@@ -1,8 +1,10 @@
-import NotificationsPage from '../../pages/notifications/NotificationsPage.jsx';
-import StaffDashboardPage from '../../pages/staff/dashboard/StaffDashboardPage.jsx';
-import AdminOverviewPage from '../../pages/admin/overview/AdminOverviewPage.jsx';
-import AdminAuditPage from '../../pages/admin/audit/AdminAuditPage.jsx';
-import AdminSettingsPage from '../../pages/admin/settings/AdminSettingsPage.jsx';
+import { lazy } from 'react';
+
+const NotificationsPage = lazy(() => import('../../pages/notifications/NotificationsPage.jsx'));
+const StaffDashboardPage = lazy(() => import('../../pages/staff/dashboard/StaffDashboardPage.jsx'));
+const AdminOverviewPage = lazy(() => import('../../pages/admin/overview/AdminOverviewPage.jsx'));
+const AdminAuditPage = lazy(() => import('../../pages/admin/audit/AdminAuditPage.jsx'));
+const AdminSettingsPage = lazy(() => import('../../pages/admin/settings/AdminSettingsPage.jsx'));
 
 export const operationsRoutes = [
   { path: '/tai-khoan/thong-bao', element: <NotificationsPage /> },

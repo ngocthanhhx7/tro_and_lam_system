@@ -1,10 +1,16 @@
-import ContactPage from '../../pages/support/ContactPage.jsx';
-import CustomerReviewsPage, { PublicProductReviews } from '../../pages/support/CustomerReviewsPage.jsx';
-import CustomerSupportPage, { GuestOrderSupportPage } from '../../pages/support/CustomerSupportPage.jsx';
-import AdminReviewsPage from '../../pages/support/AdminReviewsPage.jsx';
-import StaffContactsPage from '../../pages/support/StaffContactsPage.jsx';
-import StaffSupportPage from '../../pages/support/StaffSupportPage.jsx';
+import { lazy } from 'react';
 import IdentityRouteGuard from '../../pages/identity/IdentityRouteGuard.jsx';
+
+const ContactPage = lazy(() => import('../../pages/support/ContactPage.jsx'));
+const customerReviewsPage = () => import('../../pages/support/CustomerReviewsPage.jsx');
+const CustomerReviewsPage = lazy(() => customerReviewsPage());
+const PublicProductReviews = lazy(() => customerReviewsPage().then((module) => ({ default: module.PublicProductReviews })));
+const customerSupportPage = () => import('../../pages/support/CustomerSupportPage.jsx');
+const CustomerSupportPage = lazy(() => customerSupportPage());
+const GuestOrderSupportPage = lazy(() => customerSupportPage().then((module) => ({ default: module.GuestOrderSupportPage })));
+const AdminReviewsPage = lazy(() => import('../../pages/support/AdminReviewsPage.jsx'));
+const StaffContactsPage = lazy(() => import('../../pages/support/StaffContactsPage.jsx'));
+const StaffSupportPage = lazy(() => import('../../pages/support/StaffSupportPage.jsx'));
 
 export const publicReviewComponent = PublicProductReviews;
 

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { lazy, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogStates.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
-import { PublicProductReviews } from '../support/CustomerReviewsPage.jsx';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { setPageMetadata } from '../../utils/pageMetadata.js';
+
+const PublicProductReviews = lazy(() => import('../support/CustomerReviewsPage.jsx')
+  .then((module) => ({ default: module.PublicProductReviews })));
 
 function QuoteForm({ product }) {
   const [message, setMessage] = useState('');

@@ -1,9 +1,11 @@
-import CheckoutPage from '../../pages/checkout/CheckoutPage.jsx';
-import OrdersPage from '../../pages/account/orders/OrdersPage.jsx';
-import GuestOrderAccessPage from '../../pages/guest/GuestOrderAccessPage.jsx';
-import OrderDetailPage from '../../pages/guest/OrderDetailPage.jsx';
-import StaffOrdersPage from '../../pages/staff/orders/StaffOrdersPage.jsx';
+import { lazy } from 'react';
 import IdentityRouteGuard from '../../pages/identity/IdentityRouteGuard.jsx';
+
+const CheckoutPage = lazy(() => import('../../pages/checkout/CheckoutPage.jsx'));
+const OrdersPage = lazy(() => import('../../pages/account/orders/OrdersPage.jsx'));
+const GuestOrderAccessPage = lazy(() => import('../../pages/guest/GuestOrderAccessPage.jsx'));
+const OrderDetailPage = lazy(() => import('../../pages/guest/OrderDetailPage.jsx'));
+const StaffOrdersPage = lazy(() => import('../../pages/staff/orders/StaffOrdersPage.jsx'));
 
 export const commerceRoutes = Object.freeze([
   { path: '/thanh-toan', element: <CheckoutPage /> },

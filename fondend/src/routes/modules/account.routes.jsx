@@ -1,6 +1,8 @@
-import AddressBookPage from '../../pages/account/addresses/AddressBookPage.jsx';
-import CartPage from '../../pages/cart/CartPage.jsx';
+import { lazy } from 'react';
 import IdentityRouteGuard from '../../pages/identity/IdentityRouteGuard.jsx';
+
+const AddressBookPage = lazy(() => import('../../pages/account/addresses/AddressBookPage.jsx'));
+const CartPage = lazy(() => import('../../pages/cart/CartPage.jsx'));
 
 export const accountRoutes = Object.freeze([
   { path: '/gio-hang', element: <CartPage /> },
