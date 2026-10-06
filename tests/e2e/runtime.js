@@ -341,6 +341,7 @@ export async function startRuntime() {
     NODE_ENV: 'test',
     PORT: String(API_PORT),
     MONGODB_URI: uri,
+    SUPPORT_INBOX_EMAIL: 'support.p11@example.test',
     CORS_ORIGIN: WEB_ORIGIN,
     PUBLIC_WEB_URL: WEB_ORIGIN,
     BACKGROUND_WORKERS_ENABLED: 'false',

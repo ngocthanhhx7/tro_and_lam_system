@@ -16,7 +16,7 @@ import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.
 import { AuthSession } from '../../backend/src/models/identity/session.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
 import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
-import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
+import { Contact, Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
@@ -71,6 +71,7 @@ async function inspectP11Database(read) {
       Notification: connection.model('P11NotificationRead', Notification.schema),
       Ticket: connection.model('P11TicketRead', Ticket.schema),
       TicketMessage: connection.model('P11TicketMessageRead', TicketMessage.schema),
+      Contact: connection.model('P11ContactRead', Contact.schema),
       Review: connection.model('P11ReviewRead', Review.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
@@ -1085,6 +1086,125 @@ test('customer and staff support ticket round-trip keeps internal notes private'
     ['staff', 'customer', staffReply],
     ['customer', 'customer', customerReply],
   ]);
+});
+
+test('public contact inquiry reaches the staff queue and persists assignment and follow-up', async ({ page, browser }) => {
+  const name = 'P11 Synthetic Contact Lead';
+  const email = 'lead.p11@example.test';
+  const phone = '0900000111';
+  const message = 'P11 synthetic inquiry for a general product question.';
+  const internalNote = 'P11 staff follow-up recorded';
+
+  await page.goto('/lien-he');
+  const form = page.locator('form.support-card.support-form');
+  await form.locator('input[name="name"]').fill(name);
+  await form.locator('input[name="email"]').fill(email);
+  await form.locator('input[name="phone"]').fill(phone);
+  await form.locator('textarea[name="message"]').fill(message);
+  await form.getByRole('checkbox').check();
+
+  const createResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/contacts')
+    && response.request().method() === 'POST');
+  await form.getByRole('button', { name: 'Gửi yêu cầu', exact: false }).click();
+  const createResponse = await createResponsePromise;
+  const createBody = await createResponse.json();
+  expect(createResponse.status(), JSON.stringify(createBody)).toBe(202);
+  expect(createBody.data.deliveryStatus).toBe('queued');
+  expect(Object.keys(createBody.data).sort()).toEqual(['deliveryStatus', 'id']);
+  const contactId = createBody.data.id;
+  await expect(page.getByRole('status')).toContainText(`Mã tham chiếu: ${contactId}`);
+
+  const anonymousStaffQueue = await browserApi(page, '/api/v1/staff/contacts');
+  expect(anonymousStaffQueue.status).toBe(401);
+
+  const staffContext = await browser.newContext();
+  let assignedStaffId;
+  try {
+    const staffPage = await staffContext.newPage();
+    await login(staffPage, USERS.staff);
+    const newQueueResponsePromise = staffPage.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/v1/staff/contacts')
+        && url.searchParams.get('status') === 'new'
+        && response.request().method() === 'GET';
+    }, { timeout: 8000 });
+    await staffPage.goto('/staff/contacts');
+    const newQueueResponse = await newQueueResponsePromise;
+    expect(newQueueResponse.status()).toBe(200);
+    const newQueueBody = await newQueueResponse.json();
+    expect(newQueueBody.data.some((contact) => contact.id === contactId)).toBe(true);
+
+    const newContactCard = staffPage.locator('.support-contact-card').filter({ hasText: name });
+    await expect(newContactCard).toBeVisible();
+    await expect(newContactCard).toContainText(email);
+    await expect(newContactCard).toContainText(message);
+    await expect(newContactCard.locator('.support-status')).toHaveText('Mới');
+
+    const kindQueueResponsePromise = staffPage.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/v1/staff/contacts')
+        && url.searchParams.get('status') === 'new'
+        && url.searchParams.get('kind') === 'general'
+        && response.request().method() === 'GET';
+    }, { timeout: 8000 });
+    await staffPage.getByRole('combobox', { name: 'Loại', exact: true }).selectOption('general');
+    const kindQueueResponse = await kindQueueResponsePromise;
+    expect(kindQueueResponse.status()).toBe(200);
+    const kindQueueBody = await kindQueueResponse.json();
+    expect(kindQueueBody.data.some((contact) => contact.id === contactId && contact.kind === 'general')).toBe(true);
+
+    const assignmentResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/staff/contacts/${contactId}`)
+      && response.request().method() === 'PATCH', { timeout: 8000 });
+    await staffPage.locator('.support-contact-card').filter({ hasText: name })
+      .getByRole('button', { name: 'Nhận yêu cầu', exact: true }).click();
+    const assignmentResponse = await assignmentResponsePromise;
+    expect(assignmentResponse.status()).toBe(200);
+    const assignedContact = (await assignmentResponse.json()).data;
+    expect(assignedContact).toMatchObject({ id: contactId, kind: 'general', status: 'assigned' });
+    expect(assignedContact.assignedTo).toBeTruthy();
+    assignedStaffId = assignedContact.assignedTo;
+
+    const assignedCard = staffPage.locator('.support-contact-card').filter({ hasText: name });
+    await expect(assignedCard.locator('.support-status')).toHaveText('Đã phân công');
+    await assignedCard.getByRole('combobox', { name: 'Trạng thái', exact: true }).selectOption('contacted');
+    await assignedCard.getByRole('textbox', { name: 'Ghi chú nội bộ', exact: true }).fill(internalNote);
+    const updateResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/staff/contacts/${contactId}`)
+      && response.request().method() === 'PATCH', { timeout: 8000 });
+    await assignedCard.getByRole('button', { name: 'Lưu cập nhật', exact: true }).click();
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse.status()).toBe(200);
+    expect((await updateResponse.json()).data).toMatchObject({ id: contactId, status: 'contacted', note: internalNote });
+
+    const contactedQueueResponsePromise = staffPage.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/v1/staff/contacts')
+        && url.searchParams.get('status') === 'contacted'
+        && url.searchParams.get('kind') === 'general'
+        && response.request().method() === 'GET';
+    }, { timeout: 8000 });
+    await staffPage.locator('.support-inline-filters').getByRole('combobox', { name: 'Trạng thái', exact: true }).selectOption('contacted');
+    const contactedQueueResponse = await contactedQueueResponsePromise;
+    expect(contactedQueueResponse.status()).toBe(200);
+    const contactedQueueBody = await contactedQueueResponse.json();
+    expect(contactedQueueBody.data).toContainEqual(expect.objectContaining({
+      id: contactId, status: 'contacted', note: internalNote,
+    }));
+  } finally {
+    await staffContext.close();
+  }
+
+  const persisted = await inspectP11Database(async ({ Contact: ContactRead, OutboxEvent: OutboxEventRead, AuditLog: AuditLogRead }) => ({
+    contact: await ContactRead.findById(contactId).lean().exec(),
+    leadEvent: await OutboxEventRead.findOne({ eventKey: `contact.new_lead:${contactId}` }).lean().exec(),
+    audits: await AuditLogRead.find({ targetType: 'contact', targetId: contactId, action: 'support.contact.updated' }).lean().exec(),
+  }));
+  expect(persisted.contact).toMatchObject({
+    name, email, phone, kind: 'general', message, status: 'contacted', note: internalNote,
+  });
+  expect(String(persisted.contact.assignedTo)).toBe(assignedStaffId);
+  expect(persisted.leadEvent).toBeTruthy();
+  expect(persisted.audits).toHaveLength(2);
+  expect(persisted.audits.every((audit) => audit.outcome === 'success')).toBe(true);
 });
 
 test('test-only configured zone produces a COD quote and persists the same shipping fee', async ({ page }) => {
