@@ -25,7 +25,7 @@ Ma trận acceptance theo từng luồng ở [acceptance-coverage.md](acceptance
 
 ## Còn thiếu trước khi mở bán
 
-- Chạy hai replica-set suite P05/P06 trên MongoDB test replica set riêng và giữ bằng chứng race/transaction; hai suite hiện skip.
+- P05/P06 replica-set suites passed on a dedicated local replica set (follow-up evidence below); rerun them in release CI with isolated URIs and complete the owner-provided Atlas backup/restore rehearsal.
 - Hoàn tất browser/UAT cho guest order tracking/OTP, address/geolocation, checkout retry/idempotency, customer review/ticket/return, staff fulfillment và admin appeal/mutation. Checkout thật cần chính sách, vùng giao hàng, phí và COD được owner cấu hình.
 - Chạy kiểm tra accessibility đầy đủ theo viewport/keyboard/labels/errors/reduced motion; 390px catalog smoke không phải WCAG audit.
 - Chạy rehearsal provider ở staging: PayOS sandbox, SMTP mailbox, Gemini quota/fallback và geocoder. Hiện không có kết quả live nào được khẳng định.
@@ -56,3 +56,9 @@ Chỉ mở những provider cần thiết sau khi owner cấp cấu hình qua se
 ## Post-run cleanup audit
 
 Two P11 databases left by interrupted browser attempts were verified against the exact `tro_lam_p11_e2e_test_<12 lowercase hex>` pattern and removed by name: `tro_lam_p11_e2e_test_6bb21c7dbf6a` and `tro_lam_p11_e2e_test_bddfcfe9fffa`. A read-only local MongoDB audit then found no matching test database. The untracked `test-results/` directory contained only Playwright's generated `.last-run.json`; its resolved path was verified inside this P11 worktree before removal.
+
+## Follow-up verification (2026-10-06)
+
+Integrated commit `ee68ecd` passed `npm run check`: contract validation (102 paths, 121 operations, 60 DTO schemas, 22 enums, 23 fixtures), lint, 177 backend tests passed with 2 replica-set tests skipped because the default command had no replica-set URI, and Vite production build (128 modules). The build still reports a 536.66 kB minified JavaScript chunk warning. The working tree also contained the separate, uncommitted interface refresh while this check ran.
+
+The two skipped database race suites were then run explicitly against the local loopback MongoDB replica set: P05 final-unit checkout race and P06 unique open-refund race both passed (3 tests total including the refund index assertion; 0 skipped). P05 removed its generated database in `finally`; P06's exact dedicated test database was audited empty and removed afterward. This is local database evidence, not release-CI, Atlas backup/restore, or staging-provider evidence. See [acceptance coverage](acceptance-coverage.md) for the detailed outcome and the separate email verification browser regression.
