@@ -16,6 +16,7 @@ Provider staging/merchant test là kiểm tra riêng có secret do owner cấu h
 | A-AUTH-01 | Register/login/reset | Token purpose/expiry/one-time; no enumeration; logout và role/block revoke session |
 | A-ADR-01 | Address CRUD | Collection riêng, tối đa một default, ownership; sửa/xóa address không thay snapshot đơn |
 | A-ADR-02 | Geolocation | Cả success/denied/timeout/provider failure; manual address vẫn save/checkout được |
+| A-SHP-01 | Shipping quote | Chỉ tỉnh/thành khớp chính xác sau chuẩn hóa mới nhận fee đã cấu hình; thiếu tỉnh, vùng trống, dữ liệu chồng lấn hoặc không khớp phải fail-closed; phí được snapshot vào tổng đơn |
 | A-ORD-01 | Pricing/inventory | VND integer server-side; hai checkout tranh SKU cuối chỉ một thành công |
 | A-ORD-02 | Idempotency | Same key/body trả cùng order; same key/different body 409; khác khách không dùng chung kết quả |
 | A-PAY-01 | PayOS | Invalid signature không paid; webhook hợp lệ đúng amount/currency/order cập nhật một lần |
@@ -48,7 +49,7 @@ Mỗi transition trong 02 có test allowed/forbidden/duplicate/stale-version. Ha
 tranh assignee hoặc default address cần test DB thật. Tests inventory/outbox phải chứng minh atomic rollback
 khi một bước fail, không chỉ mock “called once”. TTL index không dùng làm bằng chứng cleanup đúng giờ.
 Money totals unit test: qty bounds, zero/negative rejected, expired quote, published disabled,
-price changes after cart, archived SKU, shipping fee recompute và totals immutable sau checkout.
+price changes after cart, archived SKU, tính lại phí giao hàng và giữ nguyên tổng đơn sau checkout.
 
 ## Fixture và môi trường
 Seed chỉ dev/test, gắn nhãn dữ liệu mẫu; accounts synthetic, passwords local không hardcode production.

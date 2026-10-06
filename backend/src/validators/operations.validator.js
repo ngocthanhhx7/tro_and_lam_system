@@ -62,6 +62,41 @@ function validateJsonValue(value, field, depth = 0) {
   }
 }
 
+function normalizeProvinceName(value) {
+  return value.normalize('NFKD').replace(/\p{Diacritic}/gu, '').replace(/đ/giu, 'd').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('vi-VN');
+}
+
+function validateShippingZones(zones) {
+  if (!Array.isArray(zones) || zones.length > MAX_SETTING_ITEMS) throw invalid('values.shippingZones');
+  const zoneIds = new Set();
+  const provinceNames = new Set();
+  zones.forEach((zone, index) => {
+    const field = `values.shippingZones[${index}]`;
+    if (!zone || typeof zone !== 'object' || Array.isArray(zone) || Object.getPrototypeOf(zone) !== Object.prototype) throw invalid(field);
+    const keys = Object.keys(zone);
+    if (keys.length !== 3 || keys.some((key) => !['id', 'provinceNames', 'feeVnd'].includes(key))) {
+      throw invalid(field, 'Mỗi vùng chỉ gồm id, provinceNames và feeVnd');
+    }
+    if (typeof zone.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(zone.id) || zone.id.length > 80) {
+      throw invalid(`${field}.id`, 'id cần là mã chữ/số duy nhất');
+    }
+    const normalizedId = zone.id.toLowerCase();
+    if (zoneIds.has(normalizedId)) throw invalid(`${field}.id`, 'id vùng giao hàng bị trùng');
+    zoneIds.add(normalizedId);
+    if (!Array.isArray(zone.provinceNames) || zone.provinceNames.length < 1 || zone.provinceNames.length > MAX_SETTING_ITEMS) {
+      throw invalid(`${field}.provinceNames`, 'Cần ít nhất một tên tỉnh/thành đã được xác nhận');
+    }
+    zone.provinceNames.forEach((name, nameIndex) => {
+      const nameField = `${field}.provinceNames[${nameIndex}]`;
+      if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) throw invalid(nameField);
+      const normalizedName = normalizeProvinceName(name);
+      if (provinceNames.has(normalizedName)) throw invalid(nameField, 'Tỉnh/thành đã được gán vào một vùng khác');
+      provinceNames.add(normalizedName);
+    });
+    if (!Number.isSafeInteger(zone.feeVnd) || zone.feeVnd < 0) throw invalid(`${field}.feeVnd`, 'Phí cần là số nguyên VND không âm');
+  });
+}
+
 export function validateBusinessSettingsWrite(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalid('body');
   const allowed = new Set(['values', 'expectedVersion', 'reason']);
@@ -80,7 +115,7 @@ function validateBusinessSettingsValues(values) {
   for (const [key, value] of Object.entries(values)) {
     if (!SETTING_KEYS.has(key)) throw invalid(`values.${key}`, 'Cấu hình này không thuộc danh sách được phép');
     if (key === 'codEnabled' && typeof value !== 'boolean') throw invalid('values.codEnabled');
-    if (key === 'shippingZones' && !Array.isArray(value)) throw invalid('values.shippingZones');
+    if (key === 'shippingZones') validateShippingZones(value);
     if (['checkoutLimits', 'supportWindows'].includes(key)
       && (!value || typeof value !== 'object' || Array.isArray(value))) throw invalid(`values.${key}`);
     if (key === 'checkoutLimits') {

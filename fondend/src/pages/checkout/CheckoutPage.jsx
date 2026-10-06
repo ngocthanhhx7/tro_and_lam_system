@@ -217,7 +217,7 @@ export default function CheckoutPage() {
           <label className="commerce-field" htmlFor="recipient-line1"><span>Địa chỉ</span><input id="recipient-line1" name="line1" value={recipient.line1} onChange={updateRecipient} required maxLength={200} autoComplete="address-line1" /></label>
           <label className="commerce-field" htmlFor="recipient-line2"><span>Địa chỉ bổ sung <small>(không bắt buộc)</small></span><input id="recipient-line2" name="line2" value={recipient.line2} onChange={updateRecipient} maxLength={200} autoComplete="address-line2" /></label>
           <label className="commerce-field" htmlFor="recipient-ward"><span>Phường / xã <small>(không bắt buộc)</small></span><input id="recipient-ward" name="ward" value={recipient.ward} onChange={updateRecipient} maxLength={100} /></label>
-          <label className="commerce-field" htmlFor="recipient-province"><span>Tỉnh / thành phố <small>(không bắt buộc)</small></span><input id="recipient-province" name="province" value={recipient.province} onChange={updateRecipient} maxLength={100} autoComplete="address-level1" /></label>
+          <label className="commerce-field" htmlFor="recipient-province"><span>Tỉnh / thành phố</span><input id="recipient-province" name="province" value={recipient.province} onChange={updateRecipient} required maxLength={100} autoComplete="address-level1" /></label>
           <label className="commerce-field" htmlFor="recipient-formatted"><span>Địa chỉ đầy đủ</span><textarea id="recipient-formatted" name="formattedAddress" value={recipient.formattedAddress} onChange={updateRecipient} required maxLength={500} rows={3} /></label>
         </div>}
 

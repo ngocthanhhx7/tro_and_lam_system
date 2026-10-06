@@ -4,7 +4,7 @@ import { businessSettingsDrafts, parseBusinessSettingsDrafts } from '../../../se
 import '../../../components/notifications/operations.css';
 
 const JSON_FIELDS = [
-  { key: 'shippingZones', label: 'Khu vực và phí giao hàng', kind: 'array', help: 'Danh sách JSON. Nhập cấu hình đã được chủ dự án xác nhận; chưa có cấu hình được phê duyệt sẽ hiển thị chờ xác nhận.' },
+  { key: 'shippingZones', label: 'Khu vực và phí giao hàng', kind: 'array', help: 'Mỗi vùng gồm đúng id, provinceNames (tên tỉnh/thành đã duyệt) và feeVnd (số nguyên VND không âm). Tên tỉnh/thành được so khớp chính xác sau khi chuẩn hóa chữ hoa, dấu và khoảng trắng; địa chỉ thiếu hoặc không khớp tỉnh/thành sẽ không nhận được báo giá. Chỉ nhập phí do chủ dự án xác nhận; để danh sách trống sẽ chặn checkout.' },
   { key: 'checkoutLimits', label: 'Giới hạn checkout', kind: 'object', help: 'Chỉ hỗ trợ maxPendingCodOrders là số nguyên dương. Nếu chưa có giá trị, COD checkout vẫn tắt; hệ thống không tự đặt mặc định.' },
   { key: 'supportWindows', label: 'Khung giờ hỗ trợ', kind: 'object', help: 'Đối tượng JSON theo giờ hỗ trợ do chủ dự án xác nhận.' },
 ];

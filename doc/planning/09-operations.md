@@ -67,10 +67,11 @@ Các biến được kiểm tra ở `backend/src/validators/env.validator.js`; t
 
 Geocoder và media storage chưa có provider được cấu hình. Geolocation vẫn phải cho phép
 nhập địa chỉ thủ công; catalog media upload trả `MEDIA_UNAVAILABLE` đến khi chủ dự án
-cấu hình storage. Checkout chưa có phí/vùng giao hàng đã được owner xác nhận, nên quote
-phí giao hàng hiện fail-closed; COD, phí, đổi trả/refund và các giới hạn mở bán tiếp tục
-bị chặn theo đầu vào R06, không suy diễn giá trị mặc định. Không lưu provider credential
-trong `VITE_*` hay business settings.
+cấu hình storage. Checkout có adapter đọc `shippingZones` từ business settings và chỉ báo
+giá cho tỉnh/thành khớp cấu hình; khi thiếu vùng/phí đã được owner xác nhận hoặc địa chỉ
+không khớp thì quote vẫn fail-closed. COD, phí, đổi trả/refund và các giới hạn mở bán tiếp
+tục chờ đầu vào R06, không suy diễn giá trị mặc định. Không lưu provider credential trong
+`VITE_*` hay business settings.
 
 Feature chưa có credential phải disabled/unavailable rõ ràng; không dùng key giả hoặc response paid giả.
 Validate schema/env khi bật tính năng, tránh backend chết vì một tính năng tùy chọn disabled.

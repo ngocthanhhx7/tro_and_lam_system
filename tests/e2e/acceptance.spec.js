@@ -5,6 +5,8 @@ import { InventoryMovement } from '../../backend/src/models/commerce/inventory-m
 import { StockReservation } from '../../backend/src/models/commerce/stock-reservation.model.js';
 import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
+import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
+import { Order } from '../../backend/src/models/commerce/order.model.js';
 import {
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
@@ -49,6 +51,8 @@ async function inspectP11Database(read) {
       StockReservation: connection.model('P11StockReservationRead', StockReservation.schema),
       AuditLog: connection.model('P11AuditLogRead', AuditLog.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
+      BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
+      Order: connection.model('P11OrderRead', Order.schema),
     });
   } finally {
     await connection.close();
@@ -88,6 +92,7 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   await page.getByLabel('Email nhận xác nhận', { exact: true }).fill('checkout.p11@example.test');
   await page.getByLabel('Số điện thoại', { exact: true }).fill('0900000011');
   await page.getByLabel('Địa chỉ', { exact: true }).fill('123 Đường Thử nghiệm');
+  await page.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
   await page.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('123 Đường Thử nghiệm, Việt Nam');
   const quoteResponse = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));
   await page.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
@@ -392,4 +397,57 @@ test('admin session can read admin statistics and catalog while anonymous caller
   await expect(page.getByRole('heading', { name: 'Đối soát trong kỳ', exact: true })).toBeVisible();
   const catalogAdmin = await browserApi(page, '/api/v1/admin/products');
   expect(catalogAdmin.status).toBe(200);
+});
+
+test('test-only configured zone produces a COD quote and persists the same shipping fee', async ({ page }) => {
+  await inspectP11Database(async ({ BusinessSetting }) => {
+    await BusinessSetting.findOneAndUpdate({ key: 'business' }, {
+      $set: {
+        values: {
+          shippingZones: [{ id: 'p11-test-hai-duong', provinceNames: ['Hải Dương'], feeVnd: 28000 }],
+          codEnabled: true,
+          checkoutLimits: { maxPendingCodOrders: 3 },
+        },
+        version: 1,
+      },
+      $setOnInsert: { key: 'business' },
+    }, { upsert: true, returnDocument: 'after' }).exec();
+  });
+
+  await page.goto('/san-pham');
+  await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
+  await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
+  await page.getByRole('link', { name: 'Tiếp tục thanh toán', exact: true }).click();
+  await page.getByLabel('Người nhận', { exact: true }).fill('P11 Shipping Fixture');
+  await page.getByLabel('Email nhận xác nhận', { exact: true }).fill('shipping.p11@example.test');
+  await page.getByLabel('Số điện thoại', { exact: true }).fill('0900000015');
+  await page.getByLabel('Địa chỉ', { exact: true }).fill('15 Đường Thử nghiệm');
+  await page.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
+  await page.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('15 Đường Thử nghiệm, Hải Dương');
+
+  const quoteResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));
+  await page.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
+  const quoteResponse = await quoteResponsePromise;
+  const quoteBody = await quoteResponse.json();
+  expect(quoteResponse.status(), JSON.stringify(quoteBody)).toBe(200);
+  expect(quoteBody.data.shippingFeeVnd).toBe(28000);
+  expect(quoteBody.data.totalVnd).toBe(quoteBody.data.subtotalVnd + 28000);
+
+  await page.getByRole('checkbox').check();
+  const orderResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/orders')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click();
+  const orderResponse = await orderResponsePromise;
+  const orderBody = await orderResponse.json();
+  expect(orderResponse.status(), JSON.stringify(orderBody)).toBe(201);
+  expect(orderBody.data.order.totalVnd).toBe(quoteBody.data.totalVnd);
+  await expect(page.getByRole('heading', { name: 'Cảm ơn bạn đã đặt hàng', exact: true })).toBeVisible();
+
+  const persisted = await inspectP11Database(({ Order: OrderRead }) => OrderRead.findById(orderBody.data.order.id).lean().exec());
+  expect(persisted).toMatchObject({
+    paymentMethod: 'cod',
+    shippingFeeVnd: 28000,
+    totalVnd: quoteBody.data.totalVnd,
+  });
 });

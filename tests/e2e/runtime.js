@@ -245,6 +245,7 @@ async function seedSyntheticFixture() {
     paymentOrderId: String(orderRecords[1].order._id),
     guestOrderId: String(orderRecords[2].order._id),
     seededOrderCount: orderRecords.length,
+    expectedAdditionalOrderCount: 1,
   };
 }
 
@@ -344,8 +345,9 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
     await disconnectDatabase();
   }
   globalThis.__P11_E2E_RUNTIME = null;
-  if (orderCount !== null && orderCount !== runtime.fixture.seededOrderCount) {
-    throw new Error('P11 test database order count changed from its synthetic fixture count ('
-      + runtime.fixture.seededOrderCount + ' to ' + orderCount + ').');
+  const expectedOrderCount = runtime.fixture.seededOrderCount + runtime.fixture.expectedAdditionalOrderCount;
+  if (orderCount !== null && (orderCount < runtime.fixture.seededOrderCount || orderCount > expectedOrderCount)) {
+    throw new Error('P11 test database order count is outside its expected synthetic fixture range ('
+      + runtime.fixture.seededOrderCount + ' to ' + expectedOrderCount + ', found ' + orderCount + ').');
   }
 }

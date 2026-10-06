@@ -328,7 +328,7 @@ test('mail payload encryption protects retry data and detects tampering', () => 
 
 test('settings accept only the documented business groups and reject provider secrets', () => {
   assert.deepEqual(validateBusinessSettingsWrite({
-    values: { codEnabled: false, shippingZones: [{ name: 'Miền Bắc', feeVnd: 30000 }] },
+    values: { codEnabled: false, shippingZones: [{ id: 'mien-bac', provinceNames: ['Hà Nội', 'Hải Phòng'], feeVnd: 30000 }] },
     expectedVersion: 0,
     reason: 'Cập nhật cấu hình vận hành',
   }).values.codEnabled, false);
@@ -341,6 +341,14 @@ test('settings accept only the documented business groups and reject provider se
   assert.deepEqual(validateBusinessSettingsWrite({ values: { checkoutLimits: { maxPendingCodOrders: 3 } }, expectedVersion: 0, reason: 'Cấu hình' }).values, { checkoutLimits: { maxPendingCodOrders: 3 } });
   assert.throws(() => validateBusinessSettingsWrite({ values: { checkoutLimits: { maxPendingCodOrders: 0 } }, expectedVersion: 0, reason: 'Cấu hình' }), { code: 'VALIDATION_ERROR' });
   assert.throws(() => validateBusinessSettingsWrite({ values: { checkoutLimits: { maxPendingCodOrders: 3, maximumItems: 2 } }, expectedVersion: 0, reason: 'Cấu hình' }), { code: 'VALIDATION_ERROR' });
+  assert.deepEqual(validateBusinessSettingsWrite({ values: { shippingZones: [] }, expectedVersion: 0, reason: 'Tắt checkout khi chưa có phí đã duyệt' }).values.shippingZones, []);
+  assert.deepEqual(validateBusinessSettingsWrite({ values: { shippingZones: [{ id: 'mien-bac', provinceNames: ['Hà Nội'], feeVnd: 0 }] }, expectedVersion: 0, reason: 'Cấu hình' }).values.shippingZones[0].feeVnd, 0);
+  assert.throws(() => validateBusinessSettingsWrite({ values: { shippingZones: [{ id: 'mien-bac', provinceNames: ['Hà Nội'], feeVnd: -1 }] }, expectedVersion: 0, reason: 'Cấu hình' }), { code: 'VALIDATION_ERROR' });
+  assert.throws(() => validateBusinessSettingsWrite({ values: { shippingZones: [{ id: 'mien-bac', name: 'Miền Bắc', provinceNames: ['Hà Nội'], feeVnd: 30000 }] }, expectedVersion: 0, reason: 'Cấu hình' }), { code: 'VALIDATION_ERROR' });
+  assert.throws(() => validateBusinessSettingsWrite({ values: { shippingZones: [
+    { id: 'mien-bac', provinceNames: ['Hà Nội'], feeVnd: 30000 },
+    { id: 'mien-nam', provinceNames: ['Ha Noi'], feeVnd: 40000 },
+  ] }, expectedVersion: 0, reason: 'Cấu hình' }), { code: 'VALIDATION_ERROR' });
   assert.deepEqual(sanitizeBusinessSettingsValues({ codEnabled: 'yes', smtpPassword: 'private', supportWindows: {} }), { supportWindows: {} });
 });
 

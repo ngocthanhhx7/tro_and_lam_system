@@ -84,6 +84,10 @@ The account workflow and existing `AddressPatch` schema require `expectedVersion
 
 Planning requires a configurable cap on pending COD orders to limit held-stock abuse, but DEC-20 left the nested `checkoutLimits` object unbounded. Freeze `checkoutLimits.maxPendingCodOrders` as an optional positive integer with no default; an absent value disables COD checkout until the owner configures it. P09 validates and edits only this allowlisted key; P05 reads the configured value when enforcing the per-principal/guest limit. This adds no top-level settings field, route, enum or permission. R06 owner policy and value still gates live COD.
 
+## DEC-28 — Configured shipping-zone quote adapter
+
+`shippingZones` was reserved for owner-supplied fees, but its item structure was unspecified and the composition always reported shipping unavailable. Each item is exactly `{id, provinceNames, feeVnd}`; `id` is a unique lowercase slug, `provinceNames` is a non-empty list of exact names unique across zones after case, Vietnamese diacritic and whitespace normalization, and `feeVnd` is a non-negative safe integer. P09's existing settings validator and editor enforce that shape; P05 quotes only an exact normalized match against the recipient's structured `province`. Missing, malformed, ambiguous or unmatched configuration fails closed. Empty zones remain valid to disable quotes. No route, top-level field, enum, role, permission or migration changes. Actual zones and fees remain owner-supplied R06 inputs.
+
 ## Đầu vào owner cần cung cấp trước production
 Không bắt agent dừng mọi việc vì thiếu các mục này; triển khai adapter/test/fallback và content draft trước,
 nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:

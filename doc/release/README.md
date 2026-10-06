@@ -98,3 +98,11 @@ The P11 runtime alone raises the global API request limit to 10,000 because its 
 ## Public catalog browser acceptance follow-up (2026-10-06)
 
 P11 now also verifies catalog filters, URL restoration after reload and page navigation across a synthetic 13-product dataset. `npm run test:e2e` passes **10/10**. The full `npm run check` passes contracts, lint, backend **188/188 with 0 skipped**, and build (129 modules). Data is synthetic and confined to the dedicated P11 database, which teardown removes; owner product approval and WCAG remain open.
+
+## Shipping-zone quote and guest COD checkout follow-up (2026-10-06)
+
+On `feature/p05-shipping-zone-quote` from `develop` `4a789a3`, DEC-28 specifies `shippingZones` items as `{id, provinceNames, feeVnd}` and adds a fail-closed exact normalized province match. The P09 settings editor validates the same shape; no province list, shipping fee, COD policy, provider result or production configuration was invented. Checkout now asks for province/thành phố before requesting a quote. Guest checkout uses the server-side guest-cart token hash for idempotency, and omits absent `userId` from `order.created` outbox payloads.
+
+`npm run check` passed: contract validation (102 paths, 121 operations, 60 DTO schemas, 22 enums, 26 fixtures), lint, backend **195 passed / 0 failed / 0 skipped** with P02/P05/P06 replica-set suites on isolated loopback databases, and Vite build (129 modules). `npm run test:e2e` passed **11/11** against its own strict-prefix loopback test database. The browser suite verifies both unconfigured 503 fallback and successful COD quote/order in a dedicated test database; the synthetic fee was 28,000 VND and the persisted order total matched the quote. Post-run read-only audit found no dedicated P02/P05/P06/P11 database remaining.
+
+No provider credentials were configured or called, and no production deploy was performed. Actual zones/fees, COD and return/refund policy remain R06 owner inputs. The JS bundle is 546.63 kB minified (150.58 kB gzip), above Vite's 500 kB advisory threshold. These checks are local implementation evidence, not owner UAT, provider staging, accessibility review, Atlas backup/restore or release approval.

@@ -16,6 +16,7 @@ import { createCatalogService } from './services/catalog/catalog.service.js';
 import { createMongooseCatalogRepository } from './services/catalog/mongoose-catalog.repository.js';
 import { createUnavailableMediaProvider } from './services/catalog/media-provider.js';
 import { createCommerceService } from './services/commerce/commerce.service.js';
+import { createShippingZoneQuotePort } from './services/commerce/shipping-zones.js';
 import { createPaymentsService } from './services/payments/payments.service.js';
 import { createOperationsPorts, createOutboxPayloadCipher } from './services/operations/index.js';
 import { createAuditService } from './services/operations/audit.service.js';
@@ -202,11 +203,7 @@ export async function createDomainComposition(env) {
       : 'unknown',
   });
   const settingsPort = Object.freeze({ getBusinessSettings: () => businessSettingsService.get() });
-  const shippingPort = Object.freeze({
-    async quoteFeeVnd() {
-      throw unavailable('DATABASE_UNAVAILABLE', 'Phí giao hàng chưa được chủ dự án cấu hình và xác nhận');
-    },
-  });
+  const shippingPort = createShippingZoneQuotePort();
   const cancellationRefundPort = Object.freeze({
     requestOrderCancellationRefund: (...args) => {
       if (!paymentsService) throw unavailable('PAYMENT_UNAVAILABLE', 'Refund service chưa sẵn sàng');

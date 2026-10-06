@@ -260,6 +260,9 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
   function checkoutActorKey(actor) {
     if (actor?.id) return `user:${actor.id}`;
     if (actor?.orderId) return `guest-order:${actor.orderId}`;
+    if (actor?.kind === 'guest' && typeof actor.guestTokenHash === 'string' && /^[a-f\d]{64}$/u.test(actor.guestTokenHash)) {
+      return `guest:${actor.guestTokenHash}`;
+    }
     if (typeof actor?.actorKey === 'string' && actor.actorKey.length >= 20 && actor.actorKey.length <= 128) return `guest:${actor.actorKey}`;
     fail(503, 'DATABASE_UNAVAILABLE', 'Phiên giỏ hàng chưa sẵn sàng');
   }
@@ -406,7 +409,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           eventKey: `order.created:${idOf(order)}`, type: 'order.created',
           aggregateType: 'order', aggregateId: idOf(order), aggregateVersion: order.version,
           payload: {
-            orderId: idOf(order), userId: actor?.id, orderCode: order.code, paymentMethod: order.paymentMethod,
+            orderId: idOf(order), ...(actor?.id ? { userId: actor.id } : {}), orderCode: order.code, paymentMethod: order.paymentMethod,
             ...(requestId ? { requestId } : {}),
           },
         }, { session });

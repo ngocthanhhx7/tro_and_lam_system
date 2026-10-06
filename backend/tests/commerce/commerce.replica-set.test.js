@@ -8,6 +8,7 @@ import { Order } from '../../src/models/commerce/order.model.js';
 import { ensureCommerceIndexes } from '../../src/models/commerce/indexes.js';
 import { CommerceRepository } from '../../src/services/commerce/commerce.repository.js';
 import { createCommerceService } from '../../src/services/commerce/commerce.service.js';
+import { createShippingZoneQuotePort } from '../../src/services/commerce/shipping-zones.js';
 
 const replicaSetUri = process.env.P05_TEST_REPLICA_SET_URI;
 
@@ -33,9 +34,9 @@ test('replica set: competing checkouts reserve the final unit only once', {
         repository: new CommerceRepository(),
         catalog: { async getCheckoutProducts(ids) { return ids.map(() => product); } },
         settings: { async getBusinessSettings() {
-          return { values: { shippingZones: [{ id: 'replica-test-zone' }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 3 } } };
+          return { values: { shippingZones: [{ id: 'replica-test-zone', provinceNames: ['Hải Dương'], feeVnd: 25000 }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 3 } } };
         } },
-        shipping: { async quoteFeeVnd() { return 25000; } },
+        shipping: createShippingZoneQuotePort(),
         payment: { async isConfigured() { return false; } },
         outbox: {
           async appendOutbox() {}, async appendAudit() {}, async enqueueMail() {},
@@ -45,7 +46,7 @@ test('replica set: competing checkouts reserve the final unit only once', {
     });
     const recipient = {
       recipientName: 'Kiểm thử replica', email: 'replica@example.com', phone: '0900000000',
-      line1: '12 Đường Gốm', countryCode: 'VN', formattedAddress: '12 Đường Gốm, Hải Dương',
+      line1: '12 Đường Gốm', province: 'Hải Dương', countryCode: 'VN', formattedAddress: '12 Đường Gốm, Hải Dương',
     };
     const createInput = () => ({ items: [{ productId: String(productId), quantity: 1 }], recipient, paymentMethod: 'cod', consent: true });
     const results = await Promise.allSettled([

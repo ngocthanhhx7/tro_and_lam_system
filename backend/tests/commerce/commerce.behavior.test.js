@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCommerceService } from '../../src/services/commerce/commerce.service.js';
+import { createShippingZoneQuotePort } from '../../src/services/commerce/shipping-zones.js';
 
 const PRODUCT_A = '507f1f77bcf86cd799439011';
 const PRODUCT_B = '507f1f77bcf86cd799439012';
@@ -239,12 +240,12 @@ const checkoutInput = (items = [{ productId: PRODUCT_A, quantity: 1 }]) => ({
   items,
   recipient: {
     recipientName: 'Nguyễn An', email: 'an@example.com', phone: '0900000000',
-    line1: '12 Đường Gốm', countryCode: 'VN', formattedAddress: '12 Đường Gốm, Hải Dương',
+    line1: '12 Đường Gốm', province: 'Thành phố Hồ Chí Minh', countryCode: 'VN', formattedAddress: '12 Đường Gốm, TP.HCM',
   },
   paymentMethod: 'cod', consent: true,
 });
 
-function serviceFixture({ stock = { [PRODUCT_A]: 1, [PRODUCT_B]: 1 }, settings, paymentConfigured = false, paymentExpiry, refunds, address } = {}) {
+function serviceFixture({ stock = { [PRODUCT_A]: 1, [PRODUCT_B]: 1 }, settings, shipping, paymentConfigured = false, paymentExpiry, refunds, address } = {}) {
   const repository = new MemoryCommerceRepository({ stock });
   const proofCalls = [];
   const ports = {
@@ -257,9 +258,9 @@ function serviceFixture({ stock = { [PRODUCT_A]: 1, [PRODUCT_B]: 1 }, settings, 
       }));
     } },
     settings: { async getBusinessSettings() {
-      return { values: settings ?? { shippingZones: [{ id: 'approved-zone' }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 3 } } };
+      return { values: settings ?? { shippingZones: [{ id: 'approved-zone', provinceNames: ['Thành phố Hồ Chí Minh'], feeVnd: 25000 }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 3 } } };
     } },
-    shipping: { async quoteFeeVnd() { return 25000; } },
+    shipping: shipping ?? { async quoteFeeVnd() { return 25000; } },
     payment: {
       async isConfigured() { return paymentConfigured; },
       ...(paymentExpiry ? { async getReservationExpiryStatus(order) { return paymentExpiry(order); } } : {}),
@@ -301,6 +302,36 @@ test('checkout calculates VND from catalog and snapshots recipient and product d
   const createdEvent = repository.committedEffects.outbox.find((event) => event.type === 'order.created');
   assert.equal(createdEvent.aggregateVersion, 0);
   assert.equal(Object.hasOwn(createdEvent, 'eventType'), false);
+});
+
+test('configured COD checkout persists the shipping fee returned by the shipping-zone adapter', async () => {
+  const settings = {
+    shippingZones: [{ id: 'test-tp-hcm', provinceNames: ['Thành phố Hồ Chí Minh'], feeVnd: 28000 }],
+    codEnabled: true,
+    checkoutLimits: { maxPendingCodOrders: 3 },
+  };
+  const { service, repository } = serviceFixture({ settings, shipping: createShippingZoneQuotePort() });
+  const actor = { id: USER_ID, role: 'customer', status: 'active', user: { emailNormalized: 'an@example.com' } };
+  const created = await service.createOrder(actor, checkoutInput(), 'b'.repeat(32));
+  const stored = repository.orders.get(created.order.id);
+  assert.equal(stored.paymentMethod, 'cod');
+  assert.equal(stored.shippingFeeVnd, 28000);
+  assert.equal(stored.totalVnd, 203000);
+});
+
+test('COD checkout creates no order when the configured zones do not match the recipient province', async () => {
+  const settings = {
+    shippingZones: [{ id: 'test-ha-noi', provinceNames: ['Hà Nội'], feeVnd: 30000 }],
+    codEnabled: true,
+    checkoutLimits: { maxPendingCodOrders: 3 },
+  };
+  const { service, repository } = serviceFixture({ settings, shipping: createShippingZoneQuotePort() });
+  const actor = { id: USER_ID, role: 'customer', status: 'active', user: { emailNormalized: 'an@example.com' } };
+  await assert.rejects(service.createOrder(actor, checkoutInput(), 'c'.repeat(32)), {
+    status: 503, code: 'DATABASE_UNAVAILABLE',
+  });
+  assert.equal(repository.orders.size, 0);
+  assert.equal(repository.reservations.size, 0);
 });
 
 test('checkout copies only an account-owned address into an immutable order snapshot', async () => {
@@ -346,10 +377,23 @@ test('checkout idempotency replays one order and rejects the same key with chang
   );
 });
 
+test('guest checkout uses the opaque cart-token hash for stable idempotency ownership', async () => {
+  const { service, repository } = serviceFixture();
+  const guest = { kind: 'guest', guestTokenHash: 'd'.repeat(64) };
+  const key = 'guest-hash-idempotency-key-123456789';
+  const first = await service.createOrder(guest, checkoutInput(), key);
+  const replay = await service.createOrder(guest, checkoutInput(), key);
+  assert.equal(first.order.id, replay.order.id);
+  assert.equal(replay.replay, true);
+  assert.equal(repository.orders.size, 1);
+  const orderCreated = repository.committedEffects.outbox.find((event) => event.type === 'order.created');
+  assert.equal(Object.hasOwn(orderCreated.payload, 'userId'), false);
+});
+
 test('pending COD limit blocks additional inventory holds for the same owner', async () => {
   const { service, repository } = serviceFixture({
     stock: { [PRODUCT_A]: 3 },
-    settings: { shippingZones: [{ id: 'approved-zone' }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 1 } },
+    settings: { shippingZones: [{ id: 'approved-zone', provinceNames: ['Thành phố Hồ Chí Minh'], feeVnd: 25000 }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 1 } },
   });
   const actor = { id: USER_ID, role: 'customer', status: 'active', user: { emailNormalized: 'an@example.com' } };
   await service.createOrder(actor, checkoutInput(), 'cod-limit-first-checkout-key-12345');
