@@ -41,6 +41,18 @@ Không gọi live PayOS, SMTP, Gemini hoặc geocoding bằng key chủ dự án
 chưa deploy hoặc xác minh domain/cookie/provider readiness. Các plan/test/security defaults là thiết kế
 TRO & LAM, không quảng bá là chức năng đã hoạt động trong source tham khảo hay scaffold.
 
+## Kiểm tra lại Agy và website tham khảo — 2026-10-07
+
+`agy models` vẫn liệt kê `gemini-3.8-flash-high`. Đã gửi tác vụ read-only `/teamwork-preview` cho hai URL tham khảo; giao diện CLI báo `AI: Out of credits` và không trả report. CLI tiếp tục yêu cầu quyền liệt kê thư mục conversation nội bộ khi đang hết quota; yêu cầu quyền đó đã bị hủy. Không dùng `--dangerously-skip-permissions`, không ghi nhận Agy research là hoàn tất; thư mục output `research_reports` cũng không được tạo.
+
+Fallback trực tiếp bằng HTTP GET, không tải ảnh/video:
+
+- `https://saccodo.com/` trả HTTP 200. HTML công khai cho thấy phần mở đầu/giới thiệu, ba nhóm chủ đề khám phá, các bước hành trình, nội dung điểm đến/văn hóa, nhóm quà lưu niệm, bài viết biên tập và phần liên hệ/liên kết cuối trang. Đây là mô tả cấu trúc để tham khảo, không sao chép tiêu đề hay nội dung.
+- `https://saccodo.com/san-pham/pop-up-passport-ninh-binh` trả HTTP 200; HTML ban đầu còn trạng thái tải sản phẩm, có tiêu đề sản phẩm và ba thẻ `<img>`. HTML này không đủ xác nhận vai trò các ảnh, gallery, biến thể, đánh giá hay hành vi trang sau khi JavaScript chạy; không suy luận các chi tiết đó.
+- `https://thanhnamhuongky.io.vn/` trả HTTP 200 với tiêu đề `One moment, please...`, không có heading nội dung trong HTML phản hồi. Đây là trang challenge/anti-bot; không suy luận nội dung trang chủ hoặc trang sản phẩm hiện tại từ phản hồi này.
+
+Các quan sát GET trên chỉ xác nhận HTML tại thời điểm truy cập; chưa xác minh giao diện sau khi JavaScript chạy hoặc checkout/admin của nguồn tham khảo. Không lưu hay tái sử dụng asset, copy, logo hoặc mã nguồn.
+
 ### Tra cứu catalog Gốm Chu Đậu
 
 Đã đối chiếu các tên trong concept manifest với catalog hãng ngày 06/10/2026. Kết quả, URL sản phẩm,
