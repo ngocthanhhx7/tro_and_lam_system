@@ -45,7 +45,7 @@ Không ghi credential hoặc giá trị secret vào Git. Các ID dưới đây t
 | R04 | SMTP sender/mailbox, recipient và `OUTBOX_ENCRYPTION_KEY` | Mail staging, retry/recovery và worker supervision |
 | R05 | PayOS merchant, key và webhook URL | Chữ ký/webhook/reconciliation trên sandbox |
 | R06 | Vùng/phí giao hàng, COD, đổi trả/refund và retention | Chính sách allowlist được duyệt; checkout/fulfillment UAT |
-| R07 | Địa chỉ, hotline, email và social của cửa hàng | Thông tin liên hệ được duyệt trước public |
+| R07 | Hotline/Zalo `0966051231` và Facebook/Messenger `gomchudautrovalam` đã có trong [hồ sơ kênh liên hệ](../brand/contact-channels.md); địa chỉ cửa hàng, email và giờ làm việc chưa được xác nhận | Xác nhận các chi tiết còn thiếu và tiếp tục dùng đúng hotline/social đã cung cấp |
 | R08 | Nội dung story, nghệ nhân/hoa văn và mapping NFC | Nguồn văn hóa, quyền media và nội dung được duyệt |
 | R09 | Geocoder key/quota/billing và dữ liệu địa giới | Kiểm tra provider; giữ manual fallback |
 | R10 | Gemini key/model/quota/ngân sách | Kiểm tra staging và fallback/handoff; không coi unit test là provider live |

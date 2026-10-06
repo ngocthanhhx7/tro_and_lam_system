@@ -8,12 +8,12 @@ Project đã có các skill trong `.claude/skills/`: [seo-audit](../.claude/skil
 
 ## Nguồn và giới hạn claims
 
-Nguồn ưu tiên là dữ liệu chủ dự án đã duyệt, CMS publish và planning trong repo. Các đầu vào R03 (SKU/giá/tồn/ảnh), R06 (vận chuyển/đổi trả/chính sách), R07 (liên hệ), R08 (câu chuyện/nghệ nhân/hoa văn), R09 (địa chỉ/geocoder) chưa được cung cấp trong scaffold. Không suy diễn khi tạo copy.
+Nguồn ưu tiên là dữ liệu chủ dự án đã duyệt, CMS publish và planning trong repo. R03 (SKU/giá/tồn/ảnh), R06 (vận chuyển/đổi trả/chính sách), R08 (câu chuyện/nghệ nhân/hoa văn) và R09 (địa chỉ/geocoder) vẫn cần đầu vào. R07 đã có số Hotline/Zalo và trang Facebook → Messenger trong [hồ sơ kênh liên hệ](brand/contact-channels.md); địa chỉ, email và giờ làm việc chưa được cung cấp. Không suy diễn khi tạo copy.
 
 Phân biệt rõ:
 
 - **Đã được brief xác nhận:** thương hiệu TRO & LAM; gốm Chu Đậu; Lifestyle gồm lư xông trầm mini, hũ trà, bộ chén độc ẩm; Diplomacy gồm Thiên Nga, Phú Quý, Giọt Ngọc, Hoa Lam, Tỳ Bà; quà tặng văn hóa, nghề thủ công, NFC Storytelling; logo do chủ dự án cung cấp.
-- **Chưa có căn cứ để xuất bản như dữ kiện:** giá, tồn, kích thước/chất liệu từng SKU, địa chỉ/hotline, lịch sử/mốc thời gian, tên/tiểu sử nghệ nhân, chứng nhận, tác dụng sức khỏe, nhận xét khách hàng, điều kiện giao/đổi trả, quyền dùng ảnh/video và bản dịch tiếng Anh.
+- **Chưa có căn cứ để xuất bản như dữ kiện:** giá, tồn, kích thước/chất liệu từng SKU, địa chỉ/email/giờ làm việc, lịch sử/mốc thời gian, tên/tiểu sử nghệ nhân, chứng nhận, tác dụng sức khỏe, nhận xét khách hàng, điều kiện giao/đổi trả, quyền dùng ảnh/video và bản dịch tiếng Anh. Hotline/Zalo/Messenger chỉ dùng theo đích đã ghi nguồn; khi số hoặc hồ sơ thay đổi cần xác nhận và cập nhật nguồn.
 - Khi thiếu căn cứ, dùng bản nháp CMS hoặc câu trung tính như “Thông tin đang được cập nhật” nếu thiết kế cần chỗ trống; không thay bằng số liệu hay testimonial giả.
 
 ## Giọng và từ ngữ

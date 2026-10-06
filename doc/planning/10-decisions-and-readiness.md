@@ -100,7 +100,7 @@ nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:
 | R04 | Mailbox SMTP/from/shop recipient | Email/OTP/deliverability | Outbox/template/stub tests |
 | R05 | PayOS merchant verified/key/checksum/webhook | Thanh toán online live | Adapter/webhook/tests/reconciliation |
 | R06 | Phí/vùng ship, COD, xử lý hư vỡ/đổi trả/hoàn tiền, retention, chính sách công khai | Checkout cam kết thật | Settings/UI gates/policy versioning |
-| R07 | Contact shop, địa chỉ/hotline/social thật | Liên hệ public | Contact form + private queue |
+| R07 | Hotline/Zalo `0966051231` và Facebook `gomchudautrovalam` đã được chủ dự án cung cấp trong hồ sơ kênh liên hệ; địa chỉ cửa hàng, email và giờ làm việc vẫn cần xác nhận | Liên kết Hotline/Zalo/Messenger public dùng đúng nguồn hiện có; không tự điền các chi tiết còn thiếu | Contact form + private queue và các liên kết nhanh đã tích hợp; cần chủ dự án xác nhận các chi tiết liên hệ còn thiếu trước production |
 | R08 | Nội dung nghề/nghệ nhân/hoa văn/nguồn story và mapping NFC | Story public và print/tag | CMS/versioning/public published gate |
 | R09 | Geocoding provider/key/quota/billing, dataset hành chính | Location-to-address live | Browser permission/manual fallback/provider stub |
 | R10 | Gemini key/model thực khả dụng và ngân sách | AI live | Redaction/grounded retrieval/adapter/human fallback |
