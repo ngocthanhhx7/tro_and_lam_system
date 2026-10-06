@@ -64,3 +64,5 @@ Do not publish claims such as “nghìn năm”, “di sản UNESCO”, “ngh�
 ## Media status
 
 The repository includes the supplied logo, an editorial concept SVG and an Agy-generated raster concept at `fondend/public/assets/generated/chu-dau-jar-editorial.jpg`. Label that raster as AI-generated illustration and do not present it as a real SKU or evidence of Chu Đậu provenance. No owner-supplied product photography or video is available yet. Product pages must wait for owner-approved SKU photography and usage rights before publication. See [assets-and-media.md](assets-and-media.md).
+
+The homepage also includes `fondend/public/assets/generated/chu-dau-ceramic-editorial-2026.png`, generated through Agy `/teamwork-preview` with Gemini 3.8 Flash High. Its caption identifies it as an AI illustration and states that it does not represent a listed product. Do not use either concept image as SKU evidence.

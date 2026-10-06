@@ -223,6 +223,15 @@
 .line-panel > p:not(.eyebrow) { max-width: 450px; margin: 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.75; }
 .line-panel__link { display: inline-flex; margin-top: 26px; gap: 10px; color: var(--brand-blue); font-size: 0.82rem; font-weight: 700; }
 .home-featured { padding-top: 30px; }
+.home-editorial-concept { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr); align-items: center; gap: clamp(24px, 5vw, 72px); }
+.home-editorial-concept__art { min-width: 0; margin: 0; }
+.home-editorial-concept__art img { display: block; width: 100%; aspect-ratio: 1200 / 896; border: 1px solid rgb(216 179 90 / 46%); object-fit: cover; }
+.home-editorial-concept__art figcaption { margin-top: 10px; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.55; }
+.home-editorial-concept__copy { max-width: 460px; }
+.home-editorial-concept__copy h2 { margin: 12px 0 16px; color: var(--brand-deep-blue); font-family: var(--font-heading); font-size: clamp(2rem, 4vw, 3.1rem); font-weight: 400; line-height: 1.14; }
+.home-editorial-concept__copy > p:not(.eyebrow) { color: var(--text-secondary); line-height: 1.75; }
+.home-editorial-concept__copy .text-link { display: inline-flex; margin-top: 10px; gap: 8px; color: var(--brand-blue); font-weight: 700; text-decoration: none; }
+.home-editorial-concept__copy .text-link:hover { text-decoration: underline; }
 .home-story-band { position: relative; display: flex; min-height: 380px; margin-top: 20px; align-items: center; overflow: hidden; color: #fff; background: var(--brand-deep-blue); }
 .home-story-band__inner { position: relative; z-index: 1; width: min(100% - 48px, 1000px); margin-inline: auto; padding-block: 70px; }
 .home-story-band .eyebrow { color: #f0d18a; }
@@ -441,6 +450,8 @@
   .line-grid { grid-template-columns: 1fr; gap: 12px; }
   .line-panel { min-height: 220px; padding: 28px; }
   .home-featured { padding-top: 10px; }
+  .home-editorial-concept { grid-template-columns: 1fr; gap: 22px; }
+  .home-editorial-concept__copy { max-width: 620px; }
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .product-card__image { min-height: 160px; aspect-ratio: 0.95; }
   .product-card__body { padding: 11px; }

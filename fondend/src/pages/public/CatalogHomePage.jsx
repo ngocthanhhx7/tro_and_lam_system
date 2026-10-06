@@ -77,6 +77,26 @@ export default function CatalogHomePage() {
       {state.status === 'ready' && (state.items.length ? <div className="product-grid">{state.items.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <CatalogEmpty />)}
     </section>
 
+    <section className="home-editorial-concept section-wrap" aria-labelledby="editorial-concept-title">
+      <figure className="home-editorial-concept__art">
+        <img
+          src="/assets/generated/chu-dau-ceramic-editorial-2026.png"
+          alt="Ảnh minh họa do AI tạo: hũ gốm men ngà hoa văn lam và chén trà trên vải linen."
+          width="1200"
+          height="896"
+          loading="lazy"
+          decoding="async"
+        />
+        <figcaption>Ảnh minh họa do AI tạo; không đại diện cho sản phẩm đang bán.</figcaption>
+      </figure>
+      <div className="home-editorial-concept__copy">
+        <p className="eyebrow">GÓC NHÌN BIÊN TẬP</p>
+        <h2 id="editorial-concept-title">Sắc lam, nền ngà, ánh sáng dịu.</h2>
+        <p>Hình ảnh khái niệm gợi một không gian thưởng trà yên tĩnh. Thông tin sản phẩm chỉ xuất hiện theo dữ liệu đã được công bố trong danh mục.</p>
+        <Link className="text-link" to="/san-pham">Xem sản phẩm đã công bố <span aria-hidden="true">→</span></Link>
+      </div>
+    </section>
+
     <section className="home-story-band">
       <div className="home-story-band__inner">
         <p className="eyebrow">CÂU CHUYỆN · HOA VĂN · CHĂM SÓC</p>

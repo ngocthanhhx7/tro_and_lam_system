@@ -27,3 +27,9 @@ Chưa có video quay thật hay ảnh sản phẩm thật được chủ dự á
 `CatalogHomePage.jsx` đặt poster JPEG làm ảnh đại diện cho hero và cung cấp MP4 bằng phần tử `<video controls playsInline preload="none">`. Clip không tự phát; khi trình duyệt không hỗ trợ video, nội dung `<img>` là phương án hiển thị dự phòng. Chú thích ngay dưới media nói rõ ảnh do AI tạo và clip chỉ animate ảnh concept, không phải footage hay ảnh SKU. Không dùng asset này làm bằng chứng sản phẩm.
 
 Coordinator đã mount route module P04 vào `AppRoutes` trong commit `8043da3`, cùng route fragment P03 và public content P08; import correction nằm ở `7af79ad`. `npm run check` trên detached QA checkout commit `7af79ad` pass (contract validation, lint, backend 92/92, Vite build 86 modules). Chưa có browser/E2E evidence, và backend routes chưa được gắn vào server composition.
+
+## Additional editorial PNG — 2026-10-06
+
+`fondend/public/assets/generated/chu-dau-ceramic-editorial-2026.png` was generated with Agy `/teamwork-preview`, Gemini 3.8 Flash High, using the `image-generator` subagent (conversation `bfb9cb5e-6b42-44dd-b652-e57e405dc7a1`). It is 1200 × 896 pixels, 2,094,386 bytes, SHA-256 `F44C18C04210B82CDA24791F5BC5EA55ECEC0FC2003362274E8D2756114AD323`. The image is an original blue-and-ivory tea-jar concept with a matching cup on linen. It contains no text, logo, person, SKU identifier, or supported provenance claim.
+
+`CatalogHomePage.jsx` displays the PNG in a separate editorial section with lazy loading and this adjacent caption: “Ảnh minh họa do AI tạo; không đại diện cho sản phẩm đang bán.” It is a visual concept only. It does not replace owner-approved SKU photos, usage-rights documentation, or product evidence.
