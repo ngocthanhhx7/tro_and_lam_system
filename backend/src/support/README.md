@@ -28,6 +28,10 @@ Support writes use the service repository transaction and pass the same session 
 
 Private attachments accept JPEG, PNG, and WebP up to 5 MiB. Finalization reads the object from private storage, validates its byte signature and exact size, hashes it, and only then marks it ready. Customer downloads require ownership or access to the linked customer-visible ticket. Internal ticket attachments stay staff-only. The storage adapter must use unguessable keys, enforce the declared maximum size, keep original objects private, and return HTTPS presigned URLs. Expired or rejected objects need a storage lifecycle cleanup policy.
 
+The integrated server composition currently injects no support-storage provider, and there is no test-only support object-store adapter. The dedicated browser follow-up therefore verifies the truthful `503 MEDIA_UNAVAILABLE` result for customer/staff upload, owner finalize, and owner download. It seeds only synthetic attachment metadata in the disposable P11 test database with keys marked `no-object`; it never creates bytes or a signed URL. Foreign customer access and customer access to internal evidence must return `404 NOT_FOUND` before a provider is consulted. This is fallback and authorization evidence, not a successful upload/finalize/download acceptance.
+
+To close the provider gate, the owner must choose a private object-store service and configure its credentials through the deployment secret manager, then provide the backend adapter with the private bucket/container, server endpoint/region as applicable, and a narrowly scoped service identity. The adapter needs short-lived signed PUT/GET URLs, private server-side reads for finalization, deletion for rejected/expired uploads, a 5 MiB request ceiling, and a lifecycle/backup/retention policy. The owner must approve retention and RPO/RTO under R11. Staging must verify browser CORS for signed PUTs, object privacy, magic-byte/size/hash validation, signed download expiry, cleanup, and customer/staff owner/internal-note ACLs through real storage. No provider-specific environment-variable names are defined until the owner selects a provider; never put credentials in Git, frontend `VITE_*` variables, or chat.
+
 Text reviews are implemented end to end. Review photo uploads have metadata and consent validation, but this checkout has no customer upload UI, sanitized derivative generator, or derivative revocation adapter. Therefore review photos remain private and are not returned by public review APIs; do not manually set `publicDerivativeUrl` or `consentToPublishAt`. Enable public review images only after a sanitized derivative and revocation workflow is implemented and tested. A review becomes public only after an admin publishes it.
 
 ## Return policy decision
@@ -42,7 +46,7 @@ Run the support acceptance suite from the repository root:
 node --test backend/tests/support/support-review.test.js
 ```
 
-The suite uses deterministic service fakes; it does not prove Mongo replica-set transactions, the real storage provider, SMTP delivery, or browser integration. Test the P07 flow against P02/P05/P09 adapters and the P11 integrated browser suite before release.
+The suite uses deterministic service fakes; it does not prove Mongo replica-set transactions, the real storage provider, SMTP delivery, or browser integration. Test the P07 flow against P02/P05/P09 adapters and the P11 integrated browser suite before release. The attachment fallback/owner-privacy browser case can be run with a dedicated loopback P11 replica-set URI using `npm run test:e2e -- --grep "P07 customer and staff attachment routes fail closed and preserve owner privacy without storage"`; global teardown drops its test database.
 
 After backup and duplicate-key preflight on a non-production database, create or verify the additive indexes with:
 
