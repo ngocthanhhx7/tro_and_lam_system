@@ -99,6 +99,7 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
 
   await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
   await expect(page.getByRole('heading', { name: PUBLISHED_PRODUCT.name, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Câu chuyện của sản phẩm đang được biên tập', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
   await expect(page.getByText('Đã cập nhật giỏ hàng từ danh mục hiện tại.')).toBeVisible();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
@@ -164,6 +165,8 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
   await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Đưa gốm đến gần/u })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Gốm dành cho bạn', exact: true })).toBeVisible();
+  await expect(page.locator('.closing-note__lotus')).toHaveAttribute('src', '/assets/editorial/lotus-line-ornament.svg');
+  await expect(page.locator('.closing-note__lotus')).toHaveAttribute('alt', '');
 
   const homeStories = page.locator('.collection-story');
   await expect(homeStories).toHaveCount(2);
@@ -194,6 +197,10 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
       expect(layout.documentWidth, `${path} overflowed at ${width}px`).toBeLessThanOrEqual(layout.viewportWidth + 1);
     }
   }
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.locator('.atelier-hero video')).toHaveJSProperty('paused', true);
 });
 
 test('public catalog filters are reflected in the URL and pagination restores after reload', async ({ page }) => {
