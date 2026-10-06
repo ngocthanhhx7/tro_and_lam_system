@@ -1,6 +1,6 @@
 # Ma trận coverage nghiệm thu hiện hành
 
-Ma trận này tổng hợp bằng chứng từ integrated source cũ và working tree `feature/interface-refresh` trên nền `4230130` ngày 2026-10-06. Working tree mới còn thay đổi chưa commit; kết quả tương ứng không phải bằng chứng clean-checkout. Chi tiết lệnh, giới hạn và ảnh chụp nằm trong [README release](README.md) và [interface refresh evidence](interface-refresh-evidence.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
+Ma trận này phản ánh source revision `0fb7d9d` đã kiểm tra từ working tree sạch ngày 2026-10-06. Chi tiết lệnh, giới hạn và ảnh chụp nằm trong [README release](README.md) và [interface refresh evidence](interface-refresh-evidence.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
 
 - **Partial**: có unit/service/route hoặc browser evidence cho một phần yêu cầu; còn thiếu tích hợp, browser, replica-set, provider staging hoặc xác nhận của owner.
 - **Pending**: chưa có evidence phù hợp cho điều kiện cốt lõi của acceptance.
@@ -32,7 +32,7 @@ Ma trận này tổng hợp bằng chứng từ integrated source cũ và workin
 | A-NFC-01 | Published/draft/revoked story | `backend/tests/content/nfc-public-routing.test.js` | Mounted server/browser flow, owner duyệt nguồn story và bản quyền media | Partial |
 | A-LOG-01 | Audit access/redaction | `backend/tests/operations/operations.test.js` | Browser/admin query trên server tích hợp, stored event verification và full sensitive-log scan | Partial |
 | A-UI-01 | Responsive/accessibility | E2E catalog/cart/checkout ở 390px; UI smoke không tràn ngang ở 360/390/768/1280/1440, menu Escape trả focus, reduced-motion dừng video; ảnh trong `evidence/interface-refresh/` | Keyboard/labels/errors/alt text đầy đủ, kiểm tra screen reader và audit WCAG | Partial |
-| A-REL-01 | Build/check/E2E/release | Working tree `feature/interface-refresh`: `npm run check` contract/lint/build pass, backend 182 pass/3 skip; `npm run test:e2e` 6/6 | Clean-checkout gate sau commit, chạy P02/P05/P06 URI riêng trong CI, provider staging, accessibility, restore/rollback và owner UAT | Partial |
+| A-REL-01 | Build/check/E2E/release | Source revision `0fb7d9d`: contract/lint/build pass, backend 185/185 pass với P02/P05/P06 replica-set suites; `npm run test:e2e` 6/6 trên cây sạch | Provider staging, accessibility, Atlas restore/rollback và owner UAT | Partial |
 
 ## P11 browser evidence
 

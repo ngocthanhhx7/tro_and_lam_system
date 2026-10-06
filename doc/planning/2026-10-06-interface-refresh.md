@@ -24,12 +24,12 @@ Hero dùng video do chủ dự án cung cấp từ Facebook Reel Tro & Lam (ghi 
 `doc/brand/media/video-sources.md`). Ảnh nguồn ngoài chỉ dùng cho nội dung biên tập và
 ghi nguồn trên trang riêng; concept ảnh AI chỉ dùng trong gallery có disclosure.
 
-Kiểm tra tích hợp gần nhất ngày 2026-10-06: `npm run check` pass (contracts, lint,
-182 backend tests pass, 3 replica-set tests skipped trong lần chạy mặc định vì không có
-URI test; Vite build pass và cảnh báo bundle chính 543.66 kB vượt 500 kB). Playwright
-chạy 6/6 trên MongoDB replica set loopback riêng với database tên ngẫu nhiên đúng prefix
-P11; teardown xóa database và truy vấn audit hậu kiểm không còn database nào theo prefix.
-Kết quả và giới hạn được ghi trong [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md).
+Kiểm tra clean-tree trên source `0fb7d9d`, ngày 2026-10-06: `npm run check` pass
+(contracts, lint, 185 backend tests pass, 0 skip với URI loopback riêng P02/P05/P06;
+Vite build 128 modules). Playwright chạy 6/6 trên database P11 loopback riêng; teardown
+xóa database và truy vấn hậu kiểm không còn database test. Bundle 543.66 kB vẫn có cảnh
+báo vượt 500 kB. Kết quả và giới hạn nằm trong
+[`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md).
 
 Rà ảnh chụp home phát hiện video hero có phụ đề gắn sẵn trong footage. CSS đã phóng
 khung và cắt phần dưới để phụ đề không đè lên dòng chú thích; ảnh home được chụp lại.

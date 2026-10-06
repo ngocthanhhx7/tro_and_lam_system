@@ -1,19 +1,19 @@
 # Interface refresh — bằng chứng tích hợp
 
-Ngày chạy: 2026-10-06 · Node `v24.21.0` · branch `feature/interface-refresh`.
+Ngày chạy clean-tree: 2026-10-06 · Node `v24.21.0` · source revision `0fb7d9d` · branch `feature/interface-refresh`.
 
 ## Phạm vi revision
 
-Các kết quả dưới đây thuộc working tree trên base `4230130`; khi ghi lần đầu, các thay đổi giao diện và backend chưa commit. Đây chưa phải clean-checkout evidence. `git diff --check` không báo lỗi whitespace.
+Các kết quả dưới đây thuộc source revision `0fb7d9d`, sau ba commit implementation `4529fda`, `28103f3` và `3b35180`. Cây làm việc sạch khi chạy check/E2E. `git diff --check` không báo whitespace lỗi.
 
 ## Tự động
 
 | Lệnh | Kết quả | Giới hạn |
 | --- | --- | --- |
-| `npm run check` | Pass: OpenAPI 102 paths / 121 operations / 60 DTO schemas / 22 enums / 23 fixtures; ESLint sạch; backend 182 pass, 0 fail, 3 skip; Vite build 128 modules | Ba test P02/P05/P06 replica-set bị skip trong lần chạy này vì không có URI test riêng trong environment. JavaScript minified 543.66 kB (149.69 kB gzip), vượt ngưỡng cảnh báo 500 kB. |
-| `npm run test:e2e` | 6 pass, 0 fail: 4 acceptance flow và 2 email verification flow | Chạy trong integrated workspace với MongoDB replica set loopback và database `tro_lam_p11_e2e_test_9cfe620d20d0`; audit sau teardown xác nhận database không còn. Không gửi email thật hoặc gọi PayOS, Gemini, SMTP hay geocoder. Đây chưa phải clean-commit run. |
+| `npm run check` | Pass: OpenAPI 102 paths / 121 operations / 60 DTO schemas / 22 enums / 23 fixtures; ESLint sạch; backend **185 pass, 0 fail, 0 skip**; Vite build 128 modules | P02/P05/P06 replica-set suites chạy bằng URI loopback riêng. Database P02/P05 được teardown; database P06 được audit rỗng rồi xóa chính xác. Bundle JavaScript 543.66 kB (149.69 kB gzip), trên ngưỡng cảnh báo 500 kB. |
+| `npm run test:e2e` | **6 pass, 0 fail**: 4 acceptance flow và 2 email verification flow | Chạy ở source revision sạch với MongoDB replica set loopback, database `tro_lam_p11_e2e_test_30ab9036fcad`; audit xác nhận đã teardown và không còn database theo prefix P11. Không gửi email thật hoặc gọi PayOS, Gemini, SMTP hay geocoder. |
 
-E2E xác minh catalog ẩn draft, guest đi từ sản phẩm đến giỏ và nhận đúng checkout unavailable theo R06; phân quyền customer/staff/admin; link xác minh thành công và link hết hạn. Checkout không tạo order. Database P11 được teardown và audit hậu kiểm không còn database mang prefix test.
+E2E xác minh catalog ẩn draft, guest đi từ sản phẩm đến giỏ và nhận đúng checkout unavailable theo R06; phân quyền customer/staff/admin; link xác minh thành công và link hết hạn. Checkout không tạo order. Dữ liệu P02/P05/P06/P11 là database loopback biệt lập; hậu kiểm xác nhận không còn database nào theo các prefix kiểm thử.
 
 ## UI smoke và ảnh chụp
 
@@ -31,6 +31,6 @@ Poster và khung hình của banner video có phụ đề gắn sẵn trong foot
 
 ## Cổng còn mở
 
-- Chạy `npm run check` và `npm run test:e2e` từ clean checkout sau khi tích hợp/commit working tree. E2E 6/6 hiện có được chạy trước thay đổi framing; sau đó đã chạy lại `npm run check` và UI smoke viewport/reduced-motion.
+- Merge fast-forward source đã kiểm tra từ `feature/interface-refresh` sang `develop`; sau merge xác nhận cây sạch và HEAD đúng revision.
 - Chạy ba suite replica-set P02/P05/P06 với URI loopback riêng trong CI; bằng chứng local race suite cũ nằm trong [README release](README.md).
 - Hoàn tất WCAG/accessibility audit và các UAT/provider/owner gate còn lại trong [acceptance coverage](acceptance-coverage.md).

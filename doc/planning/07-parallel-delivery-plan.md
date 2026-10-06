@@ -22,7 +22,7 @@ Các package P01–P11 đã có implementation trong source tích hợp. Điều
 | P10 | Assistant grounding, redaction, injection guards, fallback và Gemini adapter có tests | Gemini credentials/quota/staging và browser handoff UAT |
 | P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke | Clean-checkout sau commit, WCAG/UAT/provider/restore gates; hero đã crop vùng phụ đề của video nguồn |
 
-Hiện `feature/interface-refresh` có working tree chưa commit trên nền `4230130`. Kết quả 182 backend tests pass, 3 replica-set tests skipped, `npm run test:e2e` 6/6 và các ảnh chụp đang mô tả working tree này; xem [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md). Không dùng chúng làm clean-commit evidence.
+`feature/interface-refresh` có các commit implementation `4529fda` (Mongoose/index), `28103f3` (catalog seed), `3b35180` (storefront/media) và release evidence. Clean source revision `0fb7d9d` qua `npm run check` với 185/185 tests và `npm run test:e2e` 6/6; xem [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md). Chỉ merge source đã qua check vào `develop`.
 
 Rà soát các worktree `feature/p01-contracts` đến `feature/p11-release`: cả 11 worktree hiện sạch. P01–P06, P08–P09 đã nằm trong lịch sử `develop`; thay đổi P07, P10 và P11 có patch tương đương trong `develop` dù commit graph dùng cherry-pick. Không còn patch package nào đang chờ tích hợp trong các worktree đó.
 
