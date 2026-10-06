@@ -51,17 +51,26 @@ production dùng phân quyền/retention và backup phù hợp. Logs cấu trúc
 correlationId và provider error category; không log headers cookie/authorization, query token,
 password/OTP/keys, full address/email/body webhook/chat. Customer-visible order timeline tách staff notes.
 
-## Cấu hình cần có khi triển khai (đặc tả, chưa thêm vào validator hiện tại)
-| Nhóm | Config |
+## Cấu hình và tích hợp hiện có
+
+Các biến được kiểm tra ở `backend/src/validators/env.validator.js`; tên mẫu nằm trong
+`backend/.env.example`. Production phải dùng secret store, không lưu giá trị thật trong Git.
+
+| Nhóm | Cấu hình đã triển khai |
 | --- | --- |
-| Core | NODE_ENV, PORT, MONGODB_URI, CORS_ORIGIN, PUBLIC_WEB_URL, PUBLIC_API_URL, TRUST_PROXY |
-| Auth | SESSION_COOKIE_NAME, SESSION_TTL, CSRF_SECRET nếu adapter cần, RATE_LIMIT store |
-| Mail | SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM, CONTACT_MAIL_TO |
-| Payment | PAYOS_ENABLED, PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY, PAYOS_WEBHOOK_URL |
-| AI | GEMINI_API_KEY, GEMINI_MODEL, AI_TIMEOUT_MS, AI_DAILY_BUDGET |
-| Location | GEOCODING_PROVIDER, GEOCODING_API_KEY, GEOCODING_TIMEOUT_MS |
-| Media | MEDIA_PROVIDER, MEDIA credentials server-only, upload limits |
-| Commerce | shipping zones/fees, COD enabled, reservation TTL, checkout limits qua settings có audit |
+| Core | `NODE_ENV`, `PORT`, `MONGODB_URI`, `CORS_ORIGIN`, `PUBLIC_WEB_URL`, `TRUST_PROXY` |
+| Session/CSRF | `CSRF_SECRET`, `SESSION_COOKIE_NAME`, `RESTRICTED_COOKIE_NAME`, `GUEST_ORDER_COOKIE_NAME`, `CSRF_COOKIE_NAME`, `COOKIE_PATH`, `COOKIE_SAME_SITE`, `SECURE_COOKIES` |
+| Outbox/mail | `OUTBOX_ENCRYPTION_KEY`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TIMEOUT_MS`, `SUPPORT_INBOX_EMAIL` |
+| Payment | `PAYOS_ENABLED`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`, `PAYOS_TIMEOUT_MS`; webhook URL dùng cấu hình route/deployment, không phải secret từ trình duyệt |
+| Assistant | `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_TIMEOUT_MS`, `AI_DAILY_BUDGET` |
+| Background jobs | `RESERVATION_SWEEP_INTERVAL_MS`, `PAYMENT_RECONCILIATION_INTERVAL_MS`, `BACKGROUND_WORKERS_ENABLED`; tiến trình riêng chạy `node src/worker.js` |
+
+Geocoder và media storage chưa có provider được cấu hình. Geolocation vẫn phải cho phép
+nhập địa chỉ thủ công; catalog media upload trả `MEDIA_UNAVAILABLE` đến khi chủ dự án
+cấu hình storage. Checkout chưa có phí/vùng giao hàng đã được owner xác nhận, nên quote
+phí giao hàng hiện fail-closed; COD, phí, đổi trả/refund và các giới hạn mở bán tiếp tục
+bị chặn theo đầu vào R06, không suy diễn giá trị mặc định. Không lưu provider credential
+trong `VITE_*` hay business settings.
 
 Feature chưa có credential phải disabled/unavailable rõ ràng; không dùng key giả hoặc response paid giả.
 Validate schema/env khi bật tính năng, tránh backend chết vì một tính năng tùy chọn disabled.

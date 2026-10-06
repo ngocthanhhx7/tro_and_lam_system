@@ -2,6 +2,10 @@
 
 Tài liệu này chuẩn bị cấu trúc và quy tắc biên tập cho tìm kiếm tiếng Việt. Không phải cam kết thứ hạng, nghiên cứu từ khóa đã hoàn tất hay nội dung thương mại được duyệt.
 
+## Skills dành cho Claude Code trong repo
+
+Project đã có các skill trong `.claude/skills/`: [seo-audit](../.claude/skills/seo-audit/SKILL.md), [ai-seo/GEO](../.claude/skills/ai-seo/SKILL.md) và [copywriting](../.claude/skills/copywriting/SKILL.md). Dùng chúng cùng giới hạn nguồn và claims trong tài liệu này; nội dung skill chung không thay thế dữ liệu, chính sách hoặc duyệt của chủ dự án. Số liệu và khuyến nghị SEO/GEO từ nguồn bên thứ ba phải được kiểm tra lại trước khi xuất bản.
+
 ## Nguồn và giới hạn claims
 
 Nguồn ưu tiên là dữ liệu chủ dự án đã duyệt, CMS publish và planning trong repo. Các đầu vào R03 (SKU/giá/tồn/ảnh), R06 (vận chuyển/đổi trả/chính sách), R07 (liên hệ), R08 (câu chuyện/nghệ nhân/hoa văn), R09 (địa chỉ/geocoder) chưa được cung cấp trong scaffold. Không suy diễn khi tạo copy.
