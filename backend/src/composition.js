@@ -217,7 +217,12 @@ export async function createDomainComposition(env) {
   const commerceCatalogPort = Object.freeze({
     async getCheckoutProducts(ids, options) {
       const products = await catalogService.getCheckoutProducts(ids, options);
-      return products.map((product) => ({ ...product, id: product.productId }));
+      return products.map((product) => ({
+        ...product,
+        id: product.productId,
+        // This port reads only published products from the catalog repository.
+        status: 'published',
+      }));
     },
   });
   commerceService = createCommerceService({
