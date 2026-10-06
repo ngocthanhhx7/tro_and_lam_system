@@ -10,6 +10,8 @@ import { BusinessSetting } from '../../backend/src/models/operations/business-se
 import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
 import { Review } from '../../backend/src/reviews/review.models.js';
+import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.model.js';
+import { User } from '../../backend/src/models/identity/user.model.js';
 import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   DRAFT_PRODUCT,
@@ -69,6 +71,8 @@ async function inspectP11Database(read) {
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
+      AuthChallenge: connection.model('P11AuthChallengeRead', AuthChallenge.schema),
+      User: connection.model('P11UserRead', User.schema),
     });
   } finally {
     await connection.close();
@@ -795,4 +799,72 @@ test('test-only configured zone produces a COD quote and persists the same shipp
     shippingFeeVnd: 28000,
     totalVnd: quoteBody.data.totalVnd,
   });
+});
+
+test('customer registration verifies through encrypted outbox and returns to login before a session starts', async ({ page }) => {
+  const email = 'signup.p11@example.test';
+  const password = 'P11 synthetic signup password 42!';
+  await page.goto('/dang-ky');
+  await page.getByLabel('Họ và tên', { exact: true }).fill('P11 Verified Customer');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Mật khẩu · ít nhất 12 ký tự', { exact: true }).fill(password);
+  await page.getByLabel('Nhập lại mật khẩu', { exact: true }).fill(password);
+
+  const registrationResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/register')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Đăng ký', exact: true }).click();
+  const registrationResponse = await registrationResponsePromise;
+  const registrationBody = await registrationResponse.json();
+  expect(registrationResponse.status(), JSON.stringify(registrationBody)).toBe(202);
+  expect(registrationBody.data.verificationRequired).toBe(true);
+  await expect(page.getByRole('status')).toContainText('đã xếp hướng dẫn xác minh');
+
+  const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+  const verificationMail = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
+    const events = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
+    return events.flatMap((event) => event.payload.deliveries
+      .filter((delivery) => delivery.encryptedMail)
+      .map((delivery) => decryptMail(delivery.encryptedMail)))
+      .find((message) => message.template === 'verify_email' && message.recipient === email);
+  });
+  expect(verificationMail).toEqual(expect.objectContaining({
+    template: 'verify_email',
+    recipient: email,
+    data: expect.objectContaining({ actionUrl: expect.any(String) }),
+  }));
+  const verificationUrl = new URL(verificationMail.data.actionUrl);
+  expect(verificationUrl.origin).toBe('http://127.0.0.1:5190');
+  expect(verificationUrl.pathname).toBe('/xac-minh-email');
+  const fragmentToken = new URLSearchParams(verificationUrl.hash.slice(1)).get('token');
+  const verifyResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/verify-email')
+    && response.request().method() === 'POST');
+  expect(fragmentToken).toMatch(/^[A-Za-z0-9_-]{32,}$/u);
+  await page.goto(`${verificationUrl.pathname}${verificationUrl.hash}`);
+  const verifyResponse = await verifyResponsePromise;
+  const verifyBody = await verifyResponse.json();
+  expect(verifyResponse.status(), JSON.stringify(verifyBody)).toBe(200);
+  expect(verifyBody.data.verified).toBe(true);
+  await expect(page.locator('.identity-feedback--success')).toContainText('Email đã được xác minh');
+  await expect(page).toHaveURL(/\/dang-nhap\?verified=1$/u, { timeout: 8000 });
+  await expect(page.getByText('Email đã được xác minh. Đăng nhập để tiếp tục.')).toBeVisible();
+  expect((await page.context().cookies()).some((cookie) => cookie.name === 'tl_session')).toBe(false);
+
+  const persisted = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, User: UserRead }) => {
+    const user = await UserRead.findOne({ emailNormalized: email }).lean().exec();
+    const challenge = await AuthChallengeRead.findOne({ userId: user?._id, purpose: 'verify_email' }).lean().exec();
+    return { user, challenge };
+  });
+  expect(persisted.user.emailVerifiedAt).toBeInstanceOf(Date);
+  expect(persisted.challenge.consumedAt).toBeInstanceOf(Date);
+
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
+  const loginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  const loginResponse = await loginResponsePromise;
+  const loginBody = await loginResponse.json();
+  expect(loginResponse.status(), JSON.stringify(loginBody)).toBe(200);
+  expect(loginBody.data.user).toMatchObject({ email, role: 'customer' });
+  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
 });

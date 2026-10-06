@@ -353,7 +353,9 @@ export async function startRuntime() {
   try {
     await connectDatabase(uri);
     const fixture = await seedSyntheticFixture();
-    runtime.composition = await createDomainComposition(env);
+    // Browser tests share one loopback IP; backend route tests cover the production login limits.
+    const testConfig = { ...env, loginRateLimit: 10_000, identityLoginRateLimit: 10_000 };
+    runtime.composition = await createDomainComposition(testConfig);
     const app = createApp({
       corsOrigin: env.corsOrigin,
       trustProxy: 0,
