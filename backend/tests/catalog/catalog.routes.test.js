@@ -71,7 +71,10 @@ test('product PATCH passes expectedVersion to the service and returns its new ve
   assert.equal(response.status, 200);
   assert.equal(response.body.data.version, 4);
   assert.deepEqual(received.input, { name: 'New name', expectedVersion: 3 });
-  assert.deepEqual(received.context.actor, actor);
+  assert.equal(received.context.actor.id, actor.id);
+  assert.equal(received.context.actor.role, actor.role);
+  assert.equal(received.context.actor.status, actor.status);
+  assert.match(received.context.actor.requestId, /^[0-9a-f-]{36}$/u);
 });
 
 test('multipart media upload accepts supported image signatures and rejects spoofed content types', async () => {
@@ -92,7 +95,10 @@ test('multipart media upload accepts supported image signatures and rejects spoo
   assert.equal(accepted.status, 201);
   assert.equal(upload.input.file.mimeType, 'image/png');
   assert.equal(upload.input.file.bytes, png.length);
-  assert.equal(upload.context.actor, actor);
+  assert.equal(upload.context.actor.id, actor.id);
+  assert.equal(upload.context.actor.role, actor.role);
+  assert.equal(upload.context.actor.status, actor.status);
+  assert.match(upload.context.actor.requestId, /^[0-9a-f-]{36}$/u);
 
   const spoofed = await request(app)
     .post('/api/v1/admin/media')
