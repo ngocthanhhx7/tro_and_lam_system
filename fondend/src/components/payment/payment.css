@@ -1,0 +1,212 @@
+.payment-page,
+.refunds-page {
+  max-width: 1080px;
+  padding-block: clamp(32px, 7vw, 80px);
+}
+
+.payment-card,
+.payment-panel,
+.refund-row {
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgb(9 43 59 / 8%);
+}
+
+.payment-card {
+  max-width: 700px;
+  margin-inline: auto;
+  padding: clamp(24px, 5vw, 48px);
+}
+
+.payment-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
+  gap: 24px;
+  padding: 24px;
+}
+
+.payment-eyebrow,
+.refund-label {
+  margin: 0 0 8px;
+  color: var(--brand-blue);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.payment-copy,
+.payment-expiry {
+  color: var(--text-secondary);
+}
+
+.payment-result {
+  align-self: center;
+}
+
+.payment-button,
+.refund-pagination button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--brand-blue);
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: var(--brand-blue);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.payment-button:hover,
+.refund-pagination button:hover:not(:disabled) {
+  background: var(--brand-deep-blue);
+  color: #fff;
+}
+
+.payment-button:disabled,
+.refund-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.payment-button--secondary {
+  border-color: var(--border-subtle);
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.payment-link {
+  margin-inline-start: 16px;
+  font-weight: 600;
+}
+
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.payment-error {
+  border-inline-start: 4px solid var(--status-danger);
+  padding: 12px 16px;
+  background: #fff3f3;
+  color: var(--status-danger);
+}
+
+.refunds-heading,
+.refund-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.refunds-heading label,
+.refund-action label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.refunds-heading select,
+.refund-action input,
+.refund-action textarea {
+  min-height: 44px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.refunds-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.refund-row {
+  padding: 20px;
+}
+
+.refund-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.refund-summary > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.refund-summary code {
+  font-size: 0.82rem;
+}
+
+.refund-status {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: #f4f1e8;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.refund-status--completed { background: #e5f3eb; color: var(--status-success); }
+.refund-status--rejected,
+.refund-status--failed { background: #fff0f0; color: var(--status-danger); }
+.refund-status--requested,
+.refund-status--processing { background: #fff6dd; color: var(--status-warning); }
+
+.refund-action {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 18px;
+}
+
+.refund-action textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.refund-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-block: 28px;
+}
+
+.refund-pagination button {
+  min-height: 42px;
+}
+
+.refunds-empty {
+  margin-block: 32px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .payment-panel,
+  .refunds-heading,
+  .refund-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .refunds-heading { display: grid; }
+  .refund-summary { display: grid; gap: 16px; }
+  .payment-link { margin-inline-start: 0; }
+}
