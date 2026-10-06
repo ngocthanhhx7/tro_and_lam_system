@@ -18,6 +18,8 @@ của Mongoose; khi khởi động thất bại cần khắc phục cấu hình 
 | --- | --- | --- |
 | NODE_ENV | Backend | development/test/production |
 | PORT | Backend | 5000 local; Render tự cung cấp |
+| FRONTEND_PORT | Vite dev | 5173 mặc định; đặt trong shell khi cần cổng frontend khác |
+| API_PROXY_TARGET | Vite dev | Mặc định theo `PORT`; có thể đặt URL API đích cụ thể |
 | MONGODB_URI | Backend | URI database thật |
 | CORS_ORIGIN | Backend | Origin frontend, không có path hoặc dấu / cuối |
 | TRUST_PROXY | Backend | 0 local, 1 khi đứng sau một reverse proxy tin cậy trên Render |
@@ -32,7 +34,8 @@ Trong development, `CSRF_SECRET` để trống sẽ sinh khóa tạm theo proces
 cho production bằng `node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64url'))"`
 và nhập thẳng vào secret environment của host, không đưa vào Git/chat. Nếu frontend/API
 khác site, cấu hình `COOKIE_SAME_SITE=None` cùng `SECURE_COOKIES=true` và HTTPS.
-Local Vite proxy `/api` tới localhost:5000; đổi proxy nếu đổi PORT backend.
+Local Vite proxy `/api` và `/media` tới API; proxy theo `PORT` mặc định. Khi đổi API host,
+đặt `API_PROXY_TARGET` trong shell; `FRONTEND_PORT` đổi cổng Vite khi cổng 5173 đang bận.
 Scripts gọi trực tiếp entry JS của các công cụ để chạy được trên Windows khi
 đường dẫn workspace chứa ký tự `&` như `tro&lam_system`.
 
