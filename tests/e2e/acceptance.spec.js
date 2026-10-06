@@ -308,6 +308,24 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page).toHaveTitle(`${pageTitle} | Gốm Chu Đậu | TRO & LAM`);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', pageDescription);
 
+  const englishPageTitle = 'P11 English Published Page Metadata';
+  const englishPageDescription = 'P11 metadata excerpt from published English CMS text.';
+  const draftEnglishPage = await browserApi(page, '/api/v1/admin/pages', {
+    method: 'POST',
+    body: { slug: pageSlug, title: englishPageTitle, locale: 'en', status: 'draft', blocks: [{ type: 'paragraph', text: englishPageDescription }] },
+  });
+  expect(draftEnglishPage.status, JSON.stringify(draftEnglishPage.body)).toBe(201);
+  const publishedEnglishPage = await browserApi(page, `/api/v1/admin/pages/${draftEnglishPage.body.data.id}`, {
+    method: 'PATCH',
+    body: { slug: pageSlug, title: englishPageTitle, locale: 'en', status: 'published', expectedVersion: 0, blocks: [{ type: 'paragraph', text: englishPageDescription }] },
+  });
+  expect(publishedEnglishPage.status, JSON.stringify(publishedEnglishPage.body)).toBe(200);
+  await page.goto(`/trang/${pageSlug}?locale=en`);
+  await expect(page.getByRole('heading', { name: englishPageTitle, exact: true })).toBeVisible();
+  await expect(page).toHaveTitle(`${englishPageTitle} | Gốm Chu Đậu | TRO & LAM`);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', englishPageDescription);
+  await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute('content', 'en_US');
+
   const createdTag = await browserApi(page, '/api/v1/admin/nfc-tags', {
     method: 'POST',
     body: { storyId },

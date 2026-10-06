@@ -28,7 +28,7 @@ export default function PublishedPage({ pageSlug, fallback }) {
 
   useEffect(() => {
     if (publishedPage) {
-      setPublishedContentMetadata({ title: publishedPage.title, blocks: publishedPage.blocks });
+      setPublishedContentMetadata({ title: publishedPage.title, blocks: publishedPage.blocks, locale });
     } else if (viewState.status === 'error' && !usesEditorialFallback) {
       const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
       setPageMetadata({
@@ -36,7 +36,7 @@ export default function PublishedPage({ pageSlug, fallback }) {
         description: missing ? 'Trang này chưa được xuất bản bằng ngôn ngữ đã chọn.' : 'TRO & LAM hiện chưa thể tải trang này.',
       });
     }
-  }, [publishedPage, viewState.status, viewState.error, usesEditorialFallback]);
+  }, [publishedPage, viewState.status, viewState.error, usesEditorialFallback, locale]);
 
   if (fallback && locale === 'vi' && viewState.status === 'error' && viewState.error instanceof ApiError && viewState.error.status === 404) return fallback;
   return <div className="story-page">

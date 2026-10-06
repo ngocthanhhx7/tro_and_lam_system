@@ -29,7 +29,7 @@ export default function StoryPage() {
 
   useEffect(() => {
     if (publishedStory) {
-      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections });
+      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections, locale });
     } else if (viewState.status === 'error') {
       const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
       setPageMetadata({
@@ -37,7 +37,7 @@ export default function StoryPage() {
         description: missing ? 'Câu chuyện này chưa được xuất bản bằng ngôn ngữ đã chọn.' : 'TRO & LAM hiện chưa thể tải câu chuyện này.',
       });
     }
-  }, [publishedStory, viewState.status, viewState.error]);
+  }, [publishedStory, viewState.status, viewState.error, locale]);
 
   const basePath = `/cau-chuyen/${encodeURIComponent(slug)}`;
   return <div className="story-page">

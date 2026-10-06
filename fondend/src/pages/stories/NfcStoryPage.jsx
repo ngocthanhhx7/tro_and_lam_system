@@ -27,7 +27,7 @@ export default function NfcStoryPage() {
 
   useEffect(() => {
     if (publishedStory) {
-      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections });
+      setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections, locale });
     } else if (viewResult.status === 'error') {
       const revoked = viewResult.error instanceof ApiError && viewResult.error.status === 410 && viewResult.error.code === 'NFC_REVOKED';
       const missing = viewResult.error instanceof ApiError && viewResult.error.status === 404;
@@ -36,7 +36,7 @@ export default function NfcStoryPage() {
         description: revoked ? 'Mã NFC này đã được thu hồi.' : missing ? 'Câu chuyện chưa được xuất bản ở ngôn ngữ đã chọn hoặc mã không còn hợp lệ.' : 'TRO & LAM hiện chưa thể tải nội dung NFC này.',
       });
     }
-  }, [publishedStory, viewResult.status, viewResult.error]);
+  }, [publishedStory, viewResult.status, viewResult.error, locale]);
 
   const basePath = `/nfc/${encodeURIComponent(publicId)}`;
   if (viewResult.status === 'loading') return <div className="story-page"><p role="status">Đang tải câu chuyện…</p></div>;
