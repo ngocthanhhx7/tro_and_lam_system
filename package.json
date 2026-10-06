@@ -27,7 +27,7 @@
     "@playwright/test": "1.63.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
-    "concurrently": "^9.2.0",
+    "concurrently": "9.2.4",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-react-refresh": "^0.4.24",
@@ -36,5 +36,10 @@
   "allowScripts": {
     "argon2@0.45.1": true,
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "concurrently": {
+      "shell-quote": "1.12.0"
+    }
   }
 }
