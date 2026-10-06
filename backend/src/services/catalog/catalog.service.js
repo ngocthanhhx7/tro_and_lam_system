@@ -153,6 +153,7 @@ export function createCatalogService({
   storyPort,
   categoryRepository = productRepository,
   mediaProvider,
+  auditPort,
   actorIdOf = (actor) => actor?.id ?? actor?._id,
 }) {
   if (!productRepository) throw new TypeError('Thiếu catalog repository');
