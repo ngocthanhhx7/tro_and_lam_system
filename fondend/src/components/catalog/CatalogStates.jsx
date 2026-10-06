@@ -16,7 +16,7 @@ export function CatalogEmpty({ onReset }) {
   return <div className="catalog-state">
     <span className="catalog-state__mark" aria-hidden="true">◌</span>
     <h2>Chưa có sản phẩm phù hợp</h2>
-    <p>Thử thay đổi từ khóa hoặc bộ lọc. Danh mục chỉ hiển thị sản phẩm đã được công bố.</p>
+    <p>{onReset ? 'Thử thay đổi từ khóa hoặc xóa bộ lọc để khám phá thêm.' : 'Chưa có sản phẩm để trưng bày tại đây. Bạn có thể liên hệ để được tư vấn lựa chọn gốm.'}</p>
     {onReset && <button className="button button--outline" type="button" onClick={onReset}>Xóa bộ lọc</button>}
   </div>;
 }

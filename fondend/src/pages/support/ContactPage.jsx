@@ -50,7 +50,7 @@ export default function ContactPage({ corporate = false }) {
           : productId ? 'Gửi câu hỏi hoặc yêu cầu báo giá cho sản phẩm đang xem. Thông tin được chuyển tới đội ngũ tiếp nhận.'
             : 'Gửi câu hỏi về sản phẩm, câu chuyện hoặc dịch vụ. Đội ngũ sẽ tiếp nhận theo thông tin bạn cung cấp.'}</p>
       </div>
-      <aside className="support-note"><span aria-hidden="true">✳</span><p>Nội dung về chất liệu, xuất xứ, giá và khả năng cung cấp sẽ được xác nhận theo thông tin sản phẩm đã công bố.</p></aside>
+      <aside className="support-note"><p>Một món gốm cho riêng bạn, hay một món quà dành tặng? Hãy chia sẻ dịp sử dụng và điều bạn đang tìm kiếm.</p></aside>
     </div>
 
     <form className="support-card support-form" onSubmit={submit}>

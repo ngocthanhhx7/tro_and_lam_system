@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { requestAssistantHandoff, sendAssistantMessage } from '../../services/assistant/assistant.api.js';
 import './assistant.css';
+import Icon from '../catalog/Icon.jsx';
 
 const PRIVACY_NOTE = 'Trước khi gửi, TRO & LAM sẽ ẩn các thông tin nhận dạng thường gặp rồi mới chuyển câu hỏi tới dịch vụ Gemini. Không gửi mật khẩu, mã xác nhận hay thông tin thanh toán.';
 
@@ -191,7 +192,7 @@ export function AssistantWidget() {
         aria-label={open ? 'Đóng trợ lý tư vấn' : 'Mở trợ lý tư vấn'}
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">{open ? '×' : 'Tư vấn'}</span>
+        <Icon name={open ? 'close' : 'message'} size={24} />
       </button>
     </div>
   );

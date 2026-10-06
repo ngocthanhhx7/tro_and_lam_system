@@ -5,7 +5,7 @@ import { ApiError } from '../../services/httpClient.js';
 import { getPage } from '../../services/content/content.service.js';
 import { PublicPageContent } from './StoryPage.jsx';
 
-export default function PublishedPage({ pageSlug }) {
+export default function PublishedPage({ pageSlug, fallback }) {
   const { slug: routeSlug } = useParams();
   const slug = pageSlug || routeSlug;
   const [searchParams] = useSearchParams();
@@ -21,6 +21,7 @@ export default function PublishedPage({ pageSlug }) {
   }, [slug, locale, requestKey]);
 
   const viewState = state.key === requestKey ? state : { status: 'loading' };
+  if (fallback && locale === 'vi' && viewState.status === 'error' && viewState.error instanceof ApiError && viewState.error.status === 404) return fallback;
   return <div className="story-page">
     <LocaleLinks locale={locale} basePath={`/trang/${encodeURIComponent(slug)}`} />
     {viewState.status === 'loading' && <p role="status">Đang tải trang…</p>}

@@ -76,11 +76,23 @@ export default function ProductDetailPage() {
     return () => controller.abort();
   }, [slug, retry]);
 
+  useEffect(() => {
+    if (state.slug !== slug || state.status !== 'ready' || !state.product) return;
+    document.title = `${state.product.name} | TRO & LAM`;
+    const description = String(state.product.description || 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .slice(0, 160);
+    const meta = document.head.querySelector('meta[name="description"]');
+    if (meta) meta.content = description;
+  }, [slug, state]);
+
   if (state.slug !== slug || state.status === 'loading') return <div className="section-wrap"><CatalogLoading count={1} /></div>;
   if (state.status === 'error') return <div className="section-wrap"><CatalogError message={state.error} onRetry={() => setRetry((value) => value + 1)} /></div>;
   const product = state.product;
   const canBuy = ['buy', 'both'].includes(product.saleMode) && product.availableForPurchase === true && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0;
   const images = [...(product.images || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const hasAiConcept = images.some((image) => image.url?.includes('/assets/products/concepts/'));
   const selectedImage = selectedImageState.slug === slug && selectedImageState.index < images.length ? selectedImageState.index : 0;
 
   async function addToCart() {
@@ -101,6 +113,7 @@ export default function ProductDetailPage() {
           {images.length ? <img src={images[selectedImage]?.url} alt={images[selectedImage]?.alt || product.name} width="900" height="760" fetchPriority="high" /> : <div className="product-gallery__empty"><span aria-hidden="true">◌</span><p>Ảnh sản phẩm đang chờ cập nhật</p></div>}
         </div>
         {images.length > 1 && <div className="product-gallery__thumbs" aria-label="Chọn ảnh sản phẩm">{images.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={selectedImage === index ? 'is-selected' : ''} onClick={() => setSelectedImageState({ slug, index })} aria-label={`Xem ảnh ${index + 1}: ${image.alt}`} aria-pressed={selectedImage === index}><img src={image.url} alt="" width="112" height="96" loading="lazy" /></button>)}</div>}
+        {hasAiConcept && <p className="product-gallery__ai-note">Ảnh minh họa được tạo bằng AI cho mục đích giới thiệu ý tưởng, chưa xác nhận là ảnh chụp sản phẩm thực tế.</p>}
       </div>
       <section className="product-detail__info" aria-labelledby="product-title">
         <p className="eyebrow">{product.line === 'lifestyle' ? 'LIFESTYLE LINE' : 'DIPLOMACY LINE'}</p>

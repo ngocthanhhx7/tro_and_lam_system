@@ -3,108 +3,39 @@ import { Link } from 'react-router-dom';
 import { searchPublishedProducts } from '../../services/catalog/catalogApi.js';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { CatalogEmpty, CatalogError, CatalogLoading } from '../../components/catalog/CatalogStates.jsx';
-
-const lineCopy = [
-  { line: 'lifestyle', title: 'Trong nhịp sống thường ngày', description: 'Khám phá lư xông trầm mini, hũ trà và bộ chén độc ẩm khi các sản phẩm được công bố trong danh mục.' },
-  { line: 'diplomacy', title: 'Dành cho những dịp trao tặng', description: 'Tìm hiểu các tác phẩm thuộc Diplomacy Line và hình thức liên hệ được niêm yết theo từng sản phẩm.' },
-];
+import Icon from '../../components/catalog/Icon.jsx';
+import { HeritageFilm } from '../../components/catalog/EditorialMedia.jsx';
+import { media } from '../../constants/editorialMedia.js';
+import HeroMotion from '../../components/catalog/HeroMotion.jsx';
 
 export default function CatalogHomePage() {
   const [state, setState] = useState({ status: 'loading', items: [], error: '' });
   const [retry, setRetry] = useState(0);
-
   useEffect(() => {
     const controller = new AbortController();
     searchPublishedProducts({ page: 1, limit: 100, sort: 'newest' }, { signal: controller.signal })
-      .then((response) => setState({ status: 'ready', items: (response.data || []).filter((product) => product.featured).slice(0, 4), error: '' }))
+      .then((response) => {
+        const featured = (response.data || []).filter((product) => product.featured);
+        const items = [
+          ...featured.filter((product) => product.line === 'lifestyle').slice(0, 2),
+          ...featured.filter((product) => product.line === 'diplomacy').slice(0, 2),
+        ];
+        setState({ status: 'ready', items, error: '' });
+      })
       .catch((error) => { if (error.name !== 'AbortError') setState({ status: 'error', items: [], error: error.message }); });
     return () => controller.abort();
   }, [retry]);
-
   return <>
-    <section className="home-hero">
-      <div className="home-hero__copy">
-        <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>
-        <h1>Gốm cho nhịp sống hôm nay.</h1>
-        <p className="home-hero__lead">Khám phá hai dòng sản phẩm, thông tin bán hàng đã công bố và câu chuyện được biên tập cho từng lựa chọn.</p>
-        <div className="button-row">
-          <Link className="button button--primary" to="/san-pham">Khám phá sản phẩm <span aria-hidden="true">→</span></Link>
-          <Link className="button button--text" to="/qua-tang-doanh-nghiep">Tư vấn quà tặng <span aria-hidden="true">↗</span></Link>
-        </div>
-        <p className="home-hero__quiet">Giá và khả năng đặt mua hiển thị theo thông tin của từng sản phẩm đã công bố.</p>
-      </div>
-      <figure className="home-hero__art">
-        <div className="home-hero__art-frame">
-          <video
-            controls
-            playsInline
-            preload="none"
-            poster="/assets/generated/chu-dau-jar-editorial.jpg"
-            width="1200"
-            height="896"
-            aria-label="Clip minh họa gốm chuyển động nhẹ"
-          >
-            <source src="/assets/generated/chu-dau-jar-editorial-motion.mp4" type="video/mp4" />
-            <img src="/assets/generated/chu-dau-jar-editorial.jpg" alt="Minh họa biên tập do AI tạo về một bình gốm." width="1200" height="896" fetchPriority="high" />
-          </video>
-        </div>
-        <figcaption>Ảnh concept do AI tạo; clip chỉ tạo chuyển động từ ảnh này, không phải video quay thật hay hình của sản phẩm đang bán.</figcaption>
-        <span className="home-hero__seal" aria-hidden="true">TRO<br />& LAM</span>
-      </figure>
-      <span className="home-hero__index" aria-hidden="true">01 / 02</span>
+    <section className="atelier-hero">
+      <HeroMotion />
+      <div className="atelier-hero__content"><p className="eyebrow">TRO & LAM · GỐM CHU ĐẬU</p><h1>Giữ một nét xưa.<br /><em>Chạm một nhịp sống mới.</em></h1><p>Từ vẻ đẹp của gốm, tìm về những điều bình dị.<br className="desktop-break" /> Một góc nhà an yên. Một món quà đầy ý nghĩa.</p><div className="button-row"><Link className="button button--light" to="/san-pham">Khám phá sản phẩm <Icon name="arrow" size={18} /></Link><a className="hero-film-link" href="#phim-gom"><Icon name="play" size={18} /> Câu chuyện của gốm</a></div></div>
+      <div className="atelier-hero__bottom"><span>ĐẤT MỘC. MEN NGÀ. SẮC LAM.</span><a href="#loi-ngo">Chậm lại để cảm nhận <Icon name="chevron" size={16} /></a></div>
     </section>
-
-    <section className="home-lines section-wrap" aria-labelledby="lines-title">
-      <div className="section-heading section-heading--split">
-        <div><p className="eyebrow">BỘ SƯU TẬP</p><h2 id="lines-title">Hai hướng khám phá</h2></div>
-        <Link className="text-link" to="/san-pham">Xem toàn bộ danh mục <span aria-hidden="true">→</span></Link>
-      </div>
-      <div className="line-grid">
-        {lineCopy.map((line, index) => <Link className={`line-panel line-panel--${index + 1}`} key={line.line} to={`/bo-suu-tap/${line.line}`}>
-          <span className="line-panel__number">0{index + 1}</span><p className="eyebrow">{line.line === 'lifestyle' ? 'LIFESTYLE LINE' : 'DIPLOMACY LINE'}</p>
-          <h3>{line.title}</h3><p>{line.description}</p><span className="line-panel__link">Khám phá dòng gốm <span aria-hidden="true">↗</span></span>
-        </Link>)}
-      </div>
-    </section>
-
-    <section className="home-featured section-wrap" aria-labelledby="featured-title">
-      <div className="section-heading section-heading--split">
-        <div><p className="eyebrow">TỪ DANH MỤC ĐÃ CÔNG BỐ</p><h2 id="featured-title">Một vài điểm dừng</h2></div>
-        <Link className="text-link" to="/san-pham">Đi đến danh mục <span aria-hidden="true">→</span></Link>
-      </div>
-      {state.status === 'loading' && <CatalogLoading count={4} />}
-      {state.status === 'error' && <CatalogError message={state.error} onRetry={() => setRetry((value) => value + 1)} />}
-      {state.status === 'ready' && (state.items.length ? <div className="product-grid">{state.items.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <CatalogEmpty />)}
-    </section>
-
-    <section className="home-editorial-concept section-wrap" aria-labelledby="editorial-concept-title">
-      <figure className="home-editorial-concept__art">
-        <img
-          src="/assets/generated/chu-dau-ceramic-editorial-2026.png"
-          alt="Ảnh minh họa do AI tạo: hũ gốm men ngà hoa văn lam và chén trà trên vải linen."
-          width="1200"
-          height="896"
-          loading="lazy"
-          decoding="async"
-        />
-        <figcaption>Ảnh minh họa do AI tạo; không đại diện cho sản phẩm đang bán.</figcaption>
-      </figure>
-      <div className="home-editorial-concept__copy">
-        <p className="eyebrow">GÓC NHÌN BIÊN TẬP</p>
-        <h2 id="editorial-concept-title">Sắc lam, nền ngà, ánh sáng dịu.</h2>
-        <p>Hình ảnh khái niệm gợi một không gian thưởng trà yên tĩnh. Thông tin sản phẩm chỉ xuất hiện theo dữ liệu đã được công bố trong danh mục.</p>
-        <Link className="text-link" to="/san-pham">Xem sản phẩm đã công bố <span aria-hidden="true">→</span></Link>
-      </div>
-    </section>
-
-    <section className="home-story-band">
-      <div className="home-story-band__inner">
-        <p className="eyebrow">CÂU CHUYỆN · HOA VĂN · CHĂM SÓC</p>
-        <h2>Thông tin rõ ràng, để mỗi lựa chọn bắt đầu từ điều đã được xác nhận.</h2>
-        <p>Câu chuyện và hướng dẫn chỉ xuất hiện khi nội dung đã được biên tập, công bố.</p>
-        <Link className="button button--light" to="/cau-chuyen">Đọc câu chuyện <span aria-hidden="true">→</span></Link>
-      </div>
-      <span className="home-story-band__ornament" aria-hidden="true">✳</span>
-    </section>
+    <section className="editorial-intro atelier-section" id="loi-ngo"><div className="editorial-intro__heading"><p className="eyebrow">HÀNH TRÌNH TRO & LAM</p><h2>Đưa gốm đến gần<br />hơn với mỗi ngày.</h2><div className="fine-rule" /><p>TRO & LAM kể câu chuyện về gốm Chu Đậu qua những điều gần gũi: một góc trà, một vật phẩm cho không gian sống, hay món quà dành cho dịp cần sự trân trọng.</p><Link className="text-link" to="/ve-chung-toi">Khám phá hành trình <Icon name="arrow" size={18} /></Link></div><figure className="editorial-intro__image"><img src={media.heritage} alt="Bình gốm hoa lam Chu Đậu trong bộ sưu tập bảo tàng" width="960" height="1200" loading="lazy" /><figcaption>Một góc nhìn về gốm Chu Đậu · Ảnh tư liệu</figcaption><span className="image-label">SẮC LAM<br />CÒN MÃI</span></figure></section>
+    <section className="collection-story atelier-section"><div className="collection-story__image"><img src={media.tea} alt="Hai chén trà trên bàn gỗ — ảnh cảm hứng không gian sống" loading="lazy" /><span>01 / LIFESTYLE</span></div><div className="collection-story__copy"><p className="eyebrow">GỐM TRONG ĐỜI SỐNG</p><h2>Một chút gốm.<br />Một khoảng bình yên.</h2><p>Dành một góc nhỏ cho những điều bạn yêu. Khám phá dòng Lifestyle, nơi gốm đồng hành cùng không gian và nhịp sống mỗi ngày.</p><Link className="text-link" to="/bo-suu-tap/lifestyle">Khám phá Lifestyle <Icon name="arrow" size={18} /></Link></div></section>
+    <section className="collection-story collection-story--reverse atelier-section"><div className="collection-story__image collection-story__image--vase"><img src={media.vases} alt="Bình gốm trắng cùng cành hoa — ảnh cảm hứng trao tặng" loading="lazy" /><span>02 / DIPLOMACY</span></div><div className="collection-story__copy"><p className="eyebrow">GỐM CHO NHỮNG DỊP TRAO TẶNG</p><h2>Gửi một món quà.<br />Gói một tấm lòng.</h2><p>Một món quà được lựa chọn bằng sự quan tâm. Dòng Diplomacy mở ra những gợi ý gốm dành cho đối tác, tổ chức và những dịp trang trọng.</p><Link className="text-link" to="/bo-suu-tap/diplomacy">Khám phá Diplomacy <Icon name="arrow" size={18} /></Link></div></section>
+    <section className="atelier-featured atelier-section"><div className="section-heading section-heading--split"><div><p className="eyebrow">LỰA CHỌN TỪ TRO & LAM</p><h2>Gốm dành cho bạn</h2></div><Link className="text-link" to="/san-pham">Tất cả sản phẩm <Icon name="arrow" size={18} /></Link></div>{state.status === 'loading' && <CatalogLoading count={4} />}{state.status === 'error' && <CatalogError onRetry={() => setRetry((value) => value + 1)} />}{state.status === 'ready' && (state.items.length ? <div className="product-grid">{state.items.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <CatalogEmpty />)}</section>
+    <HeritageFilm />
+    <section className="closing-note atelier-section"><p className="eyebrow">MỖI NGÀY, MỘT CHÚT SẮC LAM</p><h2>Để vẻ đẹp của gốm<br />tiếp tục câu chuyện cùng bạn.</h2><Link className="text-link" to="/cau-chuyen">Ghé thăm góc câu chuyện <Icon name="arrow" size={18} /></Link></section>
   </>;
 }

@@ -3,8 +3,29 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { CatalogEmpty, CatalogError, CatalogLoading, Pagination } from '../../components/catalog/CatalogStates.jsx';
 import { getPublishedCategories, searchPublishedProducts } from '../../services/catalog/catalogApi.js';
+import { media } from '../../constants/editorialMedia.js';
 
 const lineLabels = { lifestyle: 'Lifestyle Line', diplomacy: 'Diplomacy Line' };
+const lineIntroductions = {
+  lifestyle: {
+    eyebrow: 'GỐM TRONG ĐỜI SỐNG',
+    heading: 'Một chút gốm. Một khoảng bình yên.',
+    summary: 'Lifestyle Line gợi mở những món gốm cho góc trà, không gian sống và những món quà gần gũi.',
+    image: media.tea,
+    alt: 'Hai chén trà trong một góc bàn gỗ — ảnh cảm hứng, không phải ảnh sản phẩm TRO & LAM',
+    caption: 'Ảnh cảm hứng về khoảnh khắc thưởng trà · Không phải ảnh SKU',
+    items: ['Lư xông trầm mini', 'Hũ trà', 'Bộ chén độc ẩm'],
+  },
+  diplomacy: {
+    eyebrow: 'GỐM CHO NHỮNG DỊP TRAO TẶNG',
+    heading: 'Gửi một món quà. Gói một tấm lòng.',
+    summary: 'Diplomacy Line dành cho những lựa chọn quà tặng văn hóa, doanh nghiệp và các dịp trang trọng.',
+    image: media.vases,
+    alt: 'Bình gốm trong không gian trưng bày — ảnh cảm hứng, không phải ảnh sản phẩm TRO & LAM',
+    caption: 'Ảnh cảm hứng về gốm trao tặng · Không phải ảnh SKU',
+    items: ['Bình Thiên Nga', 'Bình Phú Quý', 'Bình Giọt Ngọc', 'Bình Hoa Lam', 'Bình Tỳ Bà'],
+  },
+};
 
 function readFilters(params, forcedLine) {
   return {
@@ -101,14 +122,22 @@ export default function ProductCatalogPage() {
   const pageTitle = forcedLine ? lineLabels[forcedLine] : 'Sản phẩm';
   return <div className="catalog-page section-wrap">
     <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{pageTitle}</span></nav>
-    <section className="catalog-page__intro">
-      <p className="eyebrow">TRO & LAM · DANH MỤC ĐÃ CÔNG BỐ</p>
+    {forcedLine ? <section className="product-line-intro">
+      <div className="product-line-intro__feature">
+        <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>
+        <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" /><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
+      </div>
+      <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
+      <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle" aria-current={forcedLine === 'lifestyle' ? 'page' : undefined}>Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy" aria-current={forcedLine === 'diplomacy' ? 'page' : undefined}>Diplomacy · Gốm trao tặng</Link></nav>
+    </section> : <section className="catalog-page__intro">
+      <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>
       <h1>{pageTitle}</h1>
-      <p>Tìm kiếm và lọc theo thông tin sản phẩm đã được công bố. Sản phẩm yêu cầu báo giá không hiển thị mức giá giả.</p>
-    </section>
+      <p>Tìm một món gốm cho không gian của bạn, hay một món quà cho người bạn trân quý.</p>
+      <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham" aria-current="page">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle">Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy">Diplomacy · Gốm trao tặng</Link></nav>
+    </section>}
     <div className="catalog-layout">
       <CatalogFilterForm key={routeKey} filters={filters} categories={categories} forcedLine={forcedLine} onApply={setQuery} onReset={resetFilters} />
-      <section className="catalog-results" aria-label="Kết quả sản phẩm" aria-live="polite">
+      <section className="catalog-results" id="san-pham-trong-dong" aria-label="Kết quả sản phẩm" aria-live="polite">
         <div className="catalog-results__top"><p>{state.pagination ? `${state.pagination.total} sản phẩm` : 'Danh mục sản phẩm'}</p>{state.pagination?.total > 0 && <span>Trang {state.pagination.page} / {state.pagination.totalPages}</span>}</div>
         {state.status === 'loading' && <CatalogLoading />}
         {state.status === 'error' && <CatalogError message={state.error} onRetry={() => setRetry((value) => value + 1)} />}
