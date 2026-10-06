@@ -9,6 +9,7 @@ import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.mo
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
+import { Review } from '../../backend/src/reviews/review.models.js';
 import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   DRAFT_PRODUCT,
@@ -16,6 +17,7 @@ import {
   GUEST_ORDER_CODE,
   GUEST_ORDER_EMAIL,
   PUBLISHED_PRODUCT,
+  REVIEW_ORDER_CODE,
   STAFF_ORDER_CODE,
   USERS,
   assertDedicatedLocalMongoUri,
@@ -63,6 +65,7 @@ async function inspectP11Database(read) {
       Notification: connection.model('P11NotificationRead', Notification.schema),
       Ticket: connection.model('P11TicketRead', Ticket.schema),
       TicketMessage: connection.model('P11TicketMessageRead', TicketMessage.schema),
+      Review: connection.model('P11ReviewRead', Review.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
@@ -528,6 +531,76 @@ test('customer notifications stay owner-scoped and read changes persist without 
   expect(persisted.other.readAt).toBeNull();
 });
 
+test('verified customer review remains private until an admin publishes it', async ({ page, browser }) => {
+  const comment = 'P11 verified ceramic review acceptance';
+  const reviewOrderId = process.env.P11_E2E_FIXTURE_REVIEW_ORDER_ID;
+  const productId = process.env.P11_E2E_FIXTURE_PRODUCT_ID;
+
+  await login(page, USERS.customer);
+  await page.goto('/tai-khoan/danh-gia');
+  await expect(page.getByRole('heading', { name: 'Đánh giá sản phẩm', exact: true })).toBeVisible();
+  const eligibleReview = page.locator('.support-review-card');
+  await expect(eligibleReview).toHaveCount(1);
+  await expect(eligibleReview).toContainText(REVIEW_ORDER_CODE);
+  await expect(eligibleReview).toContainText(PUBLISHED_PRODUCT.name);
+  await eligibleReview.getByRole('combobox', { name: 'Đánh giá', exact: true }).selectOption('4');
+  await eligibleReview.getByRole('textbox', { name: /Chia sẻ trải nghiệm/u }).fill(comment);
+  const createReviewResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/account/reviews')
+    && response.request().method() === 'POST');
+  await eligibleReview.getByRole('button', { name: 'Gửi đánh giá', exact: true }).click();
+  const createReviewResponse = await createReviewResponsePromise;
+  const createReviewBody = await createReviewResponse.json();
+  expect(createReviewResponse.status(), JSON.stringify(createReviewBody)).toBe(201);
+  expect(createReviewBody.data).toMatchObject({ orderId: reviewOrderId, productId, rating: 4, status: 'pending' });
+  const reviewId = createReviewBody.data.id;
+  await expect(page.getByText(comment, { exact: true })).toBeVisible();
+  await expect(page.getByText('Đang chờ duyệt', { exact: true })).toBeVisible();
+
+  const unpublishedReviews = await browserApi(page, `/api/v1/products/${productId}/reviews`);
+  expect(unpublishedReviews.status).toBe(200);
+  expect(unpublishedReviews.body.data).toHaveLength(0);
+
+  const adminContext = await browser.newContext();
+  try {
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, USERS.admin);
+    await adminPage.goto('/admin/reviews');
+    const reviewCard = adminPage.locator('.support-moderation-card').filter({ hasText: comment });
+    await expect(reviewCard).toHaveCount(1);
+    await reviewCard.getByRole('textbox', { name: 'Lý do kiểm duyệt', exact: true }).fill('P11 acceptance moderation reason');
+    const moderationResponsePromise = adminPage.waitForResponse((response) => response.url().endsWith(`/api/v1/admin/reviews/${reviewId}/moderation`)
+      && response.request().method() === 'POST');
+    await reviewCard.getByRole('button', { name: 'Công bố', exact: true }).click();
+    const moderationResponse = await moderationResponsePromise;
+    const moderationBody = await moderationResponse.json();
+    expect(moderationResponse.status(), JSON.stringify(moderationBody)).toBe(200);
+    expect(moderationBody.data).toMatchObject({ id: reviewId, status: 'published' });
+    await adminPage.reload();
+    await expect(adminPage.getByRole('heading', { name: 'Kiểm duyệt đánh giá', exact: true })).toBeVisible();
+    await expect(adminPage.locator('.support-state[role="status"]')).toHaveCount(0);
+    await adminPage.getByRole('combobox').selectOption('published');
+    const publishedReviewCard = adminPage.locator('.support-moderation-card').filter({ hasText: comment });
+    await expect(publishedReviewCard).toHaveCount(1);
+    await expect(publishedReviewCard).toContainText('Đã công bố');
+
+    const publishedReviews = await browserApi(adminPage, `/api/v1/products/${productId}/reviews`);
+    expect(publishedReviews.status).toBe(200);
+    expect(publishedReviews.body.data).toHaveLength(1);
+    expect(publishedReviews.body.data[0]).toMatchObject({ id: reviewId, rating: 4, comment });
+    await adminPage.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+    await expect(adminPage.getByText(comment, { exact: true })).toBeVisible();
+  } finally {
+    await adminContext.close();
+  }
+
+  const persisted = await inspectP11Database(async ({ Review: ReviewRead, AuditLog: AuditLogRead }) => ({
+    review: await ReviewRead.findById(reviewId).lean().exec(),
+    audit: await AuditLogRead.findOne({ targetType: 'review', action: 'review.moderated', 'changesRedacted.status': 'published' }).lean().exec(),
+  }));
+  expect(persisted.review).toMatchObject({ moderationStatus: 'published', moderationReason: 'P11 acceptance moderation reason' });
+  expect(persisted.audit).toMatchObject({ action: 'review.moderated', outcome: 'success', changesRedacted: { status: 'published' } });
+});
+
 test('customer and staff support ticket round-trip keeps internal notes private', async ({ page, browser }) => {
   const subject = 'P11 support privacy acceptance';
   const initialMessage = 'P11 customer describes a delivery question.';
@@ -624,7 +697,7 @@ test('customer and staff support ticket round-trip keeps internal notes private'
   } catch (error) {
     throw new Error(`P11 support browser flow failed during ${supportPhase}: ${error.message}`, { cause: error });
   } finally {
-    void staffContext.close().catch(() => {});
+    await staffContext.close();
   }
 
   const persisted = await inspectP11Database(async ({ Ticket: TicketRead, TicketMessage: TicketMessageRead }) => ({

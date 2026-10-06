@@ -43,6 +43,7 @@ export const STAFF_ORDER_CODE = 'TL-P11-SHIPMENT';
 export const PAYMENT_ORDER_CODE = 'TL-P11-PAYMENT-RETURN';
 export const GUEST_ORDER_CODE = 'TL-P11-GUEST-PRIVATE';
 export const GUEST_ORDER_EMAIL = 'guest.private.p11@example.test';
+export const REVIEW_ORDER_CODE = 'TL-P11-REVIEW-DELIVERED';
 
 export function assertDedicatedLocalMongoUri(value) {
   if (typeof value !== 'string' || value.length === 0) {

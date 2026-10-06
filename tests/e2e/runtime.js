@@ -18,6 +18,7 @@ import { User } from '../../backend/src/models/identity/user.model.js';
 import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js';
 import { Notification } from '../../backend/src/models/operations/notification.model.js';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
+import { Review } from '../../backend/src/reviews/review.models.js';
 import { validateEnv } from '../../backend/src/validators/env.validator.js';
 import {
   assertDedicatedLocalMongoUri,
@@ -28,6 +29,7 @@ import {
   PUBLISHED_PRODUCT,
   USERS,
   STAFF_ORDER_CODE,
+  REVIEW_ORDER_CODE,
   PAYMENT_ORDER_CODE,
   GUEST_ORDER_CODE,
   WEB_ORIGIN,
@@ -60,6 +62,7 @@ async function seedSyntheticFixture() {
     AuditLog.init(),
     Notification.init(),
     OutboxEvent.init(),
+    Review.init(),
   ]);
 
   const passwordHash = await argon2.hash(FIXTURE_PASSWORD);
@@ -157,6 +160,25 @@ async function seedSyntheticFixture() {
       version: 2,
     },
     {
+      code: REVIEW_ORDER_CODE,
+      userId: customer._id,
+      status: 'delivered',
+      paymentMethod: 'cod',
+      paymentStatus: 'paid',
+      paidAmountVnd: PUBLISHED_PRODUCT.priceVnd,
+      recipientName: 'P11 Review Recipient',
+      email: USERS.customer.email,
+      phone: '0900000016',
+      address: '16 Đường Thử nghiệm',
+      history: [
+        { fromStatus: 'pending', toStatus: 'confirmed', createdAt: new Date(now.getTime() - 4_000) },
+        { fromStatus: 'confirmed', toStatus: 'processing', createdAt: new Date(now.getTime() - 3_000) },
+        { fromStatus: 'processing', toStatus: 'shipped', createdAt: new Date(now.getTime() - 2_000) },
+        { fromStatus: 'shipped', toStatus: 'delivered', createdAt: new Date(now.getTime() - 1_000) },
+      ],
+      version: 4,
+    },
+    {
       code: PAYMENT_ORDER_CODE,
       userId: customer._id,
       status: 'pending',
@@ -212,7 +234,7 @@ async function seedSyntheticFixture() {
         status: fixture.status,
         paymentMethod: fixture.paymentMethod,
         paymentStatus: fixture.paymentStatus,
-        paidAmountVnd: 0,
+        paidAmountVnd: fixture.paidAmountVnd || 0,
         refundedAmountVnd: 0,
         reservationId,
         statusHistory: fixture.history,
@@ -221,7 +243,7 @@ async function seedSyntheticFixture() {
       reservation: {
         orderId,
         items: [{ productId: published._id, quantity: 1 }],
-        status: 'held',
+        status: fixture.status === 'delivered' ? 'committed' : 'held',
         version: 0,
       },
     };
@@ -275,9 +297,10 @@ async function seedSyntheticFixture() {
     publishedProductId: String(published._id),
     draftProductId: String(draft._id),
     otherCustomerAddressId: String((await Address.findOne({ userId: otherCustomer._id }).exec())._id),
-    staffOrderId: String(orderRecords[0].order._id),
-    paymentOrderId: String(orderRecords[1].order._id),
-    guestOrderId: String(orderRecords[2].order._id),
+    staffOrderId: String(orderRecords.find(({ order }) => order.code === STAFF_ORDER_CODE).order._id),
+    paymentOrderId: String(orderRecords.find(({ order }) => order.code === PAYMENT_ORDER_CODE).order._id),
+    guestOrderId: String(orderRecords.find(({ order }) => order.code === GUEST_ORDER_CODE).order._id),
+    reviewOrderId: String(orderRecords.find(({ order }) => order.code === REVIEW_ORDER_CODE).order._id),
     customerNotificationIds: notifications.slice(0, 2).map((notification) => String(notification._id)),
     otherCustomerNotificationId: String(notifications[2]._id),
     seededOrderCount: orderRecords.length,
