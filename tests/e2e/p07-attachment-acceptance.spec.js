@@ -1,9 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import argon2 from 'argon2';
 import mongoose from 'mongoose';
 import { SupportAttachment } from '../../backend/src/support/support.models.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
-import { FIXTURE_PASSWORD, USERS, assertDedicatedLocalMongoUri } from './fixtures.js';
+import { assertDedicatedLocalMongoUri } from './fixtures.js';
+
+const P07_PASSWORD = 'P07-only synthetic attachment password';
+const P07_USERS = Object.freeze({
+  customer: Object.freeze({ name: 'P07 Attachment Customer', email: 'attachment.customer.p07@example.test', role: 'customer' }),
+  otherCustomer: Object.freeze({ name: 'P07 Other Attachment Customer', email: 'other.attachment.customer.p07@example.test', role: 'customer' }),
+  staff: Object.freeze({ name: 'P07 Attachment Staff', email: 'attachment.staff.p07@example.test', role: 'staff' }),
+});
 
 async function browserApi(page, path, init = {}) {
   return page.evaluate(async ({ apiPath, requestInit }) => {
@@ -28,25 +36,43 @@ async function browserApi(page, path, init = {}) {
 async function login(page, user) {
   await page.goto('/dang-nhap');
   await page.getByLabel('Email', { exact: true }).fill(user.email);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(P07_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   const destination = user.role === 'customer' ? 'Hồ sơ của tôi' : 'Bảng công việc';
   await expect(page.getByRole('heading', { name: destination, exact: true })).toBeVisible();
 }
 
-async function seedSyntheticAttachmentMetadata(ticketId) {
+async function withP07Database(callback) {
   const { uri, databaseName } = assertDedicatedLocalMongoUri(process.env.P11_E2E_MONGODB_URI);
   const connection = await mongoose.createConnection(uri, { serverSelectionTimeoutMS: 5000 }).asPromise();
   try {
     if (connection.name !== databaseName) throw new Error('P07 attachment fixture connected to an unexpected test database.');
-    const UserRead = connection.model('P07AttachmentUserRead', User.schema);
+    return await callback(connection);
+  } finally {
+    await connection.close();
+  }
+}
+
+async function seedSyntheticUsers() {
+  return withP07Database(async (connection) => {
+    const UserFixture = connection.model('P07AttachmentUserFixture', User.schema);
+    const passwordHash = await argon2.hash(P07_PASSWORD);
+    const users = await UserFixture.create(Object.values(P07_USERS).map((user) => ({
+      ...user,
+      emailNormalized: user.email,
+      passwordHash,
+      status: 'active',
+      emailVerifiedAt: new Date(),
+      authVersion: 0,
+      version: 0,
+    })));
+    return Object.fromEntries(users.map((user) => [user.emailNormalized, String(user._id)]));
+  });
+}
+
+async function seedSyntheticAttachmentMetadata(ticketId, userIds) {
+  return withP07Database(async (connection) => {
     const AttachmentFixture = connection.model('P07AttachmentFixture', SupportAttachment.schema);
-    const [customer, otherCustomer, staff] = await Promise.all([
-      UserRead.findOne({ emailNormalized: USERS.customer.email }).exec(),
-      UserRead.findOne({ emailNormalized: USERS.otherCustomer.email }).exec(),
-      UserRead.findOne({ emailNormalized: USERS.staff.email }).exec(),
-    ]);
-    if (!customer || !otherCustomer || !staff) throw new Error('P07 synthetic owner fixture users are missing.');
 
     const ids = {
       pending: new mongoose.Types.ObjectId(),
@@ -59,7 +85,7 @@ async function seedSyntheticAttachmentMetadata(ticketId) {
       {
         _id: ids.pending,
         storageKey: `p07-e2e-fixture/${fixtureKey}/pending-no-object`,
-        uploadedByUserId: customer._id,
+        uploadedByUserId: userIds[P07_USERS.customer.email],
         purpose: 'ticket',
         mimeType: 'image/png',
         bytes: 8,
@@ -71,7 +97,7 @@ async function seedSyntheticAttachmentMetadata(ticketId) {
       {
         _id: ids.customerReady,
         storageKey: `p07-e2e-fixture/${fixtureKey}/ready-no-object`,
-        uploadedByUserId: customer._id,
+        uploadedByUserId: userIds[P07_USERS.customer.email],
         purpose: 'ticket',
         mimeType: 'image/png',
         bytes: 8,
@@ -83,7 +109,7 @@ async function seedSyntheticAttachmentMetadata(ticketId) {
       {
         _id: ids.internalLinked,
         storageKey: `p07-e2e-fixture/${fixtureKey}/internal-no-object`,
-        uploadedByUserId: staff._id,
+        uploadedByUserId: userIds[P07_USERS.staff.email],
         purpose: 'ticket',
         ticketId,
         mimeType: 'image/png',
@@ -95,22 +121,15 @@ async function seedSyntheticAttachmentMetadata(ticketId) {
       },
     ]);
     return Object.fromEntries(Object.entries(ids).map(([key, value]) => [key, String(value)]));
-  } finally {
-    await connection.close();
-  }
+  });
 }
 
 async function readAttachmentAudit(ticketId) {
-  const { uri, databaseName } = assertDedicatedLocalMongoUri(process.env.P11_E2E_MONGODB_URI);
-  const connection = await mongoose.createConnection(uri, { serverSelectionTimeoutMS: 5000 }).asPromise();
-  try {
-    if (connection.name !== databaseName) throw new Error('P07 attachment audit connected to an unexpected test database.');
+  return withP07Database(async (connection) => {
     const AttachmentRead = connection.model('P07AttachmentAudit', SupportAttachment.schema);
     return await AttachmentRead.find({ $or: [{ ticketId }, { storageKey: /^p07-e2e-fixture\// }] })
       .sort({ storageKey: 1 }).lean().exec();
-  } finally {
-    await connection.close();
-  }
+  });
 }
 
 function expectUnavailable(response) {
@@ -123,15 +142,14 @@ function expectUnavailable(response) {
 test('P07 customer and staff attachment routes fail closed and preserve owner privacy without storage', async ({ page, browser }) => {
   const subject = 'P07 synthetic attachment storage acceptance';
   const initialMessage = 'Synthetic support message for attachment storage acceptance.';
-  const orderId = process.env.P11_E2E_FIXTURE_STAFF_ORDER_ID;
+  const userIds = await seedSyntheticUsers();
 
-  await login(page, USERS.customer);
+  await login(page, P07_USERS.customer);
   await page.goto('/tai-khoan/ho-tro');
   const createForm = page.locator('.support-stack > form.support-card');
   await expect(createForm).toHaveCount(1);
   await createForm.getByRole('combobox', { name: 'Chủ đề', exact: true }).selectOption('complaint');
   await createForm.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill(subject);
-  await createForm.getByRole('textbox', { name: /Mã đơn hàng/u }).fill(orderId);
   await createForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(initialMessage);
   const createTicketResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/tickets')
     && response.request().method() === 'POST');
@@ -151,7 +169,7 @@ test('P07 customer and staff attachment routes fail closed and preserve owner pr
   const otherCustomerContext = await browser.newContext();
   try {
     const staffPage = await staffContext.newPage();
-    await login(staffPage, USERS.staff);
+    await login(staffPage, P07_USERS.staff);
     await staffPage.goto('/staff/support');
     const ticketLink = staffPage.locator('.support-ticket-list').getByRole('link').filter({ hasText: subject });
     await expect(ticketLink).toBeVisible();
@@ -166,9 +184,9 @@ test('P07 customer and staff attachment routes fail closed and preserve owner pr
 
     const beforeSeed = await readAttachmentAudit(ticketId);
     expect(beforeSeed).toEqual([]);
-    const ids = await seedSyntheticAttachmentMetadata(ticketId);
+    const ids = await seedSyntheticAttachmentMetadata(ticketId, userIds);
     const otherCustomerPage = await otherCustomerContext.newPage();
-    await login(otherCustomerPage, USERS.otherCustomer);
+    await login(otherCustomerPage, P07_USERS.otherCustomer);
 
     const ownerFinalize = await browserApi(page, `/api/v1/attachments/${ids.pending}/finalize`, {
       method: 'POST', body: {},
