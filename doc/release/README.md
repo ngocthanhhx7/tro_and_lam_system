@@ -257,3 +257,9 @@ The targeted browser flow passed **1/1**; the complete suite passed **26/26**. O
 The catalog browser flow receives a test-only 503 from the list endpoint, checks the visible error and retry control, then retries into a separately stubbed empty 200 response. The page renders its empty state and clears the error alert. No sample listing or provider result is fabricated.
 
 The focused test passed **1/1**; the complete `npm run test:e2e` passed **27/27**. `npm run check` passed contracts, lint, backend **197/197 with 0 skipped**, and Vite build (132 modules). The local read-only test-database-prefix audit returned `[]` for P02/P05/P06/P11 after teardown. WCAG review and owner catalog UAT remain open.
+
+## P11 staff support queue browser follow-up (2026-10-07)
+
+The customer/staff support round-trip now starts from `/staff/support`: it confirms a new ticket appears in the open queue, opens the ticket from that list, claims it, returns to the queue, selects the `assigned` filter and verifies the matching API request and ticket status, then opens it again from the filtered results. Existing assertions continue through the staff/customer conversation and ensure the customer cannot see the internal note.
+
+The focused browser test passed **1/1**, and `npm run test:e2e` passed **27/27**. `npm run check` passed contract validation, lint and backend **197/197 with 0 skipped**, then built the 132-module frontend. The minified JavaScript bundle remains **551.12 kB**, above Vite's 500 kB advisory threshold. The local loopback database audit returned `[]` for P02/P05/P06/P11 after cleanup; the exact empty P06 test database was verified to contain zero documents before removal. No real provider, production database or deployment was used. Broader staff capability UAT, provider staging, remote GitHub Actions execution and manual accessibility review remain open.

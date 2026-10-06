@@ -986,8 +986,13 @@ test('customer and staff support ticket round-trip keeps internal notes private'
   try {
     const staffPage = await staffContext.newPage();
     await login(staffPage, USERS.staff);
-    supportPhase = 'staff ticket rendering';
-    await staffPage.goto(`/staff/support/${ticketId}`);
+    supportPhase = 'staff queue rendering';
+    await staffPage.goto('/staff/support');
+    const openTicketLink = staffPage.locator('.support-ticket-list').getByRole('link').filter({ hasText: subject });
+    await expect(openTicketLink).toBeVisible();
+
+    supportPhase = 'staff opens ticket from queue';
+    await openTicketLink.click();
     await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
     await expect(staffPage.getByText(initialMessage, { exact: true })).toBeVisible();
 
@@ -997,6 +1002,26 @@ test('customer and staff support ticket round-trip keeps internal notes private'
     await staffPage.getByRole('button', { name: 'Nhận xử lý', exact: true }).click();
     const assignmentResponse = await assignmentResponsePromise;
     expect(assignmentResponse.status()).toBe(200);
+    await expect(staffPage.locator('.support-thread__header')).toContainText('Đã phân công');
+
+    supportPhase = 'assigned queue filter';
+    await staffPage.getByRole('link', { name: '← Hàng đợi', exact: true }).click();
+    const assignedQueueResponsePromise = staffPage.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/v1/staff/tickets')
+        && url.searchParams.get('status') === 'assigned'
+        && response.request().method() === 'GET';
+    }, { timeout: 8000 });
+    await staffPage.getByRole('combobox', { name: 'Trạng thái', exact: true }).selectOption('assigned');
+    const assignedQueueResponse = await assignedQueueResponsePromise;
+    expect(assignedQueueResponse.status()).toBe(200);
+    const assignedTicketLink = staffPage.locator('.support-ticket-list').getByRole('link').filter({ hasText: subject });
+    await expect(assignedTicketLink).toBeVisible();
+    await expect(assignedTicketLink).toContainText('Đã phân công');
+
+    supportPhase = 'staff reopens assigned ticket from filtered queue';
+    await assignedTicketLink.click();
+    await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
     await expect(staffPage.locator('.support-thread__header')).toContainText('Đã phân công');
 
     const staffForm = staffPage.locator('form.support-card.support-form');
