@@ -47,8 +47,8 @@ Mỗi trang công khai có một H1 mô tả đúng nội dung, tiêu đề riê
 ## Metadata và media
 
 - Tạo `title`, description, canonical, Open Graph và alt riêng theo nội dung trang. Độ dài là gợi ý biên tập, không phải giới hạn cứng của Google.
-- Frontend hiện cập nhật title, description, Open Graph và Twitter metadata theo route sau khi React chạy; trang sản phẩm cập nhật sau khi API trả dữ liệu. HTML ban đầu chỉ mang metadata mặc định, nên đây chưa phải SSR/prerender và bot chia sẻ không chạy JavaScript có thể chỉ thấy metadata mặc định.
-- Chưa có domain chính thức trong cấu hình. Chưa phát canonical, URL tuyệt đối cho chia sẻ, `robots.txt` index policy hay sitemap; không dùng hostname localhost/staging làm URL chuẩn. Hoàn tất sau khi owner cấp domain và hosting R01.
+- Frontend cập nhật title, description, Open Graph, Twitter và robots metadata sau khi React xử lý route; trang sản phẩm/câu chuyện chỉ giữ indexability khi API trả nội dung đã công bố. Đây chưa phải SSR/prerender, nên bot chia sẻ không chạy JavaScript có thể chỉ thấy metadata mặc định.
+- Giỏ hàng, checkout, tra cứu/chi tiết đơn, hồ sơ, ticket, luồng xác thực và trang staff/admin nhận `noindex, follow`. Những thẻ này không thay xác thực quyền. Chưa có domain chính thức trong cấu hình; chưa phát canonical, URL tuyệt đối cho chia sẻ, robots.txt hay sitemap. Không dùng hostname localhost/staging làm URL chuẩn. Chốt crawl policy, canonical và sitemap sau khi owner cấp domain/hosting R01; không chặn crawler ở robots.txt trước khi có noindex và domain phù hợp.
 - Ảnh phải có kích thước khai báo, định dạng tối ưu, `srcset/sizes`, lazy load dưới fold và caption/transcript phù hợp. Alt mô tả ảnh cho người dùng screen reader.
 - Chỉ dùng ảnh có nguồn/quyền ghi nhận hoặc asset nội bộ. Asset AI/vector ghi trong manifest tài sản và không được làm giả ảnh sản phẩm thật.
 - Chỉ cho phép crawler cần thiết theo quyết định owner sau khi domain thật có (R01); robots/sitemap không được chứa URL riêng hoặc thông tin cá nhân.

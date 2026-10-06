@@ -8,6 +8,15 @@ function setMeta(selector, attribute, key, content) {
   meta.content = content;
 }
 
+export function setPageIndexability(indexable) {
+  const robotsMeta = document.head.querySelector('meta[name="robots"]');
+  if (indexable) {
+    robotsMeta?.remove();
+    return;
+  }
+  setMeta('meta[name="robots"]', 'name', 'robots', 'noindex, follow');
+}
+
 export function setPageMetadata({ title, description, locale = 'vi' }) {
   const openGraphLocale = locale === 'en' ? 'en_US' : 'vi_VN';
   document.title = title;

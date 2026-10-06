@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { ContentBlocks, LocaleLinks, StoryContent } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getStory } from '../../services/content/content.service.js';
-import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
+import { setPageIndexability, setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 
 export default function StoryPage() {
   const { slug } = useParams();
@@ -29,8 +29,10 @@ export default function StoryPage() {
 
   useEffect(() => {
     if (publishedStory) {
+      setPageIndexability(true);
       setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections, locale });
     } else if (viewState.status === 'error') {
+      setPageIndexability(false);
       const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
       setPageMetadata({
         title: missing ? 'Câu chuyện chưa công khai | TRO & LAM' : 'Không tải được câu chuyện | TRO & LAM',

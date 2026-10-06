@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { LocaleLinks, StoryContent } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getNfcStory } from '../../services/content/content.service.js';
-import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
+import { setPageIndexability, setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 
 export default function NfcStoryPage() {
   const { publicId } = useParams();
@@ -27,8 +27,10 @@ export default function NfcStoryPage() {
 
   useEffect(() => {
     if (publishedStory) {
+      setPageIndexability(true);
       setPublishedContentMetadata({ title: publishedStory.title, sections: publishedStory.sections, locale });
     } else if (viewResult.status === 'error') {
+      setPageIndexability(false);
       const revoked = viewResult.error instanceof ApiError && viewResult.error.status === 410 && viewResult.error.code === 'NFC_REVOKED';
       const missing = viewResult.error instanceof ApiError && viewResult.error.status === 404;
       setPageMetadata({

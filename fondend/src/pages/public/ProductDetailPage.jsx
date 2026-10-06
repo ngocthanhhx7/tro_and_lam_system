@@ -4,7 +4,7 @@ import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogSt
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { getProductImageSource } from '../../utils/productMedia.js';
-import { setPageMetadata } from '../../utils/pageMetadata.js';
+import { setPageIndexability, setPageMetadata } from '../../utils/pageMetadata.js';
 
 const PublicProductReviews = lazy(() => import('../support/CustomerReviewsPage.jsx')
   .then((module) => ({ default: module.PublicProductReviews })));
@@ -81,7 +81,13 @@ export default function ProductDetailPage() {
   }, [slug, retry]);
 
   useEffect(() => {
-    if (state.slug !== slug || state.status !== 'ready' || !state.product) return;
+    if (state.slug !== slug) return;
+    if (state.status === 'error') {
+      setPageIndexability(false);
+      return;
+    }
+    if (state.status !== 'ready' || !state.product) return;
+    setPageIndexability(true);
     const title = `${state.product.name} | TRO & LAM`;
     const description = String(state.product.description || 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.')
       .replace(/\s+/gu, ' ')

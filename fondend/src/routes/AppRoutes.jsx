@@ -1,6 +1,7 @@
-import { Children, cloneElement, lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Children, cloneElement, lazy, Suspense, useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import IdentityRouteGuard from '../pages/identity/IdentityRouteGuard.jsx';
+import { setPageIndexability } from '../utils/pageMetadata.js';
 import { identityRoutes } from './modules/identity.routes.jsx';
 import { accountRoutes } from './modules/account.routes.jsx';
 import { catalogRoutes } from './modules/catalog.routes.jsx';
@@ -16,6 +17,20 @@ const AboutPage = lazy(() => editorialPages().then((module) => ({ default: modul
 const StoriesLandingPage = lazy(() => editorialPages().then((module) => ({ default: module.StoriesLandingPage })));
 const MediaCreditsPage = lazy(() => editorialPages().then((module) => ({ default: module.MediaCreditsPage })));
 
+const INDEXABLE_PATHS = Object.freeze([
+  /^\/$/u,
+  /^\/san-pham(?:\/[^/]+)?$/u,
+  /^\/bo-suu-tap\/(?:lifestyle|diplomacy)$/u,
+  /^\/(?:ve-chung-toi|cau-chuyen|nguon-tu-lieu|lien-he|qua-tang-doanh-nghiep)$/u,
+  /^\/cau-chuyen\/[^/]+$/u,
+  /^\/trang\/[^/]+$/u,
+  /^\/nfc\/[^/]+$/u,
+]);
+
+function isIndexablePath(pathname) {
+  return INDEXABLE_PATHS.some((pattern) => pattern.test(pathname));
+}
+
 function guardedOperationsRoute(route) {
   const roles = route.path.startsWith('/admin')
     ? ['admin']
@@ -28,6 +43,11 @@ function guardedOperationsRoute(route) {
 }
 
 export default function AppRoutes() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    setPageIndexability(isIndexablePath(pathname));
+  }, [pathname]);
+
   const [catalogShell, ...adminCatalogRoutes] = catalogRoutes;
   const publicChildren = [
     ...Children.toArray(catalogShell.props.children),

@@ -222,6 +222,28 @@ test('public pages expose working Zalo, Messenger, and hotline quick-contact lin
   }
 });
 
+test('public storefront routes remain indexable while account and operations routes use noindex', async ({ page }) => {
+  const robotsMeta = page.locator('meta[name="robots"]');
+  await page.goto('/');
+  await expect(robotsMeta).toHaveCount(0);
+  await page.goto('/san-pham');
+  await expect(robotsMeta).toHaveCount(0);
+  await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+  await expect(page.getByRole('heading', { name: PUBLISHED_PRODUCT.name, exact: true })).toBeVisible();
+  await expect(robotsMeta).toHaveCount(0);
+  await page.goto('/san-pham/missing-public-product-fixture');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(robotsMeta).toHaveAttribute('content', 'noindex, follow');
+  await page.goto('/cau-chuyen/missing-public-story-fixture');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(robotsMeta).toHaveAttribute('content', 'noindex, follow');
+
+  for (const path of ['/gio-hang', '/thanh-toan', '/tai-khoan/ho-so', '/dang-nhap', '/staff', '/admin']) {
+    await page.goto(path);
+    await expect(robotsMeta).toHaveAttribute('content', 'noindex, follow');
+  }
+});
+
 test('home tells the TRO & LAM story, introduces both lines and links to their product-photo landing pages', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();

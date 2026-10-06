@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { LocaleLinks } from '../../components/story/StoryContent.jsx';
 import { ApiError } from '../../services/httpClient.js';
 import { getPage } from '../../services/content/content.service.js';
-import { setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
+import { setPageIndexability, setPageMetadata, setPublishedContentMetadata } from '../../utils/pageMetadata.js';
 import { PublicPageContent } from './StoryPage.jsx';
 
 export default function PublishedPage({ pageSlug, fallback }) {
@@ -28,8 +28,12 @@ export default function PublishedPage({ pageSlug, fallback }) {
 
   useEffect(() => {
     if (publishedPage) {
+      setPageIndexability(true);
       setPublishedContentMetadata({ title: publishedPage.title, blocks: publishedPage.blocks, locale });
+    } else if (usesEditorialFallback) {
+      setPageIndexability(true);
     } else if (viewState.status === 'error' && !usesEditorialFallback) {
+      setPageIndexability(false);
       const missing = viewState.error instanceof ApiError && viewState.error.status === 404;
       setPageMetadata({
         title: missing ? 'Trang chưa công khai | TRO & LAM' : 'Không tải được trang | TRO & LAM',
