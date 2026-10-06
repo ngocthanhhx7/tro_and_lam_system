@@ -85,6 +85,7 @@
 .film-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 82px; height: 82px; border: 1px solid #fff9; border-radius: 50%; color: white; background: #ffffff10; display: grid; place-items: center; cursor: pointer; transition: background .2s; }
 .film-play:hover { background: #ffffff30; }
 .heritage-film__copy { align-self: center; padding: 65px clamp(30px,6vw,95px); }
+.heritage-film__caption-note { max-width: 460px; font-size: 11px; line-height: 1.65; }
 .heritage-film .eyebrow { color: #d9c492; }
 .heritage-film h2 { color: #faf5e7; }
 .heritage-film p:not(.eyebrow) { color: #cad6d2; }
