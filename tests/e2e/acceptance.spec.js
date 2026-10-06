@@ -43,7 +43,7 @@ async function browserApi(page, path, init = {}) {
       if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     }
     const response = await fetch(apiPath, options);
-    return { status: response.status, body: await response.json() };
+    return { status: response.status, body: response.status === 204 ? null : await response.json() };
   }, { apiPath: path, requestInit: init });
 }
 
@@ -1052,4 +1052,33 @@ test('customer resets a password through encrypted outbox, consuming the link an
   expect(newLoginResponse.status(), JSON.stringify(newLoginBody)).toBe(200);
   expect(newLoginBody.data.user).toMatchObject({ email, role: 'customer' });
   await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+});
+
+test('customer logout revokes the server session and clears the browser cookie', async ({ page, context }) => {
+  const logoutUser = USERS.otherCustomer;
+  await login(page, logoutUser);
+
+  const identity = await browserApi(page, '/api/v1/auth/me');
+  expect(identity.status).toBe(200);
+  expect(identity.body.data).toMatchObject({ email: logoutUser.email, role: 'customer' });
+
+  const sessionCookieName = process.env.P11_E2E_SESSION_COOKIE_NAME || 'tl_session';
+  const sessionCookieBefore = (await context.cookies()).find((cookie) => cookie.name === sessionCookieName);
+  expect(sessionCookieBefore?.httpOnly).toBe(true);
+
+  const logout = await browserApi(page, '/api/v1/auth/logout', { method: 'POST' });
+  expect(logout.status).toBe(204);
+  expect(logout.body).toBeNull();
+  expect((await context.cookies()).some((cookie) => cookie.name === sessionCookieName)).toBe(false);
+
+  const identityAfterLogout = await browserApi(page, '/api/v1/auth/me');
+  expect(identityAfterLogout.status).toBe(401);
+  expect(identityAfterLogout.body.error?.code).toBe('AUTH_REQUIRED');
+
+  const persistedSessions = await inspectP11Database(async ({ AuthSession: AuthSessionRead, User: UserRead }) => {
+    const user = await UserRead.findOne({ emailNormalized: logoutUser.email }).lean().exec();
+    return AuthSessionRead.find({ userId: user?._id }).lean().exec();
+  });
+  expect(persistedSessions.length).toBeGreaterThan(0);
+  expect(persistedSessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
 });
