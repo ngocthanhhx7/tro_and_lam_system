@@ -54,7 +54,6 @@ Không ghi credential hoặc giá trị secret vào Git. Các ID dưới đây t
 
 Chỉ mở những provider cần thiết sau khi owner cấp cấu hình qua secret store. Nếu credential chưa có, adapter và fallback vẫn báo unavailable; không đổi sang kết quả giả thành công.
 
-
 ## Post-run cleanup audit
 
 Two P11 databases left by interrupted browser attempts were verified against the exact `tro_lam_p11_e2e_test_<12 lowercase hex>` pattern and removed by name: `tro_lam_p11_e2e_test_6bb21c7dbf6a` and `tro_lam_p11_e2e_test_bddfcfe9fffa`. A read-only local MongoDB audit then found no matching test database. The untracked `test-results/` directory contained only Playwright's generated `.last-run.json`; its resolved path was verified inside this P11 worktree before removal.
@@ -195,11 +194,14 @@ On candidate revision `b82eaf3`, `npm ci` and `npm audit` completed with 0 repor
 
 After teardown, a read-only audit found no P02/P05/P06/P11 test databases. The one existing P06 test database had three empty collections; it was dropped after the exact name and empty counts were verified. No live SMTP, PayOS, Gemini, geocoder or production database was called. The visual evidence above shows the requested deep-blue, gold and ivory palette, Vietnamese serif/sans-serif typography, restrained logo-inspired lotus detail and editorial product imagery. Concept images remain visibly disclosed and are not real SKU photographs. Owner-provided product photos (at least three views per SKU), approved cultural stories, provider staging, WCAG/screen-reader review, Atlas restore and UAT remain open. No production deployment occurred.
 
+## P08/P10 and storefront accessibility browser acceptance (2026-10-06)
 
-## Browser acceptance for published stories/NFC and assistant fallback (2026-10-06)
-
-On integrated revision `1082707`, P11 now exercises two additional flows through Chromium, Vite, Express and the isolated loopback MongoDB replica set. The content flow creates a synthetic draft through the admin API and confirms the public story route stays hidden; publishes it and verifies only the Vietnamese locale renders; creates an NFC tag and reads the published story; then revokes the tag and confirms its story content is no longer shown. All content is explicitly synthetic and makes no cultural or product-provenance claim.
+On clean worktree `D:\WW\tro_lam_verify_a11y_20261006` at candidate `b19b9ae`, P11 exercises two additional flows through Chromium, Vite, Express and the isolated loopback MongoDB replica set. The content flow creates a synthetic draft through the admin API and confirms the public story route stays hidden; publishes it and verifies only the Vietnamese locale renders; creates an NFC tag and reads the published story; then revokes the tag and confirms its story content is no longer shown. All content is explicitly synthetic and makes no cultural or product-provenance claim.
 
 The guest assistant flow runs with Gemini disabled and a zero test budget. It confirms the real API returns the documented unavailable fallback, empty citations and a handoff suggestion; the UI renders that response and the separate guest-owner cookie remains HttpOnly and scoped to `/api/v1/assistant`. This is fallback/browser evidence, not a live Gemini result or delivered human response.
 
-`npm run test:e2e` passed **23/23**. `npm run check` passed contracts (102 paths, 121 operations, 60 schemas, 22 enums, 26 fixtures), lint, backend **195/195 with 0 skipped**, and Vite build (132 modules; bundle remains above the 500 kB advisory threshold). P11 teardown removed its database. P02/P05 test databases were removed by their tests; the exact P06 database was audited to contain three empty collections and removed. A final read-only prefix audit returned `[]` for dedicated P02/P05/P06/P11 databases. No provider credentials, external provider calls, production data or deployment were used. Gemini staging, cultural-source approval, WCAG/screen-reader review, Atlas restore and owner UAT remain open.
+Axe 4.13.0 scans nine public routes at 390px and 1280px and the open mobile navigation against WCAG 2.0/2.1 A/AA and WCAG 2.2 AA rules. The selected scans pass with no violations after low-contrast caption and gold-accent colors were darkened. Escape closes the mobile dialog and restores focus to its opener. This automated scan is not a manual screen-reader or complete WCAG audit.
+
+`npm ci` installed 314 packages and reported 0 vulnerabilities. `npm run check` passed contracts (102 paths, 121 operations, 60 schemas, 22 enums, 26 fixtures), lint, backend **195/195 with 0 skipped**, and Vite build (132 modules; the JavaScript bundle remains above the 500 kB advisory threshold). `npm run test:e2e` passed **24/24**.
+
+P11 teardown removed its database. P02/P05 test databases were removed by their tests; the exact P06 database was audited to contain three empty collections and removed. A final read-only prefix audit returned `[]` for dedicated P02/P05/P06/P11 databases. No provider credentials, external provider calls, production data or deployment were used. Gemini staging, cultural-source approval, manual screen-reader/full WCAG review, Atlas restore and owner UAT remain open.
