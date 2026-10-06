@@ -9,6 +9,7 @@ import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.mo
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
+import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
@@ -60,6 +61,8 @@ async function inspectP11Database(read) {
       StockReservation: connection.model('P11StockReservationRead', StockReservation.schema),
       AuditLog: connection.model('P11AuditLogRead', AuditLog.schema),
       Notification: connection.model('P11NotificationRead', Notification.schema),
+      Ticket: connection.model('P11TicketRead', Ticket.schema),
+      TicketMessage: connection.model('P11TicketMessageRead', TicketMessage.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
@@ -523,6 +526,119 @@ test('customer notifications stay owner-scoped and read changes persist without 
   expect(persisted.own).toHaveLength(2);
   expect(persisted.own.every((item) => item.readAt instanceof Date)).toBe(true);
   expect(persisted.other.readAt).toBeNull();
+});
+
+test('customer and staff support ticket round-trip keeps internal notes private', async ({ page, browser }) => {
+  const subject = 'P11 support privacy acceptance';
+  const initialMessage = 'P11 customer describes a delivery question.';
+  const internalNote = 'P11 staff internal handling note';
+  const staffReply = 'P11 public staff response';
+  const customerReply = 'P11 customer follow-up';
+  const orderId = process.env.P11_E2E_FIXTURE_STAFF_ORDER_ID;
+
+  await login(page, USERS.customer);
+  await page.goto('/tai-khoan/ho-tro');
+  const createForm = page.locator('.support-stack > form.support-card');
+  await expect(createForm).toHaveCount(1);
+  await createForm.getByRole('combobox', { name: 'Chủ đề', exact: true }).selectOption('complaint');
+  await createForm.getByRole('textbox', { name: 'Tiêu đề', exact: true }).fill(subject);
+  await createForm.getByRole('textbox', { name: /Mã đơn hàng/u }).fill(orderId);
+  await createForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(initialMessage);
+  const createTicketResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/tickets')
+    && response.request().method() === 'POST');
+  await createForm.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).click();
+  const createTicketResponse = await createTicketResponsePromise;
+  const createTicketBody = await createTicketResponse.json();
+  expect(createTicketResponse.status(), JSON.stringify(createTicketBody)).toBe(201);
+  const ticketId = createTicketBody.data.ticket.id;
+  expect(createTicketBody.data.ticket).toMatchObject({ kind: 'complaint', orderId, status: 'open' });
+  await expect(page.getByRole('status')).toContainText(`Đã tạo yêu cầu ${createTicketBody.data.ticket.code}`);
+
+  const customerInternalNoteAttempt = await browserApi(page, `/api/v1/tickets/${ticketId}/messages`, {
+    method: 'POST', body: { body: 'P11 unauthorized internal note', attachmentIds: [], visibility: 'internal' },
+  });
+  expect(customerInternalNoteAttempt.status).toBe(403);
+  expect(customerInternalNoteAttempt.body.error?.code).toBe('FORBIDDEN');
+
+  const staffContext = await browser.newContext();
+  let supportPhase = 'staff sign-in';
+  try {
+    const staffPage = await staffContext.newPage();
+    await login(staffPage, USERS.staff);
+    supportPhase = 'staff ticket rendering';
+    await staffPage.goto(`/staff/support/${ticketId}`);
+    await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
+    await expect(staffPage.getByText(initialMessage, { exact: true })).toBeVisible();
+
+    supportPhase = 'staff assignment';
+    const assignmentResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/staff/tickets/${ticketId}`)
+      && response.request().method() === 'PATCH', { timeout: 8000 });
+    await staffPage.getByRole('button', { name: 'Nhận xử lý', exact: true }).click();
+    const assignmentResponse = await assignmentResponsePromise;
+    expect(assignmentResponse.status()).toBe(200);
+    await expect(staffPage.locator('.support-thread__header')).toContainText('Đã phân công');
+
+    const staffForm = staffPage.locator('form.support-card.support-form');
+    await expect(staffForm).toHaveCount(1);
+    supportPhase = 'staff internal note';
+    await staffForm.getByRole('combobox', { name: 'Loại tin nhắn', exact: true }).selectOption('internal');
+    await staffForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(internalNote);
+    const internalMessageResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/tickets/${ticketId}/messages`)
+      && response.request().method() === 'POST', { timeout: 8000 });
+    await staffForm.getByRole('button', { name: 'Gửi tin nhắn', exact: true }).click();
+    const internalMessageResponse = await internalMessageResponsePromise;
+    expect(internalMessageResponse.status()).toBe(201);
+    await expect(staffPage.getByText(internalNote, { exact: true })).toBeVisible();
+    await expect(staffPage.getByRole('region', { name: 'Trao đổi hỗ trợ' }).getByText('Ghi chú nội bộ', { exact: true })).toBeVisible();
+
+    supportPhase = 'staff public response';
+    await staffForm.getByRole('combobox', { name: 'Loại tin nhắn', exact: true }).selectOption('customer');
+    await staffForm.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(staffReply);
+    const staffReplyResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/tickets/${ticketId}/messages`)
+      && response.request().method() === 'POST', { timeout: 8000 });
+    await staffForm.getByRole('button', { name: 'Gửi tin nhắn', exact: true }).click();
+    const staffReplyResponse = await staffReplyResponsePromise;
+    expect(staffReplyResponse.status()).toBe(201);
+    await expect(staffPage.getByText(staffReply, { exact: true })).toBeVisible();
+
+    supportPhase = 'customer visibility check';
+    await page.goto(`/tai-khoan/ho-tro/${ticketId}`);
+    await expect(page.getByRole('heading', { name: subject, exact: true })).toBeVisible();
+    await expect(page.getByText(initialMessage, { exact: true })).toBeVisible();
+    await expect(page.getByText(staffReply, { exact: true })).toBeVisible();
+    await expect(page.getByText(internalNote, { exact: true })).toHaveCount(0);
+
+    supportPhase = 'customer response';
+    await page.getByRole('textbox', { name: 'Phản hồi', exact: true }).fill(customerReply);
+    const customerReplyResponsePromise = page.waitForResponse((response) => response.url().endsWith(`/api/v1/tickets/${ticketId}/messages`)
+      && response.request().method() === 'POST', { timeout: 8000 });
+    await page.getByRole('button', { name: 'Gửi phản hồi', exact: true }).click();
+    const customerReplyResponse = await customerReplyResponsePromise;
+    expect(customerReplyResponse.status()).toBe(201);
+    await expect(page.getByText(customerReply, { exact: true })).toBeVisible();
+
+    supportPhase = 'staff reload';
+    await staffPage.reload();
+    await expect(staffPage.getByText(customerReply, { exact: true })).toBeVisible();
+    await expect(staffPage.getByText(internalNote, { exact: true })).toBeVisible();
+  } catch (error) {
+    throw new Error(`P11 support browser flow failed during ${supportPhase}: ${error.message}`, { cause: error });
+  } finally {
+    void staffContext.close().catch(() => {});
+  }
+
+  const persisted = await inspectP11Database(async ({ Ticket: TicketRead, TicketMessage: TicketMessageRead }) => ({
+    ticket: await TicketRead.findById(ticketId).lean().exec(),
+    messages: await TicketMessageRead.find({ ticketId }).sort({ createdAt: 1, _id: 1 }).lean().exec(),
+  }));
+  expect(persisted.ticket.status).toBe('in_progress');
+  expect(persisted.ticket.assignedTo).toBeTruthy();
+  expect(persisted.messages.map((message) => [message.authorRole, message.visibility, message.body])).toEqual([
+    ['customer', 'customer', initialMessage],
+    ['staff', 'internal', internalNote],
+    ['staff', 'customer', staffReply],
+    ['customer', 'customer', customerReply],
+  ]);
 });
 
 test('test-only configured zone produces a COD quote and persists the same shipping fee', async ({ page }) => {

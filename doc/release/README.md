@@ -123,6 +123,12 @@ The P11 runtime seeds two unread notifications for the synthetic customer and on
 
 `npm run test:e2e` passed **13/13**. `npm run check` passed contract validation, lint, backend **195/195 with 0 skipped** including P02/P05/P06 loopback replica-set tests, and the 129-module build. Teardown removed the isolated browser database; the exact empty P06 test database was audited and dropped; no P02/P05/P06/P11 test databases remained. This uses synthetic notifications and does not claim outbox projection or real delivery. No external provider or production deployment was used. WCAG, notification event projection and owner UAT remain open.
 
+## P11 support ticket browser follow-up (2026-10-06)
+
+The integrated browser flow creates an order-linked complaint as the customer, rejects a customer attempt to create an internal note (403 `FORBIDDEN`), lets staff claim the ticket and send an internal note plus a customer-visible reply, then lets the customer reply. The customer thread omits the internal note; staff sees all four persisted messages. The final database assertion checks author role, visibility and order.
+
+`npm run test:e2e` passed **14/14** on the dedicated loopback replica set. The full `npm run check` passed contracts, lint and backend **195/195 with 0 skipped**, plus the 129-module build. Teardown removed the isolated E2E database; post-run audit confirmed no dedicated P02/P05/P06/P11 databases. No SMTP or storage provider was configured or called; attachment upload/finalize/download, storage staging and broader owner UAT remain open. No production deployment occurred.
+
 ## P05 guest checkout idempotency browser follow-up (2026-10-06)
 
 The P11 browser flow replays the successful guest checkout using the exact original request body and `Idempotency-Key`. The replay returns HTTP 200 with the same order ID and code; reusing the key after changing the note returns HTTP 409 `IDEMPOTENCY_CONFLICT`. The E2E request helper serializes object bodies as JSON, and the OTP test requires a real 403 `FORBIDDEN` for both unknown and wrong credentials before comparing the generic error shape.
