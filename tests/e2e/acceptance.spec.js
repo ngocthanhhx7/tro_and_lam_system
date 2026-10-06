@@ -12,6 +12,7 @@ import { createOutboxPayloadCipher } from '../../backend/src/services/operations
 import { Review } from '../../backend/src/reviews/review.models.js';
 import { AccountAppeal } from '../../backend/src/models/identity/account-appeal.model.js';
 import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.model.js';
+import { AuthSession } from '../../backend/src/models/identity/session.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
 import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
@@ -74,6 +75,7 @@ async function inspectP11Database(read) {
       Order: connection.model('P11OrderRead', Order.schema),
       AccountAppeal: connection.model('P11AccountAppealRead', AccountAppeal.schema),
       AuthChallenge: connection.model('P11AuthChallengeRead', AuthChallenge.schema),
+      AuthSession: connection.model('P11AuthSessionRead', AuthSession.schema),
       User: connection.model('P11UserRead', User.schema),
     });
   } finally {
@@ -971,4 +973,83 @@ test('admin block, customer appeal and admin approval revoke old access and allo
   } finally {
     await adminContext.close();
   }
+});
+
+test('customer resets a password through encrypted outbox, consuming the link and revoking old sessions', async ({ page }) => {
+  const email = USERS.customer.email;
+  const oldPassword = FIXTURE_PASSWORD;
+  const newPassword = 'P11 replacement password 57!';
+
+  await login(page, USERS.customer);
+  await page.goto('/quen-mat-khau');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  const resetRequestResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/forgot-password')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Gửi hướng dẫn', exact: true }).click();
+  const resetRequestResponse = await resetRequestResponsePromise;
+  const resetRequestBody = await resetRequestResponse.json();
+  expect(resetRequestResponse.status(), JSON.stringify(resetRequestBody)).toBe(202);
+  expect(resetRequestBody.data.accepted).toBe(true);
+  await expect(page.getByRole('status')).toContainText('hướng dẫn đặt lại đã được xếp gửi');
+
+  const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+  const resetMail = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
+    const events = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
+    return events.flatMap((event) => event.payload.deliveries
+      .filter((delivery) => delivery.encryptedMail)
+      .map((delivery) => decryptMail(delivery.encryptedMail)))
+      .find((message) => message.template === 'reset_password' && message.recipient === email);
+  });
+  expect(resetMail).toEqual(expect.objectContaining({
+    template: 'reset_password',
+    recipient: email,
+    data: expect.objectContaining({ actionUrl: expect.any(String) }),
+  }));
+  const resetUrl = new URL(resetMail.data.actionUrl);
+  expect(resetUrl.origin).toBe('http://127.0.0.1:5190');
+  expect(resetUrl.pathname).toBe('/dat-lai-mat-khau');
+  const fragmentToken = new URLSearchParams(resetUrl.hash.slice(1)).get('token');
+  expect(fragmentToken).toMatch(/^[A-Za-z0-9_-]{32,}$/u);
+
+  const resetResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/reset-password')
+    && response.request().method() === 'POST');
+  await page.goto(`${resetUrl.pathname}${resetUrl.hash}`);
+  await page.getByLabel('Mật khẩu mới · ít nhất 12 ký tự', { exact: true }).fill(newPassword);
+  await page.getByLabel('Nhập lại mật khẩu mới', { exact: true }).fill(newPassword);
+  await page.getByRole('button', { name: 'Cập nhật mật khẩu', exact: true }).click();
+  const resetResponse = await resetResponsePromise;
+  const resetBody = await resetResponse.json();
+  expect(resetResponse.status(), JSON.stringify(resetBody)).toBe(200);
+  expect(resetBody.data.reset).toBe(true);
+  await expect(page.getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
+
+  const persisted = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, AuthSession: AuthSessionRead, User: UserRead }) => {
+    const user = await UserRead.findOne({ emailNormalized: email }).lean().exec();
+    const challenge = await AuthChallengeRead.findOne({ userId: user?._id, purpose: 'reset_password' }).lean().exec();
+    const sessions = await AuthSessionRead.find({ userId: user?._id }).lean().exec();
+    return { user, challenge, sessions };
+  });
+  expect(persisted.challenge.consumedAt).toBeInstanceOf(Date);
+  expect(persisted.sessions.length).toBeGreaterThan(0);
+  expect(persisted.sessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
+
+  await page.goto('/dang-nhap');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(oldPassword);
+  const oldLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  const oldLoginResponse = await oldLoginResponsePromise;
+  expect(oldLoginResponse.status()).toBe(401);
+  expect((await oldLoginResponse.json()).error?.code).toBe('AUTH_REQUIRED');
+
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(newPassword);
+  const newLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
+    && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  const newLoginResponse = await newLoginResponsePromise;
+  const newLoginBody = await newLoginResponse.json();
+  expect(newLoginResponse.status(), JSON.stringify(newLoginBody)).toBe(200);
+  expect(newLoginBody.data.user).toMatchObject({ email, role: 'customer' });
+  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
 });
