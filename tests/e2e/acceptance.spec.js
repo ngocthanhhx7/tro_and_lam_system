@@ -8,6 +8,7 @@ import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js
 import { Notification } from '../../backend/src/models/operations/notification.model.js';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
+import { Address } from '../../backend/src/models/account/address.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
 import { Review } from '../../backend/src/reviews/review.models.js';
@@ -75,6 +76,7 @@ async function inspectP11Database(read) {
       Review: connection.model('P11ReviewRead', Review.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
+      Address: connection.model('P11AddressRead', Address.schema),
       Order: connection.model('P11OrderRead', Order.schema),
       CatalogProduct: connection.model('P11CatalogProductRead', CatalogProduct.schema),
       AccountAppeal: connection.model('P11AccountAppealRead', AccountAppeal.schema),
@@ -1236,7 +1238,7 @@ test('public contact inquiry reaches the staff queue and persists assignment and
   expect(persisted.audits.every((audit) => audit.outcome === 'success')).toBe(true);
 });
 
-test('test-only configured zone produces a COD quote and persists the same shipping fee', async ({ page }) => {
+test('customer checkout keeps its recipient snapshot after the saved address is edited and deleted', async ({ page }) => {
   await inspectP11Database(async ({ BusinessSetting }) => {
     await BusinessSetting.findOneAndUpdate({ key: 'business' }, {
       $set: {
@@ -1251,23 +1253,55 @@ test('test-only configured zone produces a COD quote and persists the same shipp
     }, { upsert: true, returnDocument: 'after' }).exec();
   });
 
+  await login(page, USERS.customer);
+  await page.goto('/tai-khoan/dia-chi');
+  await page.getByLabel('Tên gợi nhớ', { exact: true }).fill('P11 địa chỉ snapshot');
+  await page.getByLabel('Người nhận *', { exact: true }).fill('P11 Snapshot Recipient');
+  await page.getByLabel('Số điện thoại *', { exact: true }).fill('0900000028');
+  await page.getByLabel('Số nhà, đường *', { exact: true }).fill('28 Đường Kiểm thử');
+  await page.getByLabel('Phường/xã (không bắt buộc)', { exact: true }).fill('Phường Mẫu');
+  await page.getByLabel('Tỉnh/thành (không bắt buộc)', { exact: true }).fill('Hải Dương');
+  await page.getByLabel('Địa chỉ đầy đủ để giao hàng *', { exact: true }).fill('28 Đường Kiểm thử, Phường Mẫu, Hải Dương');
+  await page.getByLabel('Đặt làm địa chỉ mặc định', { exact: true }).check();
+  await page.getByRole('button', { name: 'Lưu địa chỉ', exact: true }).click();
+  const addressCards = page.locator('.address-saved');
+  await expect(addressCards).toHaveCount(1);
+  await expect(addressCards.first()).toContainText('P11 Snapshot Recipient');
+  await expect(addressCards.first().getByText('Mặc định', { exact: true })).toBeVisible();
+
+  const addressListBeforeCheckout = await browserApi(page, '/api/v1/account/addresses');
+  expect(addressListBeforeCheckout.status).toBe(200);
+  expect(addressListBeforeCheckout.body.data).toHaveLength(1);
+  const savedAddress = addressListBeforeCheckout.body.data[0];
+  expect(savedAddress).toMatchObject({
+    label: 'P11 địa chỉ snapshot', recipientName: 'P11 Snapshot Recipient',
+    province: 'Hải Dương', isDefault: true,
+  });
+  const identity = await browserApi(page, '/api/v1/auth/me');
+  expect(identity.status).toBe(200);
+  const customerId = identity.body.data.id;
+
+  // The customer cart may have been populated by earlier browser acceptance, so empty it through the customer UI.
+  await page.goto('/gio-hang');
+  const existingCartItems = page.locator('.cart-item');
+  while (await existingCartItems.count()) {
+    const itemCount = await existingCartItems.count();
+    await existingCartItems.first().getByRole('button', { name: 'Xóa', exact: true }).click();
+    await expect(existingCartItems).toHaveCount(itemCount - 1);
+  }
   await page.goto('/san-pham');
   await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
   await page.getByRole('link', { name: 'Tiếp tục thanh toán', exact: true }).click();
-  await page.getByLabel('Người nhận', { exact: true }).fill('P11 Shipping Fixture');
-  await page.getByLabel('Email nhận xác nhận', { exact: true }).fill('shipping.p11@example.test');
-  await page.getByLabel('Số điện thoại', { exact: true }).fill('0900000015');
-  await page.getByLabel('Địa chỉ', { exact: true }).fill('15 Đường Thử nghiệm');
-  await page.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
-  await page.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('15 Đường Thử nghiệm, Hải Dương');
+  await expect(page.locator('#checkout-address')).toHaveValue(savedAddress.id);
 
   const quoteResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));
   await page.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
   const quoteResponse = await quoteResponsePromise;
   const quoteBody = await quoteResponse.json();
   expect(quoteResponse.status(), JSON.stringify(quoteBody)).toBe(200);
+  expect(quoteResponse.request().postDataJSON().addressId).toBe(savedAddress.id);
   expect(quoteBody.data.shippingFeeVnd).toBe(28000);
   expect(quoteBody.data.totalVnd).toBe(quoteBody.data.subtotalVnd + 28000);
 
@@ -1301,22 +1335,77 @@ test('test-only configured zone produces a COD quote and persists the same shipp
   expect(conflict.status, JSON.stringify(conflict.body)).toBe(409);
   expect(conflict.body.error?.code).toBe('IDEMPOTENCY_CONFLICT');
 
-  const guestOrderResponsePromise = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}`)
+  const customerOrderResponsePromise = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}`)
     && response.request().method() === 'GET');
   await page.getByRole('link', { name: 'Xem chi tiết đơn', exact: true }).click();
-  const guestOrderResponse = await guestOrderResponsePromise;
-  const guestOrderBody = await guestOrderResponse.json();
-  expect(guestOrderResponse.status(), JSON.stringify(guestOrderBody)).toBe(200);
-  expect(guestOrderBody.data.recipient.recipientName).toBe('P11 Shipping Fixture');
+  const customerOrderResponse = await customerOrderResponsePromise;
+  const customerOrderBody = await customerOrderResponse.json();
+  expect(customerOrderResponse.status(), JSON.stringify(customerOrderBody)).toBe(200);
+  expect(customerOrderBody.data.recipient).toMatchObject({
+    recipientName: savedAddress.recipientName,
+    phone: savedAddress.phone,
+    line1: savedAddress.line1,
+    ward: savedAddress.ward,
+    province: savedAddress.province,
+    formattedAddress: savedAddress.formattedAddress,
+  });
   await expect(page.getByText(orderBody.data.order.code, { exact: true })).toBeVisible();
-  await expect(page.getByText('P11 Shipping Fixture', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Snapshot Recipient', { exact: true })).toBeVisible();
 
   const persisted = await inspectP11Database(({ Order: OrderRead }) => OrderRead.findById(orderId).lean().exec());
   expect(persisted).toMatchObject({
+    userId: expect.anything(),
     paymentMethod: 'cod',
     shippingFeeVnd: 28000,
     totalVnd: quoteBody.data.totalVnd,
   });
+  expect(String(persisted.userId)).toBe(customerId);
+  const originalRecipientSnapshot = persisted.recipientSnapshot;
+  expect(originalRecipientSnapshot).toMatchObject({
+    recipientName: savedAddress.recipientName,
+    email: USERS.customer.email,
+    phone: savedAddress.phone,
+    line1: savedAddress.line1,
+    ward: savedAddress.ward,
+    province: savedAddress.province,
+    countryCode: 'VN',
+    formattedAddress: savedAddress.formattedAddress,
+  });
+
+  await page.goto('/tai-khoan/dia-chi');
+  const savedAddressCard = page.locator('.address-saved');
+  await expect(savedAddressCard).toHaveCount(1);
+  await savedAddressCard.getByRole('button', { name: 'Chỉnh sửa', exact: true }).click();
+  await page.getByLabel('Người nhận *', { exact: true }).fill('P11 Edited Recipient');
+  await page.getByLabel('Số điện thoại *', { exact: true }).fill('0900000029');
+  await page.getByLabel('Số nhà, đường *', { exact: true }).fill('29 Đường Đã sửa');
+  await page.getByLabel('Địa chỉ đầy đủ để giao hàng *', { exact: true }).fill('29 Đường Đã sửa, Phường Mẫu, Hải Dương');
+  await page.getByRole('button', { name: 'Lưu địa chỉ', exact: true }).click();
+  await expect(savedAddressCard).toContainText('P11 Edited Recipient');
+  await expect(savedAddressCard).toContainText('29 Đường Đã sửa');
+  const editedAddresses = await browserApi(page, '/api/v1/account/addresses');
+  expect(editedAddresses.body.data).toHaveLength(1);
+  expect(editedAddresses.body.data[0]).toMatchObject({
+    id: savedAddress.id, recipientName: 'P11 Edited Recipient',
+    line1: '29 Đường Đã sửa', formattedAddress: '29 Đường Đã sửa, Phường Mẫu, Hải Dương',
+  });
+  const afterEdit = await inspectP11Database(async ({ Address: AddressRead, Order: OrderRead }) => ({
+    address: await AddressRead.findById(savedAddress.id).lean().exec(),
+    order: await OrderRead.findById(orderId).lean().exec(),
+  }));
+  expect(afterEdit.address).toMatchObject({ recipientName: 'P11 Edited Recipient', line1: '29 Đường Đã sửa' });
+  expect(afterEdit.order.recipientSnapshot).toEqual(originalRecipientSnapshot);
+
+  await savedAddressCard.getByRole('button', { name: 'Xóa', exact: true }).click();
+  await savedAddressCard.getByRole('button', { name: 'Xác nhận xóa', exact: true }).click();
+  await expect(page.getByText('Chưa có địa chỉ nào', { exact: true })).toBeVisible();
+  expect((await browserApi(page, '/api/v1/account/addresses')).body.data).toHaveLength(0);
+  const afterDelete = await inspectP11Database(async ({ Address: AddressRead, Order: OrderRead }) => ({
+    address: await AddressRead.findById(savedAddress.id).lean().exec(),
+    order: await OrderRead.findById(orderId).lean().exec(),
+  }));
+  expect(afterDelete.address).toBeNull();
+  expect(afterDelete.order.recipientSnapshot).toEqual(originalRecipientSnapshot);
 });
 
 test('customer registration verifies through encrypted outbox and returns to login before a session starts', async ({ page }) => {
