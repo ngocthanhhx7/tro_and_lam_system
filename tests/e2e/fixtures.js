@@ -1,0 +1,65 @@
+export const WEB_ORIGIN = 'http://127.0.0.1:5190';
+export const API_PORT = 5191;
+export const WEB_PORT = 5190;
+export const FIXTURE_PASSWORD = 'P11-only-local-fixture-password';
+
+export const USERS = Object.freeze({
+  customer: Object.freeze({
+    name: 'P11 Synthetic Customer',
+    email: 'customer.p11@example.test',
+    role: 'customer',
+  }),
+  staff: Object.freeze({
+    name: 'P11 Synthetic Staff',
+    email: 'staff.p11@example.test',
+    role: 'staff',
+  }),
+  admin: Object.freeze({
+    name: 'P11 Synthetic Admin',
+    email: 'admin.p11@example.test',
+    role: 'admin',
+  }),
+});
+
+export const PUBLISHED_PRODUCT = Object.freeze({
+  slug: 'p11-fixture-ceramic-vase',
+  sku: 'P11-E2E-PUBLISHED',
+  name: 'P11 Fixture — bình gốm kiểm thử',
+  priceVnd: 120_000,
+});
+
+export const DRAFT_PRODUCT = Object.freeze({
+  slug: 'p11-fixture-draft-only',
+  sku: 'P11-E2E-DRAFT',
+  name: 'P11 Fixture — sản phẩm nháp kín',
+});
+
+export function assertDedicatedLocalMongoUri(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error('Set P11_E2E_MONGODB_URI to a dedicated local replica-set test database URI.');
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error('P11_E2E_MONGODB_URI is not a valid MongoDB URI.');
+  }
+
+  const allowedHosts = new Set(['127.0.0.1', 'localhost', '[::1]']);
+  if (!['mongodb:', 'mongodb+srv:'].includes(parsed.protocol)
+    || !allowedHosts.has(parsed.hostname)
+    || parsed.username
+    || parsed.password
+    || parsed.search
+    || parsed.hash) {
+    throw new Error('P11 E2E accepts only an unauthenticated loopback MongoDB URI without query options.');
+  }
+
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\/+/u, ''));
+  if (!/^tro_lam_p11_e2e_test_[a-f0-9]{12}$/u.test(databaseName)) {
+    throw new Error('The Mongo database name must be tro_lam_p11_e2e_test_<12 lowercase hex chars>.');
+  }
+
+  return Object.freeze({ uri: value, databaseName });
+}
