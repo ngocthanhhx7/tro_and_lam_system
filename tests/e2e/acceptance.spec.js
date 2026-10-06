@@ -4,6 +4,7 @@ import { Inventory } from '../../backend/src/models/commerce/inventory.model.js'
 import { InventoryMovement } from '../../backend/src/models/commerce/inventory-movement.model.js';
 import { StockReservation } from '../../backend/src/models/commerce/stock-reservation.model.js';
 import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js';
+import { Notification } from '../../backend/src/models/operations/notification.model.js';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
 import { BusinessSetting } from '../../backend/src/models/operations/business-setting.model.js';
 import { Order } from '../../backend/src/models/commerce/order.model.js';
@@ -58,6 +59,7 @@ async function inspectP11Database(read) {
       InventoryMovement: connection.model('P11InventoryMovementRead', InventoryMovement.schema),
       StockReservation: connection.model('P11StockReservationRead', StockReservation.schema),
       AuditLog: connection.model('P11AuditLogRead', AuditLog.schema),
+      Notification: connection.model('P11NotificationRead', Notification.schema),
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
@@ -479,6 +481,48 @@ test('admin session can read admin statistics and catalog while anonymous caller
   await expect(page.getByRole('heading', { name: 'Đối soát trong kỳ', exact: true })).toBeVisible();
   const catalogAdmin = await browserApi(page, '/api/v1/admin/products');
   expect(catalogAdmin.status).toBe(200);
+});
+
+test('customer notifications stay owner-scoped and read changes persist without affecting another owner', async ({ page }) => {
+  await login(page, USERS.customer);
+  await page.goto('/tai-khoan/thong-bao');
+  await expect(page.getByRole('heading', { name: 'Thông báo', exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Private Other Customer Notice', { exact: true })).toHaveCount(0);
+
+  const unread = await browserApi(page, '/api/v1/notifications/unread-count');
+  expect(unread.status).toBe(200);
+  expect(unread.body.data.count).toBe(2);
+  const foreignMarkRead = await browserApi(page, `/api/v1/notifications/${process.env.P11_E2E_FIXTURE_OTHER_NOTIFICATION_ID}/read`, {
+    method: 'PATCH', body: {},
+  });
+  expect(foreignMarkRead.status).toBe(404);
+  expect(foreignMarkRead.body.error?.code).toBe('NOT_FOUND');
+
+  const unreadRows = page.locator('.operations-notifications > li.is-unread');
+  await expect(unreadRows).toHaveCount(2);
+  await unreadRows.first().getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click();
+  await expect(unreadRows).toHaveCount(1);
+
+  await page.getByLabel('Chỉ hiện chưa đọc', { exact: true }).check();
+  await expect(page.locator('.operations-notifications > li')).toHaveCount(1);
+  await expect(page.getByText('P11 Private Other Customer Notice', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Đánh dấu tất cả đã đọc', exact: true }).click();
+  await expect(page.getByText('Bạn đã đọc tất cả thông báo.', { exact: true })).toBeVisible();
+
+  const unreadAfter = await browserApi(page, '/api/v1/notifications/unread-count');
+  expect(unreadAfter.status).toBe(200);
+  expect(unreadAfter.body.data.count).toBe(0);
+  const persisted = await inspectP11Database(async ({ Notification: NotificationRead }) => {
+    const ownIds = process.env.P11_E2E_FIXTURE_CUSTOMER_NOTIFICATION_IDS.split(',');
+    const own = await NotificationRead.find({ _id: { $in: ownIds } }).lean().exec();
+    const other = await NotificationRead.findById(process.env.P11_E2E_FIXTURE_OTHER_NOTIFICATION_ID).lean().exec();
+    return { own, other };
+  });
+  expect(persisted.own).toHaveLength(2);
+  expect(persisted.own.every((item) => item.readAt instanceof Date)).toBe(true);
+  expect(persisted.other.readAt).toBeNull();
 });
 
 test('test-only configured zone produces a COD quote and persists the same shipping fee', async ({ page }) => {

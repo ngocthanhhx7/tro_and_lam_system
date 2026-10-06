@@ -117,6 +117,12 @@ In the isolated P11 worktree, `npm ci` installed 312 packages with 0 reported vu
 
 The test does not send email or claim SMTP delivery: no SMTP, PayOS, Gemini or geocoder provider was configured or called. Real inbox delivery, mailbox deliverability, distributed rate-limit behavior and owner UAT remain open. No production deployment occurred. The bundle warning remains at 546.63 kB minified (150.58 kB gzip).
 
+## P11 notification ownership browser follow-up (2026-10-06)
+
+The P11 runtime seeds two unread notifications for the synthetic customer and one for a different customer. The browser confirms that the signed-in customer sees only their own rows, receives 404 when trying to mark the other customer's notification as read, and persists both mark-one and mark-all changes only on their own records.
+
+`npm run test:e2e` passed **13/13**. `npm run check` passed contract validation, lint, backend **195/195 with 0 skipped** including P02/P05/P06 loopback replica-set tests, and the 129-module build. Teardown removed the isolated browser database; the exact empty P06 test database was audited and dropped; no P02/P05/P06/P11 test databases remained. This uses synthetic notifications and does not claim outbox projection or real delivery. No external provider or production deployment was used. WCAG, notification event projection and owner UAT remain open.
+
 ## P05 guest checkout idempotency browser follow-up (2026-10-06)
 
 The P11 browser flow replays the successful guest checkout using the exact original request body and `Idempotency-Key`. The replay returns HTTP 200 with the same order ID and code; reusing the key after changing the note returns HTTP 409 `IDEMPOTENCY_CONFLICT`. The E2E request helper serializes object bodies as JSON, and the OTP test requires a real 403 `FORBIDDEN` for both unknown and wrong credentials before comparing the generic error shape.

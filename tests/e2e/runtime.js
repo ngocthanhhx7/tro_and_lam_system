@@ -16,6 +16,7 @@ import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { StockReservation } from '../../backend/src/models/commerce/stock-reservation.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
 import { AuditLog } from '../../backend/src/models/operations/audit-log.model.js';
+import { Notification } from '../../backend/src/models/operations/notification.model.js';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
 import { validateEnv } from '../../backend/src/validators/env.validator.js';
 import {
@@ -57,6 +58,7 @@ async function seedSyntheticFixture() {
     StockReservation.init(),
     User.init(),
     AuditLog.init(),
+    Notification.init(),
     OutboxEvent.init(),
   ]);
 
@@ -239,6 +241,36 @@ async function seedSyntheticFixture() {
     version: 0,
   });
 
+  const notifications = await Notification.create([
+    {
+      userId: customer._id,
+      eventKey: 'p11-notification-customer-one',
+      category: 'order',
+      title: 'P11 Customer Order Notice One',
+      body: 'Synthetic customer notification for ownership and read-state tests.',
+      href: '/tai-khoan/don-hang',
+      readAt: null,
+    },
+    {
+      userId: customer._id,
+      eventKey: 'p11-notification-customer-two',
+      category: 'account',
+      title: 'P11 Customer Account Notice Two',
+      body: 'Second synthetic customer notification.',
+      href: '/tai-khoan',
+      readAt: null,
+    },
+    {
+      userId: otherCustomer._id,
+      eventKey: 'p11-notification-other-owner',
+      category: 'order',
+      title: 'P11 Private Other Customer Notice',
+      body: 'This synthetic notification belongs only to the other customer.',
+      href: '/tai-khoan/don-hang',
+      readAt: null,
+    },
+  ]);
+
   return {
     publishedProductId: String(published._id),
     draftProductId: String(draft._id),
@@ -246,6 +278,8 @@ async function seedSyntheticFixture() {
     staffOrderId: String(orderRecords[0].order._id),
     paymentOrderId: String(orderRecords[1].order._id),
     guestOrderId: String(orderRecords[2].order._id),
+    customerNotificationIds: notifications.slice(0, 2).map((notification) => String(notification._id)),
+    otherCustomerNotificationId: String(notifications[2]._id),
     seededOrderCount: orderRecords.length,
     expectedAdditionalOrderCount: 1,
   };
