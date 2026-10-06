@@ -88,3 +88,9 @@ Clean worktree `D:\WW\tro_lam_verify_p11_61e6bd4` at `61e6bd4` completed `npm ci
 `npm run test:e2e` passed **8/8** against loopback database `tro_lam_p11_e2e_test_c055fc712330`; post-run audit found no strict-prefix P11 database. P06 test collections were verified empty before dropping its dedicated database. A read-only audit found no dedicated P02/P05/P06/P11 test databases remaining. Browser smoke also confirmed visible concept disclosures, route metadata, Lifestyle notes, YouTube Vietnamese caption parameters and no horizontal overflow at 360/390/768/1280/1440 px. Screenshots are in [public content follow-up evidence](evidence/public-content-followup/).
 
 The check did not call real providers. Provider staging, domain-dependent prerender/canonical/sitemap, owner-approved product facts and policies, WCAG/screen-reader audit, Atlas restore and owner UAT remain open; no production deploy was performed.
+
+## Guest cart browser acceptance follow-up (2026-10-06)
+
+P11's expanded browser suite passed **9/9** on a dedicated loopback replica set. It verifies guest quantity updates, cart persistence after reload, item removal, separate carts in independent browser contexts, and one-time merge into the customer cart after login. `npm run check` passed contracts, lint, backend **188/188 with 0 skipped**, and the 129-module build. The bundle remains 544.87 kB minified (149.97 kB gzip), above Vite's 500 kB advisory threshold.
+
+The P11 runtime alone raises the global API request limit to 10,000 because its browser tests share one loopback IP. The production `createApp()` defaults remain 100 requests per 15 minutes. The harness removed its database; the P06 replica-set test database was audited empty and removed. No real provider was configured or called. Remaining release gates are provider staging, WCAG/screen-reader review, Atlas restore, owner content/policy approval and UAT.
