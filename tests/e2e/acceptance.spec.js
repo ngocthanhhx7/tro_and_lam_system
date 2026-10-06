@@ -29,7 +29,12 @@ async function browserApi(page, path, init = {}) {
       const csrfBody = await csrfResponse.json();
       headers.set('X-CSRF-Token', csrfBody.data.csrfToken);
     }
-    const response = await fetch(apiPath, { credentials: 'include', ...requestInit, headers });
+    const options = { credentials: 'include', ...requestInit, headers };
+    if (requestInit.body && typeof requestInit.body === 'object') {
+      options.body = JSON.stringify(requestInit.body);
+      if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    }
+    const response = await fetch(apiPath, options);
     return { status: response.status, body: await response.json() };
   }, { apiPath: path, requestInit: init });
 }
@@ -424,6 +429,10 @@ test('guest order email lookup keeps credentials generic and reveals the order o
     message: response.body.error?.message,
     details: response.body.error?.details,
   });
+  expect(missingProof.status).toBe(403);
+  expect(wrongAccessCode.status).toBe(403);
+  expect(missingProof.body.error?.code).toBe('FORBIDDEN');
+  expect(wrongAccessCode.body.error?.code).toBe('FORBIDDEN');
   expect(errorShape(wrongAccessCode)).toEqual(errorShape(missingProof));
   await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
 
@@ -518,6 +527,25 @@ test('test-only configured zone produces a COD quote and persists the same shipp
   await expect(page.getByRole('heading', { name: 'Cảm ơn bạn đã đặt hàng', exact: true })).toBeVisible();
 
   const orderId = orderBody.data.order.id;
+  const createRequest = orderResponse.request();
+  const idempotencyKey = createRequest.headers()['idempotency-key'];
+  expect(idempotencyKey).toMatch(/^[a-f\d]{64}$/u);
+  const createBody = createRequest.postDataJSON();
+  const replay = await browserApi(page, '/api/v1/orders', {
+    method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: createBody,
+  });
+  expect(replay.status, JSON.stringify(replay.body)).toBe(200);
+  expect(replay.body.data.order.id).toBe(orderId);
+  expect(replay.body.data.order.code).toBe(orderBody.data.order.code);
+
+  const conflict = await browserApi(page, '/api/v1/orders', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: { ...createBody, note: 'P11 changed retry payload' },
+  });
+  expect(conflict.status, JSON.stringify(conflict.body)).toBe(409);
+  expect(conflict.body.error?.code).toBe('IDEMPOTENCY_CONFLICT');
+
   const guestOrderResponsePromise = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}`)
     && response.request().method() === 'GET');
   await page.getByRole('link', { name: 'Xem chi tiết đơn', exact: true }).click();
