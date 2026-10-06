@@ -985,7 +985,7 @@ test('admin can create, version-update and archive a product while order snapsho
   await page.getByLabel('Giá công bố (VND)', { exact: true }).fill('120000');
   await productForm.locator('select').nth(3).selectOption('draft');
   await page.getByRole('button', { name: 'Tạo sản phẩm', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu thông tin sản phẩm.');
+  await expect(page.getByText('Đã lưu thông tin sản phẩm.', { exact: true })).toBeVisible();
 
   const productId = page.url().match(/\/admin\/products\/([a-f0-9]{24})\/edit$/u)?.[1];
   expect(productId).toBeTruthy();
@@ -1039,7 +1039,7 @@ test('admin can create, version-update and archive a product while order snapsho
   await page.getByLabel('Tên sản phẩm', { exact: true }).fill('P11 Admin CRUD Fixture Updated');
   await page.getByLabel('Giá công bố (VND)', { exact: true }).fill('240000');
   await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu thông tin sản phẩm.');
+  await expect(page.getByText('Đã lưu thông tin sản phẩm.', { exact: true })).toBeVisible();
   const staleUpdate = await browserApi(page, `/api/v1/admin/products/${productId}`, {
     method: 'PATCH', body: { name: 'Stale write must not replace the current product', expectedVersion: 1 },
   });
@@ -1068,6 +1068,56 @@ test('admin can create, version-update and archive a product while order snapsho
       'catalog.product.created', 'catalog.product.updated', 'catalog.product.updated', 'catalog.product.archived',
     ]);
   });
+});
+
+test('admin can select one image on creation and add four more while editing', async ({ page }) => {
+  await login(page, USERS.admin);
+  await page.goto('/admin/products/new');
+  const productForm = page.locator('.admin-editor .catalog-form');
+  await page.getByLabel('Tên sản phẩm', { exact: true }).fill('P11 Multi Image Upload Fixture');
+  await page.getByLabel('Đường dẫn').fill('p11-multi-image-upload-fixture');
+  await page.getByLabel('SKU', { exact: true }).fill('P11-MULTI-IMAGE');
+  await productForm.locator('select').nth(1).selectOption({ label: 'P11 Fixture Category · published' });
+  await page.getByLabel('Mô tả', { exact: true }).fill('Synthetic image upload acceptance fixture.');
+  await page.getByLabel('Chất liệu', { exact: true }).fill('Test fixture only');
+
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/bAAAAABJRU5ErkJggg==', 'base64');
+  await page.getByLabel('Chọn tệp ảnh', { exact: true }).setInputFiles({ name: 'p11-view-1.png', mimeType: 'image/png', buffer: png });
+  await page.getByLabel('Mô tả ảnh', { exact: true }).fill('Ảnh thử nghiệm, góc chính');
+  await page.getByRole('button', { name: 'Tải 1 ảnh lên kho media', exact: true }).click();
+  await expect(page.locator('.media-upload [role="status"]')).toContainText('Đã tải 1 ảnh');
+  await productForm.locator('select').nth(3).selectOption('published');
+  await page.getByRole('button', { name: 'Tạo sản phẩm', exact: true }).click();
+  await expect(page.getByText('Đã lưu thông tin sản phẩm.', { exact: true })).toBeVisible();
+  const productId = page.url().match(/\/admin\/products\/([a-f0-9]{24})\/edit$/u)?.[1];
+  expect(productId).toBeTruthy();
+
+  await page.goto(`/admin/products/${productId}/edit`);
+  const additionalImages = Array.from({ length: 4 }, (_, index) => ({
+    name: `p11-view-${index + 2}.png`, mimeType: 'image/png', buffer: png,
+  }));
+  await page.getByLabel('Chọn tệp ảnh', { exact: true }).setInputFiles(additionalImages);
+  for (let index = 0; index < additionalImages.length; index += 1) {
+    await page.getByLabel('Mô tả ảnh', { exact: true }).nth(index).fill(`Ảnh thử nghiệm, góc ${index + 2}`);
+  }
+  await page.getByRole('button', { name: 'Tải 4 ảnh lên kho media', exact: true }).click();
+  await expect(page.locator('.media-upload [role="status"]')).toContainText('Đã tải 4 ảnh');
+  await page.getByRole('button', { name: 'Lưu thay đổi', exact: true }).click();
+  await expect(page.getByText('Đã lưu thông tin sản phẩm.', { exact: true })).toBeVisible();
+
+  const catalog = await browserApi(page, '/api/v1/admin/products?page=1&limit=100');
+  expect(catalog.status).toBe(200);
+  const product = catalog.body.data.find((item) => item.id === productId);
+  expect(product.images).toHaveLength(5);
+  expect(product.images.map((image) => image.sortOrder)).toEqual([0, 1, 2, 3, 4]);
+  expect(product.images.every((image) => image.url.startsWith('/media/products/'))).toBe(true);
+  await expect(page.getByLabel('Chọn tệp ảnh', { exact: true })).toBeDisabled();
+  const mediaResponse = await page.evaluate(async (url) => {
+    const response = await fetch(url);
+    return { status: response.status, contentType: response.headers.get('content-type') };
+  }, product.images[0].url);
+  expect(mediaResponse.status).toBe(200);
+  expect(mediaResponse.contentType).toContain('image/png');
 });
 
 test('customer notifications stay owner-scoped and read changes persist without affecting another owner', async ({ page }) => {

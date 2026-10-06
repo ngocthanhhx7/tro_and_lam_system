@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
 
 function booleanSetting(source, name, fallback) {
   if (source[name] === undefined || source[name] === '') return fallback;
@@ -129,6 +130,19 @@ export function validateEnv(source) {
   }
   const backgroundWorkersEnabled = booleanSetting(source, 'BACKGROUND_WORKERS_ENABLED', true);
 
+  const mediaStorageDriver = source.MEDIA_STORAGE_DRIVER || (nodeEnv === 'development' ? 'local' : 'disabled');
+  if (!['local', 'disabled'].includes(mediaStorageDriver)) throw new Error('MEDIA_STORAGE_DRIVER chỉ nhận local/disabled');
+  if (nodeEnv === 'production' && mediaStorageDriver === 'local') {
+    throw new Error('MEDIA_STORAGE_DRIVER=local chỉ dùng cho phát triển cục bộ; production cần kho media bền vững được duyệt');
+  }
+  const mediaStoragePath = resolve(source.MEDIA_STORAGE_PATH || '.data/media/products');
+  const mediaPublicBaseUrl = source.MEDIA_PUBLIC_BASE_URL || (nodeEnv === 'development' && mediaStorageDriver === 'local'
+    ? '/media/products'
+    : '');
+  if (mediaStorageDriver === 'local') {
+    if (mediaPublicBaseUrl !== '/media/products') throw new Error('MEDIA_PUBLIC_BASE_URL của kho media cục bộ phải là /media/products');
+  }
+
   return {
     nodeEnv, port, mongoUri, corsOrigin, origins, trustProxy, csrfSecret, publicWebUrl: publicWebOrigin,
     sessionCookieName: cookieName(source, 'SESSION_COOKIE_NAME', 'tl_session'),
@@ -142,6 +156,6 @@ export function validateEnv(source) {
     payosEnabled, payosClientId, payosApiKey, payosChecksumKey, payosTimeoutMs,
     geminiApiKey, geminiModel, aiTimeoutMs, aiDailyBudget,
     reservationSweepIntervalMs, paymentReconciliationIntervalMs,
-    backgroundWorkersEnabled,
+    backgroundWorkersEnabled, mediaStorageDriver, mediaStoragePath, mediaPublicBaseUrl,
   };
 }

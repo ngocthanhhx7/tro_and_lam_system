@@ -2,7 +2,9 @@ import argon2 from 'argon2';
 import mongoose from 'mongoose';
 import { randomBytes } from 'node:crypto';
 import { createServer as createHttpServer } from 'node:http';
-import { resolve } from 'node:path';
+import { basename, isAbsolute, relative, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { rm } from 'node:fs/promises';
 import { createServer as createViteServer } from 'vite';
 import { createApp } from '../../backend/src/app.js';
 import { connectDatabase, disconnectDatabase } from '../../backend/src/config/database.js';
@@ -334,6 +336,7 @@ function closeHttpServer(server) {
 export async function startRuntime() {
   assertNoLiveProviderConfiguration();
   const { uri, databaseName } = assertDedicatedLocalMongoUri(process.env.P11_E2E_MONGODB_URI);
+  const mediaStorageDirectory = resolve(tmpdir(), `tro-lam-p11-media-${randomBytes(12).toString('hex')}`);
   const mailEncryptionKey = randomBytes(32).toString('base64');
   process.env.P11_E2E_MAIL_ENCRYPTION_KEY = mailEncryptionKey;
   process.env.NODE_ENV = 'test';
@@ -348,9 +351,12 @@ export async function startRuntime() {
     PAYOS_ENABLED: 'false',
     AI_DAILY_BUDGET: '0',
     OUTBOX_ENCRYPTION_KEY: mailEncryptionKey,
+    MEDIA_STORAGE_DRIVER: 'local',
+    MEDIA_STORAGE_PATH: mediaStorageDirectory,
+    MEDIA_PUBLIC_BASE_URL: '/media/products',
   });
 
-  const runtime = { databaseName, composition: null, api: null, vite: null };
+  const runtime = { databaseName, mediaStorageDirectory, composition: null, api: null, vite: null };
   try {
     await connectDatabase(uri);
     const fixture = await seedSyntheticFixture();
@@ -362,6 +368,7 @@ export async function startRuntime() {
       trustProxy: 0,
       isDatabaseReady: () => true,
       domainRouters: runtime.composition.domainRouters,
+      mediaStaticDirectory: mediaStorageDirectory,
       // Browser acceptance uses one loopback IP across tests; preserve production defaults outside this harness.
       apiRateLimitLimit: 10_000,
     });
@@ -375,7 +382,7 @@ export async function startRuntime() {
         host: '127.0.0.1',
         port: WEB_PORT,
         strictPort: true,
-        proxy: { '/api': 'http://127.0.0.1:' + API_PORT },
+        proxy: { '/api': 'http://127.0.0.1:' + API_PORT, '/media': 'http://127.0.0.1:' + API_PORT },
       },
       logLevel: 'warn',
     });
@@ -398,6 +405,13 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
     || (mongoose.connection.readyState === 1 && mongoose.connection.name !== safeDatabase.databaseName)) {
     throw new Error('Refusing to clean up a Mongo database outside the validated P11 E2E target.');
   }
+  const mediaRoot = resolve(tmpdir());
+  const mediaDirectory = resolve(runtime.mediaStorageDirectory);
+  const mediaRelativePath = relative(mediaRoot, mediaDirectory);
+  if (!mediaRelativePath || mediaRelativePath.startsWith('..') || isAbsolute(mediaRelativePath)
+    || !basename(mediaDirectory).startsWith('tro-lam-p11-media-')) {
+    throw new Error('Refusing to remove a media directory outside the dedicated P11 temp path.');
+  }
   let orderCount = null;
   if (mongoose.connection.readyState === 1) {
     orderCount = await Order.countDocuments({}).exec().catch(() => null);
@@ -405,6 +419,7 @@ export async function stopRuntime(runtime = globalThis.__P11_E2E_RUNTIME) {
   await runtime.vite?.close().catch(() => {});
   await closeHttpServer(runtime.api).catch(() => {});
   await runtime.composition?.stopWorkers().catch(() => {});
+  await rm(mediaDirectory, { recursive: true, force: true });
   if (mongoose.connection.readyState === 1) {
     await mongoose.connection.db.dropDatabase();
     await disconnectDatabase();

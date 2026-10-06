@@ -14,7 +14,7 @@ import { createPublishedContentPort } from './content/content.ports.js';
 import { createAccountService } from './services/account/account.service.js';
 import { createCatalogService } from './services/catalog/catalog.service.js';
 import { createMongooseCatalogRepository } from './services/catalog/mongoose-catalog.repository.js';
-import { createUnavailableMediaProvider } from './services/catalog/media-provider.js';
+import { createLocalMediaProvider, createUnavailableMediaProvider } from './services/catalog/media-provider.js';
 import { createCommerceService } from './services/commerce/commerce.service.js';
 import { createShippingZoneQuotePort } from './services/commerce/shipping-zones.js';
 import { createPaymentsService } from './services/payments/payments.service.js';
@@ -169,7 +169,9 @@ export async function createDomainComposition(env) {
       },
     },
     auditPort: operationsPorts,
-    mediaProvider: createUnavailableMediaProvider(),
+    mediaProvider: env.mediaStorageDriver === 'local'
+      ? createLocalMediaProvider({ storageDir: env.mediaStoragePath, publicBaseUrl: env.mediaPublicBaseUrl })
+      : createUnavailableMediaProvider(),
   });
 
   const auditService = createAuditService({ AuditLog });

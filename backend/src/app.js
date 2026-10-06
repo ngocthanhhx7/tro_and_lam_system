@@ -19,6 +19,7 @@ export function createApp({
   trustProxy = 0,
   isDatabaseReady = defaultReadiness,
   domainRouters = [],
+  mediaStaticDirectory,
   apiRateLimitLimit = 100,
   apiRateLimitWindowMs = 15 * 60 * 1000,
 } = {}) {
@@ -45,6 +46,15 @@ export function createApp({
     exposedHeaders: ['X-Request-Id', 'Retry-After'],
   }));
   app.use(`${API_PREFIX}/health`, createHealthRouter(isDatabaseReady));
+  if (mediaStaticDirectory) {
+    app.use('/media/products', express.static(mediaStaticDirectory, {
+      dotfiles: 'deny',
+      fallthrough: true,
+      index: false,
+      immutable: true,
+      maxAge: '1y',
+    }));
+  }
   app.use(API_PREFIX, rateLimit({
     windowMs: apiRateLimitWindowMs,
     limit: apiRateLimitLimit,

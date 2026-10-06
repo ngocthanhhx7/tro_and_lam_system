@@ -49,9 +49,8 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   const [saving, setSaving] = useState(false);
   const [formMessage, setFormMessage] = useState('');
   const [formError, setFormError] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imageAlt, setImageAlt] = useState('');
-  const [mediaState, setMediaState] = useState({ status: 'idle', message: '', previewUrl: '' });
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [mediaState, setMediaState] = useState({ status: 'idle', message: '' });
   const [retry, setRetry] = useState(0);
 
   const productEditorOpen = !isCategories && (isNewProduct || Boolean(id));
@@ -59,7 +58,6 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   useEffect(() => {
     let live = true;
     const controller = new AbortController();
-    setCatalogState({ status: 'loading', error: '' });
     Promise.all([
       listAdminProducts({ page: 1, limit: 100 }, { signal: controller.signal }),
       listAdminCategories({ signal: controller.signal }),
@@ -76,15 +74,11 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   }, [retry]);
 
   useEffect(() => {
-    if (isCategories) {
-      const category = categories.find((item) => item.id === selectedCategoryId);
-      setCategoryDraft(category ? { slug: category.slug, name: category.name, description: category.description || '', parentId: category.parentId || '', sortOrder: category.sortOrder, status: category.status, expectedVersion: category.version } : emptyCategory());
-      setFormMessage(''); setFormError('');
-      return;
-    }
+    if (isCategories) return;
     if (id) {
       const cached = products.find((item) => item.id === id);
       if (cached) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Route changes select the cached record that seeds this editor form.
         setProductDraft(productDraftFrom(cached));
       } else {
         const controller = new AbortController();
@@ -95,20 +89,16 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
     } else if (isNewProduct) {
       setProductDraft(emptyProduct()); setFormMessage(''); setFormError('');
     }
-  }, [id, isNewProduct, isCategories, selectedCategoryId, products, categories]);
-
-  useEffect(() => {
-    if (!selectedFile) {
-      setMediaState((current) => ({ ...current, previewUrl: '' }));
-      return undefined;
-    }
-    const previewUrl = URL.createObjectURL(selectedFile);
-    setMediaState((current) => ({ ...current, previewUrl }));
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [selectedFile]);
+  }, [id, isNewProduct, isCategories, products]);
 
   function updateProduct(field, value) { setProductDraft((current) => ({ ...current, [field]: value })); }
   function updateCategory(field, value) { setCategoryDraft((current) => ({ ...current, [field]: value })); }
+  function selectCategory(categoryId) {
+    const category = categories.find((item) => item.id === categoryId);
+    setSelectedCategoryId(categoryId);
+    setCategoryDraft(category ? { slug: category.slug, name: category.name, description: category.description || '', parentId: category.parentId || '', sortOrder: category.sortOrder, status: category.status, expectedVersion: category.version } : emptyCategory());
+    setFormMessage(''); setFormError('');
+  }
 
   async function handleProductSave(event) {
     event.preventDefault();
@@ -161,7 +151,10 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
       const response = await saveAdminCategory(payload, selectedCategoryId || undefined);
       setFormMessage('Đã lưu danh mục.');
       if (selectedCategoryId) setCategoryDraft((current) => ({ ...current, expectedVersion: response.data.version }));
-      else setSelectedCategoryId(response.data.id);
+      else {
+        setSelectedCategoryId(response.data.id);
+        setCategoryDraft((current) => ({ ...current, expectedVersion: response.data.version }));
+      }
       setRetry((value) => value + 1);
     } catch (error) { setFormError(messageFor(error)); }
     finally { setSaving(false); }
@@ -181,17 +174,38 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   async function handleImageUpload() {
     setMediaState((current) => ({ ...current, status: 'uploading', message: 'Đang kiểm tra và tải ảnh…' }));
     setFormError('');
-    try {
-      if (!selectedFile || !imageAlt.trim()) throw new Error('Chọn ảnh và nhập mô tả trước khi tải lên.');
-      if (productDraft.images.length >= 5) throw new Error('Mỗi sản phẩm có thể dùng tối đa 5 ảnh.');
-      const response = await uploadCatalogImage(selectedFile, imageAlt.trim());
-      const media = response.data;
-      if (!media?.url || media.status !== 'ready') throw new Error('Kho ảnh chưa xác nhận URL công khai. Ảnh vẫn ở trạng thái bản nháp.');
-      setProductDraft((current) => ({ ...current, images: [...current.images, { url: media.url, alt: media.alt, sortOrder: current.images.length }] }));
-      setMediaState({ status: 'ready', message: 'Ảnh đã được lưu trong kho media đã cấu hình.', previewUrl: '' });
-      setSelectedFile(null); setImageAlt('');
-    } catch (error) {
-      setMediaState((current) => ({ ...current, status: error.code === 'MEDIA_UNAVAILABLE' ? 'unavailable' : 'draft', message: messageFor(error) }));
+    if (!selectedFiles.length || selectedFiles.some((item) => !item.alt.trim())) {
+      setMediaState({ status: 'draft', message: 'Chọn từ 1 đến 5 ảnh và nhập mô tả riêng cho từng ảnh.' });
+      return;
+    }
+    if (productDraft.images.length + selectedFiles.length > 5) {
+      setMediaState({ status: 'draft', message: 'Tổng số ảnh của sản phẩm không được vượt quá 5.' });
+      return;
+    }
+    const uploadedIds = new Set();
+    const uploadedImages = [];
+    let uploadError;
+    for (const item of selectedFiles) {
+      try {
+        const response = await uploadCatalogImage(item.file, item.alt.trim());
+        const media = response.data;
+        if (!media?.url || media.status !== 'ready') throw new Error('Kho ảnh chưa xác nhận URL công khai. Ảnh vẫn ở trạng thái bản nháp.');
+        uploadedImages.push({ url: media.url, alt: media.alt, sortOrder: productDraft.images.length + uploadedImages.length });
+        uploadedIds.add(item.id);
+      } catch (error) {
+        uploadError = error;
+        break;
+      }
+    }
+    if (uploadedImages.length) {
+      setProductDraft((current) => ({ ...current, images: [...current.images, ...uploadedImages] }));
+    }
+    if (uploadedIds.size) setSelectedFiles((current) => current.filter((item) => !uploadedIds.has(item.id)));
+    if (uploadError) {
+      const prefix = uploadedImages.length ? `Đã tải ${uploadedImages.length} ảnh; ` : '';
+      setMediaState({ status: uploadError.code === 'MEDIA_UNAVAILABLE' ? 'unavailable' : 'draft', message: `${prefix}${messageFor(uploadError)}` });
+    } else {
+      setMediaState({ status: 'ready', message: `Đã tải ${uploadedImages.length} ảnh vào kho media.` });
     }
   }
 
@@ -201,14 +215,14 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
       <Link className="button button--outline" to="/san-pham" target="_blank" rel="noreferrer">Xem danh mục công khai <span aria-hidden="true">↗</span></Link>
     </div>
     <nav className="admin-tabs" aria-label="Quản lý danh mục"><Link className={!isCategories ? 'is-active' : ''} to="/admin/products">Sản phẩm</Link><Link className={isCategories ? 'is-active' : ''} to="/admin/categories">Danh mục</Link></nav>
-    {catalogState.status === 'error' && <CatalogError message={catalogState.error} onRetry={() => setRetry((value) => value + 1)} />}
+    {catalogState.status === 'error' && <CatalogError message={catalogState.error} onRetry={() => { setCatalogState({ status: 'loading', error: '' }); setRetry((value) => value + 1); }} />}
     {catalogState.status === 'loading' && <p className="admin-loading" role="status">Đang tải danh mục quản trị…</p>}
     {catalogState.status === 'ready' && <div className="admin-catalog__layout">
       {isCategories ? <>
         <section className="admin-list" aria-labelledby="admin-category-list-title">
           <div className="section-heading"><p className="eyebrow">CATEGORIES</p><h2 id="admin-category-list-title">Danh mục</h2></div>
-          <button className="button button--primary" type="button" onClick={() => { setSelectedCategoryId(''); setCategoryDraft(emptyCategory()); setFormMessage(''); setFormError(''); }}>Tạo danh mục mới</button>
-          <ul className="admin-record-list">{categories.map((category) => <li key={category.id}><button type="button" className="admin-record" onClick={() => setSelectedCategoryId(category.id)}><span><strong>{category.name}</strong><small>{category.slug} · {category.status}</small></span><span aria-hidden="true">→</span></button><button className="icon-button admin-record__archive" type="button" onClick={() => handleCategoryArchive(category)} disabled={category.status === 'archived'} aria-label={`Lưu trữ danh mục ${category.name}`}>⌫</button></li>)}</ul>
+          <button className="button button--primary" type="button" onClick={() => selectCategory('')}>Tạo danh mục mới</button>
+          <ul className="admin-record-list">{categories.map((category) => <li key={category.id}><button type="button" className="admin-record" onClick={() => selectCategory(category.id)}><span><strong>{category.name}</strong><small>{category.slug} · {category.status}</small></span><span aria-hidden="true">→</span></button><button className="icon-button admin-record__archive" type="button" onClick={() => handleCategoryArchive(category)} disabled={category.status === 'archived'} aria-label={`Lưu trữ danh mục ${category.name}`}>⌫</button></li>)}</ul>
           {!categories.length && <p>Chưa có danh mục. Thêm danh mục sau khi có dữ liệu thật được duyệt.</p>}
         </section>
         <section className="admin-editor" aria-labelledby="admin-category-form-title">
@@ -250,17 +264,25 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
               </div>
               <div className="catalog-form__grid"><label>Trạng thái<select value={productDraft.status} onChange={(event) => updateProduct('status', event.target.value)}><option value="draft">Bản nháp</option><option value="published">Đã công bố</option><option value="archived">Đã lưu trữ</option></select></label><label>Mã câu chuyện đã duyệt (tùy chọn)<input value={productDraft.storyId || ''} onChange={(event) => updateProduct('storyId', event.target.value)} /></label></div>
               <label className="check-label"><input type="checkbox" checked={Boolean(productDraft.featured)} onChange={(event) => updateProduct('featured', event.target.checked)} /><span>Đưa vào mục nổi bật</span></label>
-              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Sản phẩm công bố cần từ 1 đến 5 ảnh có quyền sử dụng. Có thể thêm ảnh lần lượt; dữ liệu demo dùng 3 ảnh mỗi sản phẩm. Không dùng minh họa biên tập như ảnh của SKU.</p><p>Đã chọn {productDraft.images.length}/5 ảnh.</p>
+              <fieldset className="media-fieldset"><legend>Ảnh sản phẩm</legend><p>Sản phẩm công bố cần từ 1 đến 5 ảnh có quyền sử dụng. Có thể chọn và tải nhiều ảnh cùng lúc; dữ liệu demo dùng 3 ảnh mỗi sản phẩm. Không dùng minh họa biên tập như ảnh của SKU.</p><p>Đã tải {productDraft.images.length}/5 ảnh.</p>
                 {productDraft.images.length > 0 && <ul className="media-list">{productDraft.images.map((image, index) => <li key={`${image.url}-${index}`}><img src={image.url} alt="" width="64" height="64" /><span><strong>{image.alt}</strong><small>{image.url}</small></span><button type="button" className="icon-button" aria-label={`Xóa ảnh ${image.alt}`} onClick={() => updateProduct('images', productDraft.images.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
                 <div className="media-upload">
-                  <label>Tệp ảnh<input type="file" accept="image/jpeg,image/png,image/webp" disabled={productDraft.images.length >= 5} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></label>
-                  <label>Mô tả ảnh<input value={imageAlt} required={Boolean(selectedFile)} maxLength="250" onChange={(event) => setImageAlt(event.target.value)} /></label>
-                  {mediaState.previewUrl && <div className="media-preview"><img src={mediaState.previewUrl} alt={imageAlt || 'Xem trước ảnh cục bộ'} width="100" height="100" /><p>Chỉ là bản xem trước trên thiết bị; chưa được lưu hoặc công bố.</p></div>}
-                  <button type="button" className="button button--outline" onClick={handleImageUpload} disabled={mediaState.status === 'uploading' || productDraft.images.length >= 5}>{mediaState.status === 'uploading' ? 'Đang tải…' : 'Tải ảnh lên kho media'}</button>
+                  <label>Chọn tệp ảnh<input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={mediaState.status === 'uploading' || productDraft.images.length + selectedFiles.length >= 5} onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    event.target.value = '';
+                    if (productDraft.images.length + selectedFiles.length + files.length > 5) {
+                      setMediaState({ status: 'draft', message: 'Mỗi sản phẩm có thể dùng tối đa 5 ảnh. Hãy chọn ít tệp hơn.' });
+                      return;
+                    }
+                    setSelectedFiles((current) => [...current, ...files.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, file, alt: '' }))]);
+                    setMediaState({ status: 'idle', message: '' });
+                  }} /></label>
+                  {selectedFiles.length > 0 && <ul className="media-list">{selectedFiles.map((item) => <li key={item.id}><span><strong>{item.file.name}</strong><small>{Math.ceil(item.file.size / 1024)} KB · Chưa tải lên</small><label>Mô tả ảnh<input value={item.alt} required maxLength="250" disabled={mediaState.status === 'uploading'} onChange={(event) => setSelectedFiles((current) => current.map((entry) => entry.id === item.id ? { ...entry, alt: event.target.value } : entry))} /></label></span><button type="button" className="icon-button" disabled={mediaState.status === 'uploading'} aria-label={`Bỏ ảnh ${item.file.name}`} onClick={() => setSelectedFiles((current) => current.filter((entry) => entry.id !== item.id))}>×</button></li>)}</ul>}
+                  <button type="button" className="button button--outline" onClick={handleImageUpload} disabled={mediaState.status === 'uploading' || selectedFiles.length === 0}>{mediaState.status === 'uploading' ? 'Đang tải…' : `Tải ${selectedFiles.length || ''} ảnh lên kho media`}</button>
                   {mediaState.message && <p className={`form-feedback${mediaState.status === 'ready' ? ' form-feedback--success' : ' form-feedback--warning'}`} role="status">{mediaState.message}</p>}
                 </div>
               </fieldset>
-              <button className="button button--primary" type="submit" disabled={saving}>{saving ? 'Đang lưu…' : id ? 'Lưu thay đổi' : 'Tạo sản phẩm'}</button>
+              <button className="button button--primary" type="submit" disabled={saving || mediaState.status === 'uploading'}>{saving ? 'Đang lưu…' : id ? 'Lưu thay đổi' : 'Tạo sản phẩm'}</button>
               {formError && <p className="form-feedback form-feedback--error" role="alert">{formError}</p>}{formMessage && <p className="form-feedback form-feedback--success" role="status">{formMessage}</p>}
             </form>
           </> : <div className="admin-editor__empty"><span className="catalog-state__mark" aria-hidden="true">◌</span><h2>Quản lý nội dung sản phẩm</h2><p>Chọn một sản phẩm hoặc tạo bản nháp. Trạng thái công bố chỉ dành cho dữ liệu đã được xác nhận.</p></div>}

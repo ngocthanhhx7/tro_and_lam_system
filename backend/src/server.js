@@ -8,7 +8,11 @@ try {
   await connectDatabase(env.mongoUri);
   databaseConnected = true;
   const composition = await createDomainComposition(env);
-  const server = createApp({ ...env, domainRouters: composition.domainRouters }).listen(env.port, '0.0.0.0', () => {
+  const server = createApp({
+    ...env,
+    mediaStaticDirectory: env.mediaStorageDriver === 'local' ? env.mediaStoragePath : undefined,
+    domainRouters: composition.domainRouters,
+  }).listen(env.port, '0.0.0.0', () => {
     console.log(`TRO & LAM API listening on port ${env.port}`);
     if (env.backgroundWorkersEnabled) void composition.startWorkers();
   });

@@ -11,6 +11,7 @@ playwright-report/
 Thumbs.db
 .vercel/
 .vite/
+backend/.data/
 .idea/
 .worktrees/
 .codex-tools/

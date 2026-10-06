@@ -16,6 +16,8 @@ test('valid configuration has development defaults', () => {
   assert.equal(config.payosEnabled, false);
   assert.equal(config.aiDailyBudget, 0);
   assert.equal(config.backgroundWorkersEnabled, true);
+  assert.equal(config.mediaStorageDriver, 'local');
+  assert.equal(config.mediaPublicBaseUrl, '/media/products');
   assert.equal(config.reservationSweepIntervalMs, 30_000);
   assert.equal(config.paymentReconciliationIntervalMs, 60_000);
 });
@@ -54,6 +56,16 @@ test('production requires CSRF secret, HTTPS web origin, and secure cookies', ()
   assert.equal(validateEnv(configured).secureCookies, true);
   assert.throws(() => validateEnv({ ...configured, PUBLIC_WEB_URL: 'http://store.example' }), /PUBLIC_WEB_URL/);
   assert.throws(() => validateEnv({ ...configured, SECURE_COOKIES: 'false' }), /SECURE_COOKIES/);
+  assert.equal(validateEnv(configured).mediaStorageDriver, 'disabled');
+  assert.throws(() => validateEnv({ ...configured, MEDIA_STORAGE_DRIVER: 'local' }), /chỉ dùng cho phát triển cục bộ/u);
+});
+
+test('local media storage validates a public base URL and driver setting', () => {
+  assert.throws(() => validateEnv({ ...valid, MEDIA_STORAGE_DRIVER: 's3' }), /MEDIA_STORAGE_DRIVER/u);
+  assert.throws(() => validateEnv({ ...valid, MEDIA_PUBLIC_BASE_URL: 'javascript:alert(1)' }), /MEDIA_PUBLIC_BASE_URL/u);
+  assert.throws(() => validateEnv({ ...valid, MEDIA_PUBLIC_BASE_URL: '//example.test/media' }), /MEDIA_PUBLIC_BASE_URL/u);
+  assert.throws(() => validateEnv({ ...valid, MEDIA_PUBLIC_BASE_URL: '/media/../private' }), /MEDIA_PUBLIC_BASE_URL/u);
+  assert.equal(validateEnv({ ...valid, MEDIA_STORAGE_DRIVER: 'disabled' }).mediaStorageDriver, 'disabled');
 });
 
 test('provider config stays disabled until complete credentials are supplied', () => {
