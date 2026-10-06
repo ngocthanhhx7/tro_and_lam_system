@@ -27,6 +27,8 @@ test('email verification keeps the fragment token through URL cleanup and submit
   await page.waitForTimeout(100);
 
   expect(verifyRequests).toBe(1);
+  await expect(page).toHaveURL(/\/dang-nhap\?verified=1$/u);
+  await expect(page.getByText('Email đã được xác minh. Đăng nhập để tiếp tục.')).toBeVisible();
 });
 
 test('expired email verification is shown as an error and lets the customer request a fresh link', async ({ page }) => {

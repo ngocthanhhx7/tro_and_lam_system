@@ -22,8 +22,10 @@ function Field({ label, name, type = 'text', value, onChange, autoComplete, requ
 export function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const { setUser } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const { pending, error, run } = useIdentityRequest();
+  const emailVerified = new URLSearchParams(location.search).get('verified') === '1';
   const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   async function submit(event) {
     event.preventDefault();
@@ -38,7 +40,7 @@ export function LoginPage() {
       }
     }
   }
-  return <Frame title="Đăng nhập" description="Sử dụng tài khoản đã xác minh để tiếp tục.">
+  return <Frame title="Đăng nhập" description={emailVerified ? 'Email đã được xác minh. Đăng nhập để tiếp tục.' : 'Sử dụng tài khoản đã xác minh để tiếp tục.'}>
     <form className="identity-form" onSubmit={submit}>
       <Field label="Email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" maxLength={254} />
       <Field label="Mật khẩu" name="password" type="password" value={form.password} onChange={update} autoComplete="current-password" maxLength={128} />
@@ -124,6 +126,7 @@ function useFragmentToken(key) {
 
 export function VerifyEmailPage() {
   const token = useFragmentToken('token');
+  const navigate = useNavigate();
   const [result, setResult] = useState({ token: undefined, loading: false, message: '' });
   const state = result.token === token
     ? result
@@ -132,6 +135,11 @@ export function VerifyEmailPage() {
       : { loading: false, status: 'error', message: 'Không tìm thấy liên kết xác minh. Nhập email để nhận liên kết mới.' };
   const [email, setEmail] = useState('');
   const [resent, setResent] = useState('');
+  useEffect(() => {
+    if (state.status !== 'success') return undefined;
+    const redirect = window.setTimeout(() => navigate('/dang-nhap?verified=1', { replace: true }), 2500);
+    return () => window.clearTimeout(redirect);
+  }, [navigate, state.status]);
   useEffect(() => {
     if (!token) return;
     let live = true;
@@ -156,11 +164,13 @@ export function VerifyEmailPage() {
   return <Frame title="Xác minh email" description={state.loading ? 'Đang kiểm tra liên kết an toàn…' : undefined}>
     {!state.loading && <p className={`identity-feedback identity-feedback--${state.status}`} role={state.status === 'error' ? 'alert' : 'status'}>{state.message}</p>}
     {state.loading ? <div className="identity-loading" role="status">Đang xác minh…</div> : <>
-      <form className="identity-form identity-form--compact" onSubmit={resend}>
-        <Field label="Gửi lại tới email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" maxLength={254} />
-        <button className="identity-secondary" type="submit" disabled={!email.trim()}>Gửi lại hướng dẫn</button>
-        {resent && <p role="status" className="identity-feedback identity-feedback--success">{resent}</p>}
-      </form><Link className="identity-primary-link" to="/dang-nhap">Đăng nhập</Link>
+      {state.status === 'success'
+        ? <Link className="identity-primary-link" to="/dang-nhap?verified=1">Đăng nhập ngay</Link>
+        : <form className="identity-form identity-form--compact" onSubmit={resend}>
+          <Field label="Gửi lại tới email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" maxLength={254} />
+          <button className="identity-secondary" type="submit" disabled={!email.trim()}>Gửi lại hướng dẫn</button>
+          {resent && <p role="status" className="identity-feedback identity-feedback--success">{resent}</p>}
+        </form>}
     </>}
   </Frame>;
 }
