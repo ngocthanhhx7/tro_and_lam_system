@@ -205,11 +205,15 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     return repository.transaction(async (session) => {
       const challenge = await repository.findChallenge(tokenHash, { session });
       const currentTime = now();
-      if (!challenge || challenge.purpose !== 'verify_email' || challenge.consumedAt || new Date(challenge.expiresAt) <= currentTime) {
+      if (!challenge || challenge.purpose !== 'verify_email') {
         throw new ServiceError(410, 'LINK_EXPIRED', 'Liên kết xác minh đã hết hạn hoặc đã được sử dụng');
       }
       const user = await repository.findUserById(challenge.userId, { session });
       if (!user || user.status !== 'active') throw new ServiceError(410, 'LINK_EXPIRED', 'Liên kết xác minh đã hết hạn');
+      if (user.emailVerifiedAt) return { verified: true };
+      if (challenge.consumedAt || new Date(challenge.expiresAt) <= currentTime) {
+        throw new ServiceError(410, 'LINK_EXPIRED', 'Liên kết xác minh đã hết hạn hoặc đã được sử dụng');
+      }
       if (!await repository.consumeChallenge(challenge._id ?? challenge.id, currentTime, { session })) {
         throw new ServiceError(410, 'LINK_EXPIRED', 'Liên kết xác minh đã hết hạn hoặc đã được sử dụng');
       }

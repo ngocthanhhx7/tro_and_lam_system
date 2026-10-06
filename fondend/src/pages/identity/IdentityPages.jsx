@@ -129,16 +129,20 @@ export function VerifyEmailPage() {
     ? result
     : token
       ? { loading: true, message: '' }
-      : { loading: false, message: 'Không tìm thấy liên kết xác minh. Bạn có thể yêu cầu gửi lại email.' };
+      : { loading: false, status: 'error', message: 'Không tìm thấy liên kết xác minh. Nhập email để nhận liên kết mới.' };
   const [email, setEmail] = useState('');
   const [resent, setResent] = useState('');
   useEffect(() => {
     if (!token) return;
     let live = true;
     verifyEmailOnce(token).then(() => {
-      if (live) setResult({ token, loading: false, message: 'Email đã được xác minh. Bạn có thể đăng nhập.' });
+      if (live) setResult({ token, loading: false, status: 'success', message: 'Email đã được xác minh. Bạn có thể đăng nhập.' });
     }).catch((error) => {
-      if (live) setResult({ token, loading: false, message: error.message || 'Liên kết không hợp lệ hoặc đã hết hạn.' });
+      if (!live) return;
+      const message = error.code === 'LINK_EXPIRED'
+        ? 'Liên kết đã hết hạn hoặc đã được sử dụng. Nhập email bên dưới để nhận liên kết mới, rồi mở email mới nhất.'
+        : error.message || 'Không thể xác minh email. Hãy thử gửi liên kết mới.';
+      setResult({ token, loading: false, status: 'error', message });
     });
     return () => { live = false; };
   }, [token]);
@@ -149,13 +153,13 @@ export function VerifyEmailPage() {
       setResent('Nếu cần xác minh, hướng dẫn đã được xếp gửi.');
     } catch (error) { setResent(error.message); }
   }
-  return <Frame title="Xác minh email" description={state.loading ? 'Đang kiểm tra liên kết an toàn…' : state.message}>
+  return <Frame title="Xác minh email" description={state.loading ? 'Đang kiểm tra liên kết an toàn…' : undefined}>
+    {!state.loading && <p className={`identity-feedback identity-feedback--${state.status}`} role={state.status === 'error' ? 'alert' : 'status'}>{state.message}</p>}
     {state.loading ? <div className="identity-loading" role="status">Đang xác minh…</div> : <>
-      <p className="identity-feedback identity-feedback--success" role="status">{state.message}</p>
       <form className="identity-form identity-form--compact" onSubmit={resend}>
         <Field label="Gửi lại tới email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" maxLength={254} />
-        <button className="identity-secondary" type="submit">Gửi lại hướng dẫn</button>
-        {resent && <p role="status" className="identity-footnote">{resent}</p>}
+        <button className="identity-secondary" type="submit" disabled={!email.trim()}>Gửi lại hướng dẫn</button>
+        {resent && <p role="status" className="identity-feedback identity-feedback--success">{resent}</p>}
       </form><Link className="identity-primary-link" to="/dang-nhap">Đăng nhập</Link>
     </>}
   </Frame>;

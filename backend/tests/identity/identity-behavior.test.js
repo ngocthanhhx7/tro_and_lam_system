@@ -54,12 +54,24 @@ test('registration fixes customer role, queues verification, and stores only an 
   assert.ok(token);
   assert.notEqual(repository.challenges[0].tokenHash, token);
   await assert.rejects(service.login({ email: 'an@example.test', password: 'Correct Horse Battery Staple 42!' }), { code: 'AUTH_REQUIRED' });
-  assert.deepEqual(await service.verifyEmail(token), { verified: true });
-  await assert.rejects(service.verifyEmail(token), { status: 410, code: 'LINK_EXPIRED' });
+  const verifications = await Promise.all([service.verifyEmail(token), service.verifyEmail(token)]);
+  assert.deepEqual(verifications, [{ verified: true }, { verified: true }]);
+  assert.ok(repository.users[0].emailVerifiedAt instanceof Date);
+  assert.equal(repository.users[0].version, 1, 'a repeated verification must not write another user update');
   const session = await service.login({ email: 'AN@example.test', password: 'Correct Horse Battery Staple 42!' });
   assert.equal(session.user.role, 'customer');
   assert.equal((await service.requireActor(session.sessionToken)).id, repository.users[0]._id);
   assert.notEqual(repository.sessions[0].tokenHash, session.sessionToken);
+});
+
+test('a consumed verification token cannot verify an account that is still unverified', async () => {
+  const { service, repository, outboxEvents } = makeHarness();
+  await service.register({ name: 'An', email: 'an@example.test', password: 'Correct Horse Battery Staple 42!' });
+  const token = tokenFromLink(outboxEvents[0].variables.link);
+  repository.challenges[0].consumedAt = new Date(testTime);
+
+  await assert.rejects(service.verifyEmail(token), { status: 410, code: 'LINK_EXPIRED' });
+  assert.equal(repository.users[0].emailVerifiedAt, undefined);
 });
 
 test('password reset is single use, invalidates old sessions, and does not reveal account existence', async () => {
