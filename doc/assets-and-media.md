@@ -12,6 +12,8 @@ Chưa có ảnh/video sản phẩm thật được chủ dự án cấp. Clip MP
 
 Agy web research bị chặn quyền công cụ trong phiên nên không trả kết quả. Coordinator đã thay thế bằng đọc HTML công khai qua HTTP GET, chỉ đọc trang chủ của [saccodo.com](https://saccodo.com/) và [thanhnamhuongky.io.vn](https://thanhnamhuongky.io.vn/). Sắc Cố Đô có phần mở đầu dẫn vào trải nghiệm, các thẻ địa điểm/câu chuyện và hành trình theo bước. Thành Nam Hương Ký mở bằng lời giới thiệu thương hiệu, tiếp theo là câu chuyện, nhóm thẻ sản phẩm, điều hướng danh mục và đăng ký nhận tin. Đây là quan sát bố cục để tham khảo; không tải ảnh/video, không sao chép nội dung, logo, media hay mã nguồn. Ghi chú chi tiết về cách chuyển hóa vào nhận diện TRO & LAM nằm ở [brand-identity.md](brand-identity.md).
 
+Theo yêu cầu tiếp theo, ngày 2026-10-06 CLI đã xác nhận có model `gemini-3.8-flash-high` và nhận một yêu cầu tạo thêm ảnh qua `/teamwork-preview`; CLI trả “no output produced” vì cần quyền `command` và headless mode không thể hỏi quyền. Không dùng `--dangerously-skip-permissions`; không có ảnh mới nào được tạo trong lần thử này. Ảnh JPEG/clip Agy đã liệt kê ở trên là các asset concept có sẵn trong repo, không phải kết quả của lần gọi vừa bị chặn.
+
 Chưa có video quay thật hay ảnh sản phẩm thật được chủ dự án cấp trong repo. JPEG và clip MP4 phía trên là concept biên tập do Agy tạo; clip chỉ animate ảnh tĩnh, không đại diện SKU thật và không xác thực nguồn gốc. Không tải ảnh/video từ hai website tham khảo. Trước khi publish catalog, chủ dự án cần cung cấp media đúng SKU, quyền sử dụng, thông số hình chụp và nội dung đã duyệt; không dùng ảnh AI thay cho bằng chứng này.
 
 ## Font tiếng Việt
