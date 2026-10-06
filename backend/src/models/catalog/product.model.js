@@ -29,11 +29,10 @@ const productSchema = new Schema({
 
 productSchema.index({ status: 1, line: 1, categoryId: 1, priceVnd: 1 });
 productSchema.index({ name: 'text', description: 'text' });
-productSchema.pre('validate', function validateDirectPrice(next) {
+productSchema.pre('validate', function validateDirectPrice() {
   if (['buy', 'both'].includes(this.saleMode) && !Number.isSafeInteger(this.priceVnd)) {
     this.invalidate('priceVnd', 'Sản phẩm mua trực tiếp cần có giá VND nguyên lớn hơn 0');
   }
-  next();
 });
 
 export const CatalogProduct = mongoose.models.CatalogProduct
