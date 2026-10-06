@@ -14,7 +14,7 @@ const lineIntroductions = {
     image: media.tea,
     alt: 'Hai chén trà trong một góc bàn gỗ — ảnh cảm hứng, không phải ảnh sản phẩm TRO & LAM',
     caption: 'Ảnh cảm hứng về khoảnh khắc thưởng trà · Không phải ảnh SKU',
-    items: ['Lư xông trầm mini', 'Hũ trà', 'Bộ chén độc ẩm'],
+    items: ['Gợi ý cho góc hương', 'Gợi ý lưu trữ trà', 'Gợi ý thưởng trà'],
   },
   diplomacy: {
     eyebrow: 'GỐM CHO NHỮNG DỊP TRAO TẶNG',
@@ -127,7 +127,7 @@ export default function ProductCatalogPage() {
         <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>
         <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" /><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
       </div>
-      <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
+      <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2><p className="product-line-intro__note">Đây là gợi ý phong cách. Tên mẫu, SKU, nguồn cung và giá cần được xác nhận khi tư vấn.</p></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
       <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle" aria-current={forcedLine === 'lifestyle' ? 'page' : undefined}>Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy" aria-current={forcedLine === 'diplomacy' ? 'page' : undefined}>Diplomacy · Gốm trao tặng</Link></nav>
     </section> : <section className="catalog-page__intro">
       <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>

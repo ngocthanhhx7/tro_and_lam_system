@@ -4,6 +4,7 @@ import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogSt
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { PublicProductReviews } from '../support/CustomerReviewsPage.jsx';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
+import { setPageMetadata } from '../../utils/pageMetadata.js';
 
 function QuoteForm({ product }) {
   const [message, setMessage] = useState('');
@@ -78,13 +79,12 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (state.slug !== slug || state.status !== 'ready' || !state.product) return;
-    document.title = `${state.product.name} | TRO & LAM`;
+    const title = `${state.product.name} | TRO & LAM`;
     const description = String(state.product.description || 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.')
       .replace(/\s+/gu, ' ')
       .trim()
       .slice(0, 160);
-    const meta = document.head.querySelector('meta[name="description"]');
-    if (meta) meta.content = description;
+    setPageMetadata({ title, description });
   }, [slug, state]);
 
   if (state.slug !== slug || state.status === 'loading') return <div className="section-wrap"><CatalogLoading count={1} /></div>;

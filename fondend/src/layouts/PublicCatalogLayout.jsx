@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
 import Icon from '../components/catalog/Icon.jsx';
+import { setPageMetadata } from '../utils/pageMetadata.js';
 
 const links = [
   { to: '/', label: 'Trang chủ' },
@@ -52,15 +53,6 @@ const pageMetadata = {
   '/thanh-toan': { title: 'Thanh toán | TRO & LAM', description: 'Xem lại thông tin và tiếp tục quy trình thanh toán của TRO & LAM.' },
   '/tai-khoan': { title: 'Tài khoản | TRO & LAM', description: 'Đăng nhập hoặc quản lý tài khoản TRO & LAM.' },
 };
-function setMetaDescription(content) {
-  let meta = document.head.querySelector('meta[name="description"]');
-  if (!meta) {
-    meta = document.createElement('meta');
-    meta.name = 'description';
-    document.head.append(meta);
-  }
-  meta.content = content;
-}
 function Brand() {
   return <Link className="catalog-brand" to="/" aria-label="TRO & LAM — trang chủ"><img src="/assets/logo/logo.PNG" alt="" width="54" height="54" /><span><strong>TRO & LAM</strong><small>GỐM CHU ĐẬU</small></span></Link>;
 }
@@ -96,8 +88,7 @@ export default function PublicCatalogLayout() {
     const metadata = pageMetadata[pathname] || (pathname.startsWith('/san-pham/')
       ? { title: 'Chi tiết sản phẩm gốm Chu Đậu | TRO & LAM', description: 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.' }
       : { title: isCollection ? 'Sản phẩm gốm Chu Đậu | TRO & LAM' : 'Gốm Chu Đậu | TRO & LAM', description: 'Khám phá các dòng gốm Chu Đậu và câu chuyện được TRO & LAM biên tập.' });
-    document.title = metadata.title;
-    setMetaDescription(metadata.description);
+    setPageMetadata(metadata);
   }, [pathname, isCollection]);
   function closeMenu() { setMenuOpen(false); menuButton.current?.focus(); }
   return <div className="public-site">
