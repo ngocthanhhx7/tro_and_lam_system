@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import mongoose from 'mongoose';
 import { Inventory } from '../../backend/src/models/commerce/inventory.model.js';
 import { InventoryMovement } from '../../backend/src/models/commerce/inventory-movement.model.js';
@@ -201,6 +202,131 @@ test('home tells the TRO & LAM story, introduces both lines and links to their i
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await expect(page.locator('.atelier-hero video')).toHaveJSProperty('paused', true);
+});
+
+test('published story and NFC browser routes expose only published content and honor tag revocation', async ({ page }) => {
+  await login(page, USERS.admin);
+  const slug = 'p11-browser-content-fixture';
+  const draftInput = {
+    slug,
+    title: 'P11 Public Content Fixture',
+    locale: 'vi',
+    origin: '',
+    motifs: [],
+    sections: [{ body: [{ type: 'paragraph', text: 'Synthetic source-confirmed browser content for this test only.' }] }],
+    media: [],
+    productIds: [],
+    status: 'draft',
+  };
+  const created = await browserApi(page, '/api/v1/admin/stories', { method: 'POST', body: draftInput });
+  expect(created.status, JSON.stringify(created.body)).toBe(201);
+  const storyId = created.body.data.id;
+
+  const hiddenStory = await browserApi(page, `/api/v1/stories/${slug}`);
+  expect(hiddenStory.status).toBe(404);
+  await page.goto(`/cau-chuyen/${slug}`);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
+
+  const published = await browserApi(page, `/api/v1/admin/stories/${storyId}`, {
+    method: 'PATCH',
+    body: { ...draftInput, origin: 'Synthetic P11 test fixture; not a cultural claim.', status: 'published', expectedVersion: 0 },
+  });
+  expect(published.status, JSON.stringify(published.body)).toBe(200);
+  await page.goto(`/cau-chuyen/${slug}`);
+  await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toBeVisible();
+  await expect(page.getByText(draftInput.sections[0].body[0].text, { exact: true })).toBeVisible();
+  await page.goto(`/cau-chuyen/${slug}?locale=en`);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toHaveCount(0);
+
+  const createdTag = await browserApi(page, '/api/v1/admin/nfc-tags', {
+    method: 'POST',
+    body: { storyId },
+  });
+  expect(createdTag.status, JSON.stringify(createdTag.body)).toBe(201);
+  const { id: tagId, publicId } = createdTag.body.data;
+  await page.goto(`/nfc/${publicId}`);
+  await expect(page.getByRole('heading', { name: draftInput.title, exact: true })).toBeVisible();
+  await expect(page.locator('.notice')).toBeVisible();
+
+  const revoked = await browserApi(page, `/api/v1/admin/nfc-tags/${tagId}/revoke`, {
+    method: 'POST',
+    body: { reason: 'P11 browser fixture retired', expectedVersion: 0 },
+  });
+  expect(revoked.status, JSON.stringify(revoked.body)).toBe(200);
+  await page.goto(`/nfc/${publicId}`);
+  await expect(page.locator('.story-state h1')).toContainText('NFC');
+  await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
+});
+
+test('guest assistant shows the provider-unavailable fallback and a human handoff option', async ({ page, context }) => {
+  await page.goto('/');
+  await page.locator('.assistant-widget__launcher').click();
+  const form = page.locator('.assistant-widget__form');
+  await form.locator('textarea').fill('P11 browser test: how do I find published product information?');
+  await form.locator('input[type="checkbox"]').check();
+  const responsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/assistant/messages'));
+  await form.locator('button[type="submit"]').click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const responseBody = await response.json();
+  const result = responseBody.data;
+  expect(result.reply).toMatch(/^Trợ lý tự động hiện chưa sẵn sàng/iu);
+  expect(result.sources).toEqual([]);
+  expect(result.handoffSuggested).toBe(true);
+  await expect(page.locator('.assistant-widget__message--assistant p')).toHaveText(result.reply);
+  await expect(page.locator('.assistant-widget__sources')).toHaveCount(0);
+  await expect(page.locator('.assistant-widget__link-button')).toBeVisible();
+
+  const guestCookie = (await context.cookies()).find((cookie) => cookie.name === 'tl_assistant_guest');
+  expect(guestCookie?.httpOnly).toBe(true);
+  expect(guestCookie?.path).toBe('/api/v1/assistant');
+});
+
+test('public home, catalog, product-line, and contact pages pass automated WCAG checks at mobile and desktop', async ({ page }) => {
+  const paths = [
+    '/',
+    '/san-pham',
+    '/san-pham/p11-fixture-ceramic-vase',
+    '/bo-suu-tap/lifestyle',
+    '/bo-suu-tap/diplomacy',
+    '/ve-chung-toi',
+    '/cau-chuyen',
+    '/lien-he',
+    '/dang-nhap',
+  ];
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    for (const path of paths) {
+      await page.goto(path);
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(violations.map(({ id, impact, description, nodes }) => ({
+        id,
+        impact,
+        description,
+        nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+      })), `${path} at ${viewport.width}px`).toEqual([]);
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const menuButton = page.getByRole('button', { name: 'Mở điều hướng', exact: true });
+  await menuButton.click();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map(({ id, impact, description, nodes }) => ({
+    id,
+    impact,
+    description,
+    nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  })), 'mobile navigation dialog').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(menuButton).toBeFocused();
 });
 
 test('public catalog filters are reflected in the URL and pagination restores after reload', async ({ page }) => {

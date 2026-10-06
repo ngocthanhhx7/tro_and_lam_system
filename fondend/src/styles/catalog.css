@@ -515,7 +515,7 @@
 .product-story p:not(.eyebrow) { max-width: 570px; font-size: 13px; line-height: 1.8; }
 .product-story .text-link { margin-top: 6px; }
 .product-story--pending { border-color: #c8c3b5; }
-.product-story--pending .eyebrow { color: #74766f; }
+.product-story--pending .eyebrow { color: #666b62; }
 
 @media(max-width:639px) {
   .closing-note { padding-block: 65px; }
