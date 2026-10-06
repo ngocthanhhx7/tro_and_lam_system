@@ -165,7 +165,14 @@ test('full refund approval and recorded failure restore the paid aggregate', asy
   );
   assert.equal(approved.status, 'approved');
   assert.equal(harness.order.paymentStatus, 'refund_pending');
-  const failed = await service.failRefund(requested.id, 'MANUAL_REFUND_FAILED', { requestId: 'refund-fail-test' });
+  await assert.rejects(service.failRefund(requested.id, 'MANUAL_REFUND_FAILED', {
+    requestId: 'refund-fail-stale-test', expectedVersion: 0,
+  }), (error) => error.code === 'VERSION_CONFLICT');
+  assert.equal(harness.repository.state.refunds[0].status, 'approved');
+  assert.equal(harness.order.paymentStatus, 'refund_pending');
+  const failed = await service.failRefund(requested.id, 'MANUAL_REFUND_FAILED', {
+    requestId: 'refund-fail-test', expectedVersion: 1,
+  });
   assert.equal(failed.status, 'failed');
   assert.equal(harness.order.paymentStatus, 'paid');
   assert.equal(harness.order.refundedAmountVnd, 0);

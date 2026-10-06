@@ -638,10 +638,16 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
     if (typeof reasonCode !== 'string' || !/^[A-Z0-9_]{1,80}$/u.test(reasonCode)) {
       fail(400, 'VALIDATION_ERROR', 'Mã lý do hoàn tiền thất bại không hợp lệ');
     }
+    if (context.expectedVersion !== undefined
+      && (!Number.isSafeInteger(context.expectedVersion) || context.expectedVersion < 0)) {
+      fail(400, 'VALIDATION_ERROR', 'Phiên bản yêu cầu hoàn tiền không hợp lệ');
+    }
     return repository.transaction(async (session) => {
       const refund = await repository.findRefundById(refundId, { session });
       if (!refund) fail(404, 'NOT_FOUND', 'Không tìm thấy yêu cầu hoàn tiền');
-      const changed = await repository.updateRefund(refund._id ?? refund.id, refund.version, ['approved', 'processing'], {
+      const expectedVersion = context.expectedVersion ?? refund.version;
+      if (refund.version !== expectedVersion) fail(409, 'VERSION_CONFLICT', 'Yêu cầu hoàn tiền đã thay đổi');
+      const changed = await repository.updateRefund(refund._id ?? refund.id, expectedVersion, ['approved', 'processing'], {
         status: 'failed', outcomeReasonCode: reasonCode,
       }, { session });
       if (!changed) fail(409, 'VERSION_CONFLICT', 'Yêu cầu hoàn tiền đã thay đổi');
