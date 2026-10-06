@@ -444,7 +444,18 @@ test('test-only configured zone produces a COD quote and persists the same shipp
   expect(orderBody.data.order.totalVnd).toBe(quoteBody.data.totalVnd);
   await expect(page.getByRole('heading', { name: 'Cảm ơn bạn đã đặt hàng', exact: true })).toBeVisible();
 
-  const persisted = await inspectP11Database(({ Order: OrderRead }) => OrderRead.findById(orderBody.data.order.id).lean().exec());
+  const orderId = orderBody.data.order.id;
+  const guestOrderResponsePromise = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}`)
+    && response.request().method() === 'GET');
+  await page.getByRole('link', { name: 'Xem chi tiết đơn', exact: true }).click();
+  const guestOrderResponse = await guestOrderResponsePromise;
+  const guestOrderBody = await guestOrderResponse.json();
+  expect(guestOrderResponse.status(), JSON.stringify(guestOrderBody)).toBe(200);
+  expect(guestOrderBody.data.recipient.recipientName).toBe('P11 Shipping Fixture');
+  await expect(page.getByText(orderBody.data.order.code, { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Shipping Fixture', { exact: true })).toBeVisible();
+
+  const persisted = await inspectP11Database(({ Order: OrderRead }) => OrderRead.findById(orderId).lean().exec());
   expect(persisted).toMatchObject({
     paymentMethod: 'cod',
     shippingFeeVnd: 28000,
