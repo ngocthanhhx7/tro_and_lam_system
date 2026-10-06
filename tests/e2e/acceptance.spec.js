@@ -10,6 +10,7 @@ import { BusinessSetting } from '../../backend/src/models/operations/business-se
 import { Order } from '../../backend/src/models/commerce/order.model.js';
 import { createOutboxPayloadCipher } from '../../backend/src/services/operations/outbox-payload-cipher.js';
 import { Review } from '../../backend/src/reviews/review.models.js';
+import { AccountAppeal } from '../../backend/src/models/identity/account-appeal.model.js';
 import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.model.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
 import { Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
@@ -71,6 +72,7 @@ async function inspectP11Database(read) {
       OutboxEvent: connection.model('P11OutboxEventRead', OutboxEvent.schema),
       BusinessSetting: connection.model('P11BusinessSettingRead', BusinessSetting.schema),
       Order: connection.model('P11OrderRead', Order.schema),
+      AccountAppeal: connection.model('P11AccountAppealRead', AccountAppeal.schema),
       AuthChallenge: connection.model('P11AuthChallengeRead', AuthChallenge.schema),
       User: connection.model('P11UserRead', User.schema),
     });
@@ -361,7 +363,11 @@ async function staffShipmentFlow(page) {
     const reservation = await models.StockReservation.findOne({ orderId: orderObjectId }).lean().exec();
     const movement = await models.InventoryMovement.findOne({ orderId: orderObjectId, kind: 'ship' }).lean().exec();
     const outbox = await models.OutboxEvent.findOne({ aggregateId: orderId, type: 'order.status_changed' }).lean().exec();
-    const auditRecord = await models.AuditLog.findOne({ targetId: orderId, action: 'order.transition' }).lean().exec();
+    const auditRecord = await models.AuditLog.findOne({
+      action: 'order.transition',
+      'changesRedacted.fromStatus': 'processing',
+      'changesRedacted.toStatus': 'shipped',
+    }).lean().exec();
     return { inventory, reservation, movement, outbox, auditRecord };
   });
   expect(persisted.inventory).toMatchObject({ onHand: 4, reserved: 2 });
@@ -369,6 +375,7 @@ async function staffShipmentFlow(page) {
   expect(persisted.movement).toMatchObject({ kind: 'ship', onHandDelta: -1, reservedDelta: -1 });
   expect(persisted.outbox).toMatchObject({ type: 'order.status_changed', aggregateId: orderId });
   expect(persisted.auditRecord).toMatchObject({ action: 'order.transition', outcome: 'success', actorRole: 'staff' });
+  expect(persisted.auditRecord.targetId).toBe(orderId);
   expect(persisted.auditRecord.changesRedacted).toMatchObject({ fromStatus: 'processing', toStatus: 'shipped' });
   expect(persisted.auditRecord.requestId).toMatch(/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/iu);
 }
@@ -867,4 +874,101 @@ test('customer registration verifies through encrypted outbox and returns to log
   expect(loginResponse.status(), JSON.stringify(loginBody)).toBe(200);
   expect(loginBody.data.user).toMatchObject({ email, role: 'customer' });
   await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+});
+
+test('admin block, customer appeal and admin approval revoke old access and allow a fresh customer login', async ({ page, browser }) => {
+  const blockReason = 'P11 browser acceptance temporary block';
+  const appealMessage = 'P11 customer requests an account review.';
+  const decisionNote = 'P11 acceptance confirms the customer may regain account access.';
+  const adminContext = await browser.newContext();
+  try {
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, USERS.admin);
+    await adminPage.goto('/admin/users');
+    await adminPage.getByLabel('Tìm tên hoặc email', { exact: true }).fill(USERS.customer.email);
+    await adminPage.getByRole('button', { name: 'Lọc', exact: true }).click();
+    const customerRow = adminPage.locator('tbody tr').filter({ has: adminPage.getByText(USERS.customer.email, { exact: true }) });
+    await expect(customerRow).toHaveCount(1);
+    await customerRow.getByRole('link', { name: 'Mở tài khoản', exact: true }).click();
+    await expect(adminPage.getByRole('heading', { name: USERS.customer.name, exact: true })).toBeVisible();
+    const userId = new URL(adminPage.url()).pathname.split('/').at(-1);
+    const statusForm = adminPage.locator('form.identity-admin__panel').filter({ has: adminPage.getByRole('heading', { name: 'Trạng thái', exact: true }) });
+    await statusForm.getByLabel('Lý do bắt buộc', { exact: true }).fill(blockReason);
+    await statusForm.getByLabel('Tôi xác nhận thay đổi này sẽ thu hồi mọi phiên hiện tại.', { exact: true }).check();
+    const blockResponsePromise = adminPage.waitForResponse((response) => response.url().endsWith(`/api/v1/admin/users/${userId}/status`)
+      && response.request().method() === 'POST');
+    await statusForm.getByRole('button', { name: 'Cập nhật trạng thái', exact: true }).click();
+    const blockResponse = await blockResponsePromise;
+    const blockBody = await blockResponse.json();
+    expect(blockResponse.status(), JSON.stringify(blockBody)).toBe(200);
+    expect(blockBody.data).toMatchObject({ id: userId, status: 'blocked' });
+    await expect(adminPage.getByRole('status')).toContainText('Trạng thái đã cập nhật');
+
+    await page.goto('/dang-nhap');
+    await page.getByLabel('Email', { exact: true }).fill(USERS.customer.email);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
+    const blockedLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    const blockedLoginResponse = await blockedLoginResponsePromise;
+    expect(blockedLoginResponse.status()).toBe(403);
+    expect((await blockedLoginResponse.json()).error?.code).toBe('ACCOUNT_BLOCKED');
+    await expect(page.getByRole('heading', { name: 'Tài khoản đang bị khóa', exact: true })).toBeVisible();
+    await expect(page.getByText(blockReason, { exact: true })).toBeVisible();
+
+    await page.getByLabel('Nội dung kháng nghị', { exact: true }).fill(appealMessage);
+    const appealResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/account/appeals')
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Gửi kháng nghị', exact: true }).click();
+    const appealResponse = await appealResponsePromise;
+    const appealBody = await appealResponse.json();
+    expect(appealResponse.status(), JSON.stringify(appealBody)).toBe(201);
+    expect(appealBody.data).toMatchObject({ status: 'pending' });
+    const appealId = appealBody.data.id;
+    await expect(page.getByRole('heading', { name: 'Kháng nghị đang chờ', exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Kháng nghị đang chờ', exact: true })).toBeVisible();
+    await expect(page.getByText(appealMessage, { exact: true })).toBeVisible();
+
+    await adminPage.goto('/admin/appeals');
+    const appealRow = adminPage.locator('tbody tr').filter({ hasText: appealMessage });
+    await expect(appealRow).toHaveCount(1);
+    await appealRow.getByRole('link', { name: 'Xem và xử lý', exact: true }).click();
+    await expect(adminPage.getByRole('heading', { name: USERS.customer.name, exact: true })).toBeVisible();
+    await expect(adminPage.getByText(appealMessage, { exact: true })).toBeVisible();
+    await adminPage.getByLabel('Lý do gửi tới người dùng', { exact: true }).fill(decisionNote);
+    await adminPage.getByLabel('Tôi xác nhận đây là quyết định thủ công và cần được ghi vào lịch sử.', { exact: true }).check();
+    const decisionResponsePromise = adminPage.waitForResponse((response) => response.url().endsWith(`/api/v1/admin/appeals/${appealId}/decision`)
+      && response.request().method() === 'POST');
+    await adminPage.getByRole('button', { name: 'Chấp thuận kháng nghị', exact: true }).click();
+    const decisionResponse = await decisionResponsePromise;
+    const decisionBody = await decisionResponse.json();
+    expect(decisionResponse.status(), JSON.stringify(decisionBody)).toBe(200);
+    expect(decisionBody.data).toMatchObject({ id: appealId, status: 'approved', userStatus: 'active', reviewNote: decisionNote });
+    await expect(adminPage.getByRole('status')).toContainText('tài khoản đã mở');
+
+    const persisted = await inspectP11Database(async ({ AccountAppeal: AccountAppealRead, AuditLog: AuditLogRead, User: UserRead }) => ({
+      user: await UserRead.findById(userId).lean().exec(),
+      appeal: await AccountAppealRead.findById(appealId).lean().exec(),
+      audit: await AuditLogRead.findOne({ action: 'identity.appeal.decision', 'changesRedacted.decision': 'approved' }).lean().exec(),
+    }));
+    expect(persisted.user).toMatchObject({ status: 'active', authVersion: 2 });
+    expect(persisted.appeal).toMatchObject({ status: 'approved', reviewNote: decisionNote });
+    expect(persisted.audit).toMatchObject({ outcome: 'success', changesRedacted: { decision: 'approved', userStatus: 'active' } });
+    expect(persisted.audit.targetId).toBe(appealId);
+
+    await page.goto('/dang-nhap');
+    await page.getByLabel('Email', { exact: true }).fill(USERS.customer.email);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
+    const freshLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    const freshLoginResponse = await freshLoginResponsePromise;
+    const freshLoginBody = await freshLoginResponse.json();
+    expect(freshLoginResponse.status(), JSON.stringify(freshLoginBody)).toBe(200);
+    expect(freshLoginBody.data.user).toMatchObject({ email: USERS.customer.email, role: 'customer', status: 'active' });
+    await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+  } finally {
+    await adminContext.close();
+  }
 });
