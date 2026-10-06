@@ -10,7 +10,7 @@ Các package P01–P11 đã có implementation trong source tích hợp. Điều
 
 | Package | Trạng thái source | Cổng còn mở |
 | --- | --- | --- |
-| P01 | Contract, composition, lỗi chuẩn hóa và test harness tích hợp | Clean-checkout sau các thay đổi hiện tại; CI/release configuration |
+| P01 | Contract, composition, lỗi chuẩn hóa và test harness tích hợp | Clean-checkout đã qua tại `61e6bd4`; CI/release configuration |
 | P02 | Identity, email verification, RBAC, appeal và admin bootstrap có tests | Chạy replica-set suite trong CI; SMTP thật, owner xác nhận mailbox/bootstrap/recovery |
 | P03 | Address, guest/customer cart, ownership, merge và manual geolocation fallback có tests | Browser geolocation và geocoder staging |
 | P04 | Catalog public/admin, demo seed và storefront hai dòng sản phẩm tích hợp | SKU/giá/tồn kho/ảnh sản phẩm thật và quyền media cần chủ dự án duyệt |
@@ -20,7 +20,7 @@ Các package P01–P11 đã có implementation trong source tích hợp. Điều
 | P08 | CMS/story, locale, NFC routing và safe-content handling có tests | Chủ dự án duyệt nguồn văn hóa, nội dung và quyền media; browser UAT |
 | P09 | Notifications, audit, metrics và encrypted SMTP outbox/worker có tests | SMTP staging/deliverability, worker supervision và audit persistence UAT |
 | P10 | Assistant grounding, redaction, injection guards, fallback và Gemini adapter có tests | Gemini credentials/quota/staging và browser handoff UAT |
-| P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke | Clean-checkout sau commit, WCAG/UAT/provider/restore gates; hero đã crop vùng phụ đề của video nguồn |
+| P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke; clean-checkout và responsive content smoke đã qua tại `61e6bd4` | WCAG/UAT/provider/restore gates; hero đã crop vùng phụ đề của video nguồn |
 
 `feature/interface-refresh` có các commit implementation `4529fda` (Mongoose/index), `28103f3` (catalog seed), `3b35180` (storefront/media) và release evidence; đã fast-forward vào `develop` tại `9cc3a51`. Source code revision `0fb7d9d` qua `npm run check` với 185/185 tests và `npm run test:e2e` 6/6; commit cuối cập nhật riêng trạng thái merge. Xem [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md). Không push hoặc deploy production.
 
