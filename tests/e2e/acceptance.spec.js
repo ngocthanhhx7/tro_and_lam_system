@@ -1387,3 +1387,57 @@ test('customer logout revokes the server session and clears the browser cookie',
   expect(persistedSessions.length).toBeGreaterThan(0);
   expect(persistedSessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
 });
+
+test('admin role changes require a reason and confirmation, audit the result and revoke the former customer session', async ({ browser }) => {
+  const roleReason = 'P11 browser acceptance role change';
+  const customerContext = await browser.newContext();
+  const adminContext = await browser.newContext();
+  try {
+    const customerPage = await customerContext.newPage();
+    await login(customerPage, USERS.otherCustomer);
+    const identity = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(identity.status).toBe(200);
+    expect(identity.body.data).toMatchObject({ email: USERS.otherCustomer.email, role: 'customer' });
+    const userId = identity.body.data.id;
+
+    const adminPage = await adminContext.newPage();
+    await login(adminPage, USERS.admin);
+    await adminPage.goto(`/admin/users/${userId}`);
+    await expect(adminPage.getByRole('heading', { name: USERS.otherCustomer.name, exact: true })).toBeVisible();
+    const rolePanel = adminPage.locator('.identity-admin__grid form.identity-admin__panel').nth(1);
+    await expect(rolePanel.getByRole('heading', { name: 'Vai trò', exact: true })).toBeVisible();
+    await rolePanel.getByRole('combobox').selectOption('staff');
+    await rolePanel.locator('textarea').fill(roleReason);
+    const updateRoleButton = rolePanel.getByRole('button', { name: 'Cập nhật vai trò', exact: true });
+    await expect(updateRoleButton).toBeDisabled();
+    await rolePanel.getByRole('checkbox').check();
+    const updateResponsePromise = adminPage.waitForResponse((response) => response.url().endsWith(`/api/v1/admin/users/${userId}/role`)
+      && response.request().method() === 'POST');
+    await updateRoleButton.click();
+    const updateResponse = await updateResponsePromise;
+    const updateBody = await updateResponse.json();
+    expect(updateResponse.status(), JSON.stringify(updateBody)).toBe(200);
+    expect(updateBody.data).toMatchObject({ id: userId, role: 'staff', status: 'active' });
+    await expect(adminPage.getByRole('status')).toContainText('các phiên cũ đã bị thu hồi');
+
+    const staleSession = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(staleSession.status).toBe(401);
+    expect(staleSession.body.error.code).toBe('SESSION_EXPIRED');
+
+    const persisted = await inspectP11Database(async ({ AuditLog: AuditLogRead, AuthSession: AuthSessionRead, User: UserRead }) => {
+      const user = await UserRead.findById(userId).lean().exec();
+      const sessions = await AuthSessionRead.find({ userId }).lean().exec();
+      const audit = await AuditLogRead.findOne({ action: 'identity.user.role', targetId: userId }).lean().exec();
+      return { user, sessions, audit };
+    });
+    expect(persisted.user).toMatchObject({ role: 'staff', status: 'active', authVersion: 1 });
+    expect(persisted.sessions.length).toBeGreaterThan(0);
+    expect(persisted.sessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
+    expect(persisted.audit).toMatchObject({
+      outcome: 'success', reasonCode: 'ADMIN_ROLE_CHANGE',
+      changesRedacted: { before: { role: 'customer', status: 'active' }, after: { role: 'staff', status: 'active' } },
+    });
+  } finally {
+    await Promise.all([customerContext.close().catch(() => {}), adminContext.close().catch(() => {})]);
+  }
+});

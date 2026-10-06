@@ -233,3 +233,9 @@ A fresh detached worktree at `694ae9a` completed `npm ci` with 314 packages and 
 `npm run test:e2e` passed **25/25** using a new P11 loopback test database. After teardown, P11 database `tro_lam_p11_e2e_test_a749bb420a1e` was absent; P02/P05 databases were removed by their tests. P06 database `tro_lam_p06_test_454af9cd4409` had three empty collections and zero documents before exact cleanup. Final audit found no P02/P05/P06/P11 databases.
 
 This verifies the locked install and current local acceptance suite. The first GitHub Actions run, owner SKU photography and rights, approved cultural content, provider staging, manual accessibility review, Atlas restore rehearsal and owner UAT remain outstanding. No production deployment or live provider call occurred.
+
+## P11 admin role-change browser follow-up (2026-10-07)
+
+The admin browser flow changes a synthetic customer to staff through the real role endpoint. It checks that the form requires both a reason and explicit confirmation, verifies the success response and persisted role, confirms the former customer session returns `401 SESSION_EXPIRED`, and reads the session revocations plus redacted `identity.user.role` audit record from the isolated test database.
+
+`npm run test:e2e` passed **26/26** in the clean verification checkout. The clean source revision passed `npm run check`: contract validation, lint, backend **196/196 with 0 skipped**, and the 132-module Vite build. A read-only local-loopback prefix audit found no P02/P05/P11 databases. The exact P06 database `tro_lam_p06_test_cc096f3ed05d` contained three empty collections and zero documents before it was removed; a second prefix audit was clean. No real SMTP, PayOS, Gemini, geocoder, production database or deployment was used. The first GitHub Actions run, provider staging, owner UAT, manual accessibility review and Atlas restore rehearsal remain open.
