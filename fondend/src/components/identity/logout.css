@@ -1,0 +1,25 @@
+.logout-action { display: flex; flex-direction: column; align-items: stretch; }
+.logout-action__button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid #ae8c4a; border-radius: 5px; padding: 8px 14px; background: transparent; color: #123f56; font: 600 0.8rem var(--font-body, system-ui, sans-serif); cursor: pointer; }
+.logout-action__button:hover:not(:disabled) { border-color: #092b3b; background: #f7f3e9; color: #092b3b; }
+.logout-action__button:disabled { cursor: wait; opacity: 0.7; }
+.logout-action__button:focus-visible { outline: 3px solid #8a620e; outline-offset: 3px; }
+.logout-action__error { max-width: 260px; margin: 6px 0 0; color: #a12b35; font-size: 0.75rem; line-height: 1.5; }
+.logout-action--workspace .logout-action__button { border-color: #123f56; background: #123f56; color: #fff; }
+.logout-action--workspace .logout-action__button:hover:not(:disabled) { border-color: #092b3b; background: #092b3b; color: #fff; }
+.logout-action--mobile { width: 100%; }
+.logout-action--mobile .logout-action__button { justify-content: flex-start; }
+.identity-workspace-session { display: flex; width: min(100% - 32px, 1200px); min-height: 64px; align-items: center; justify-content: space-between; gap: 16px; margin: 0 auto; padding: 10px 0; border-bottom: 1px solid #dedbd0; }
+.identity-workspace-session__home { color: #123f56; font-family: var(--font-heading, Georgia, serif); font-weight: 600; text-decoration: none; }
+.identity-workspace-session__user { min-width: 0; margin-left: auto; color: #52626b; font-size: 0.82rem; overflow-wrap: anywhere; }
+.identity-workspace-session .logout-action { flex: 0 0 auto; }
+
+@media (max-width: 880px) {
+  .catalog-header__actions > .logout-action { display: none; }
+  .identity-workspace-session { flex-wrap: wrap; gap: 10px 14px; padding-block: 10px; }
+  .identity-workspace-session__user { flex: 1 1 140px; }
+}
+
+@media (max-width: 639px) {
+  .identity-workspace-session { width: calc(100% - 32px); }
+  .identity-workspace-session__home { flex: 1 1 100%; }
+}

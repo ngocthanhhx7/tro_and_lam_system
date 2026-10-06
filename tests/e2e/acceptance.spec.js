@@ -389,6 +389,8 @@ async function addressBookFlow(page) {
 test('staff manages dashboard and fulfillment while remaining denied admin APIs', async ({ page }) => {
   await login(page, USERS.staff);
   await expect(page.locator('.catalog-header')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bảng công việc', exact: true })).toBeVisible();
   await expect(page.getByText('Chưa cấu hình ngưỡng tồn kho; chưa thể đếm sản phẩm sắp hết hàng.')).toBeVisible();
 
@@ -558,6 +560,8 @@ test('admin session can read admin statistics and catalog while anonymous caller
   expect(ownIdentity.body.data.role).toBe('admin');
   await page.goto('/admin');
   await expect(page.locator('.catalog-header')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Đối soát trong kỳ', exact: true })).toBeVisible();
   const catalogAdmin = await browserApi(page, '/api/v1/admin/products');
@@ -1123,14 +1127,21 @@ test('customer logout revokes the server session and clears the browser cookie',
   const identity = await browserApi(page, '/api/v1/auth/me');
   expect(identity.status).toBe(200);
   expect(identity.body.data).toMatchObject({ email: logoutUser.email, role: 'customer' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('button', { name: 'Đăng xuất', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Mở điều hướng' }).click();
+  await expect(page.getByText(`Xin chào, ${logoutUser.name}`, { exact: true })).toBeVisible();
 
   const sessionCookieName = process.env.P11_E2E_SESSION_COOKIE_NAME || 'tl_session';
   const sessionCookieBefore = (await context.cookies()).find((cookie) => cookie.name === sessionCookieName);
   expect(sessionCookieBefore?.httpOnly).toBe(true);
 
-  const logout = await browserApi(page, '/api/v1/auth/logout', { method: 'POST' });
-  expect(logout.status).toBe(204);
-  expect(logout.body).toBeNull();
+  const logoutResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/auth/logout'));
+  await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  const logoutResponse = await logoutResponsePromise;
+  expect(logoutResponse.status()).toBe(204);
+  await expect(page).toHaveURL(/\/dang-nhap$/u);
+  await expect(page.getByRole('heading', { name: 'Đăng nhập', exact: true })).toBeVisible();
   expect((await context.cookies()).some((cookie) => cookie.name === sessionCookieName)).toBe(false);
 
   const identityAfterLogout = await browserApi(page, '/api/v1/auth/me');

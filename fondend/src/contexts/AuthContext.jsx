@@ -45,13 +45,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await identityApi.logout();
-    } finally {
-      clearCsrfToken();
-      setUser(null);
-      setErrorCode(null);
-    }
+    await identityApi.logout();
+    clearCsrfToken();
+    setUser(null);
+    setErrorCode(null);
   }, []);
 
   const value = useMemo(() => ({ user, loading, errorCode, refresh, setUser, logout }), [user, loading, errorCode, refresh, logout]);
