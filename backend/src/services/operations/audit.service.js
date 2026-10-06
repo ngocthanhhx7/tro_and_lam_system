@@ -7,6 +7,7 @@ const SECRET_FIELD = /(password|passwd|otp|verification.?code|token|secret|signa
 const EMAIL_VALUE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const LONG_DIGITS = /(?:\+?\d[\s().-]*){8,}/;
 const UUID_REQUEST_ID = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/iu;
+const MONGO_OBJECT_ID = /^[a-f\d]{24}$/iu;
 const SAFE_KEY = /^[A-Za-z][A-Za-z0-9_.-]{0,79}$/;
 
 function auditError(field) {
@@ -46,7 +47,8 @@ export function redactAuditEvent(event = {}) {
   if (!requestId || requestId === REDACTED || !/^[A-Za-z0-9._:-]+$/.test(requestId)) throw auditError('requestId');
   if (!outcome || outcome === REDACTED || !/^[A-Za-z][A-Za-z0-9_.-]*$/.test(outcome)) throw auditError('outcome');
   const actorRole = ['customer', 'staff', 'admin', 'system'].includes(event.actorRole) ? event.actorRole : null;
-  const targetId = cleanText(event.targetId, 120);
+  const rawTargetId = typeof event.targetId === 'string' ? event.targetId.trim() : '';
+  const targetId = MONGO_OBJECT_ID.test(rawTargetId) ? rawTargetId : cleanText(event.targetId, 120);
   const reasonCode = typeof event.reasonCode === 'string' && /^[A-Z0-9_.-]{1,80}$/.test(event.reasonCode)
     ? event.reasonCode : null;
   const changesRedacted = event.changesRedacted && typeof event.changesRedacted === 'object' && !Array.isArray(event.changesRedacted)

@@ -127,13 +127,15 @@ test('audit redaction strips credential, contact, message, and provider payload 
 
 test('audit redaction preserves generated UUID request IDs that resemble phone numbers', () => {
   const requestId = '85819549-bf6f-4133-bc53-a9673811274e';
+  const targetId = '6ac4faa7be88434980559e8f';
   const safe = redactAuditEvent({
     actorRole: 'staff', requestId, action: 'order.transition', targetType: 'order',
-    targetId: '6ac4c6a4704d6932878cc3ea', outcome: 'success',
+    targetId, outcome: 'success',
     changesRedacted: { fromStatus: 'processing', toStatus: 'shipped' },
   });
 
   assert.equal(safe.requestId, requestId);
+  assert.equal(safe.targetId, targetId);
   assert.deepEqual(safe.changesRedacted, { fromStatus: 'processing', toStatus: 'shipped' });
 });
 
