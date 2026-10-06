@@ -41,7 +41,7 @@ export function createOutboxService({ OutboxEvent = DefaultOutboxEvent, uuid = r
       const result = OutboxEvent.findOneAndUpdate(
         { eventKey: value.eventKey },
         { $setOnInsert: { ...value, state: 'pending', attempts: 0, nextAttemptAt: new Date() } },
-        { upsert: true, new: true, setDefaultsOnInsert: true, ...(session ? { session } : {}) },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, ...(session ? { session } : {}) },
       );
       row = await withSession(result, session);
     } catch (error) {

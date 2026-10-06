@@ -64,7 +64,7 @@ export function createNotificationService({ Notification = DefaultNotification, 
     const row = await Notification.findOneAndUpdate(
       { _id: notificationId, userId, readAt: null },
       { $set: { readAt: now() } },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (row) return asPlain(row);
     const existing = await Notification.findOne({ _id: notificationId, userId }).lean();

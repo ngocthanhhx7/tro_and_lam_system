@@ -869,7 +869,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       if (item.resellableQuantity === 0) continue;
       const inventory = await repository.models.Inventory.findOneAndUpdate(
         { productId, $expr: { $gte: [{ $add: ['$onHand', item.resellableQuantity] }, '$reserved'] } },
-        { $inc: { onHand: item.resellableQuantity, version: 1 } }, { new: true, session },
+        { $inc: { onHand: item.resellableQuantity, version: 1 } }, { returnDocument: 'after', session },
       ).exec();
       if (!inventory) fail(409, 'OUT_OF_STOCK', 'Không thể cộng lại hàng trả vào tồn kho');
       await repository.models.InventoryMovement.create([{
@@ -991,7 +991,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       const updated = await repository.models.Order.findOneAndUpdate(
         { _id: id, userId: null, version: order.version, 'recipientSnapshot.email': order.recipientSnapshot.email },
         { $set: { userId: actor.id }, $unset: { guestAccessTokenHash: 1 }, $inc: { version: 1 } },
-        { new: true, session, runValidators: true },
+        { returnDocument: 'after', session, runValidators: true },
       ).exec();
       if (!updated) fail(409, 'VERSION_CONFLICT', 'Đơn đã được liên kết hoặc thay đổi');
       await ports.identity.revokeGuestOrderProofs(id, { session });

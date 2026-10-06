@@ -51,7 +51,7 @@ export function createBusinessSettingsService({
               $setOnInsert: { key: SETTINGS_KEY },
               $inc: { version: 1 },
             },
-            { upsert: input.expectedVersion === 0, new: true, runValidators: true, setDefaultsOnInsert: true, session: transactionSession },
+            { upsert: input.expectedVersion === 0, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true, session: transactionSession },
           ), transactionSession);
         } catch (error) {
           if (error?.code === 11000) throw conflict('VERSION_CONFLICT', 'Business settings đã được cập nhật. Tải lại rồi thử lại.');

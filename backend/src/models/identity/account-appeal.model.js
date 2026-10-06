@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const accountAppealSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, required: true },
   message: { type: String, required: true, maxlength: 5000 },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], required: true, default: 'pending' },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId },

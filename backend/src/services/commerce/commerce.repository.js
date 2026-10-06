@@ -109,7 +109,7 @@ export class CommerceRepository {
     if (Object.keys(set).length) update.$set = set;
     if (Object.keys(unset).length) update.$unset = unset;
     return this.models.Order.findOneAndUpdate(
-      { _id: id, version: expectedVersion }, update, { new: true, runValidators: true, session },
+      { _id: id, version: expectedVersion }, update, { returnDocument: 'after', runValidators: true, session },
     ).exec();
   }
 
@@ -128,7 +128,7 @@ export class CommerceRepository {
     return this.models.IdempotencyRecord.findOneAndUpdate(
       { _id: id, state: 'processing' },
       { $set: { state: 'succeeded', resourceId, responseStatus, safeResponse } },
-      { new: true, session },
+      { returnDocument: 'after', session },
     ).exec();
   }
 
@@ -201,7 +201,7 @@ export class CommerceRepository {
       const changed = await this.models.Inventory.findOneAndUpdate({
         productId,
         $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, item.quantity] },
-      }, { $inc: { reserved: item.quantity, version: 1 } }, { new: true, session }).exec();
+      }, { $inc: { reserved: item.quantity, version: 1 } }, { returnDocument: 'after', session }).exec();
       if (!changed) throw Object.assign(new Error('Một hoặc nhiều sản phẩm đã hết hàng'), { code: 'OUT_OF_STOCK' });
       await this.models.InventoryMovement.create([{
         productId, orderId, eventKey: `${orderId}:reserve:${productId}`, kind: 'reserve',
@@ -223,14 +223,14 @@ export class CommerceRepository {
     const reservation = await this.models.StockReservation.findOneAndUpdate(
       { orderId, status: 'held' },
       { $set: { status: 'released', releaseReason: reason }, $unset: { expiresAt: 1 }, $inc: { version: 1 } },
-      { new: true, session },
+      { returnDocument: 'after', session },
     ).exec();
     if (!reservation) return false;
     for (const item of reservation.items) {
       const productId = idOf(item.productId);
       const changed = await this.models.Inventory.findOneAndUpdate(
         { productId, reserved: { $gte: item.quantity }, onHand: { $gte: item.quantity } },
-        { $inc: { reserved: -item.quantity, version: 1 } }, { new: true, session },
+        { $inc: { reserved: -item.quantity, version: 1 } }, { returnDocument: 'after', session },
       ).exec();
       if (!changed) throw new Error('Inventory invariant violated while releasing reservation');
       await this.models.InventoryMovement.create([{
@@ -245,7 +245,7 @@ export class CommerceRepository {
     const reservation = await this.models.StockReservation.findOneAndUpdate(
       { orderId, status: 'held' },
       { $set: { status: 'committed' }, $unset: { expiresAt: 1 }, $inc: { version: 1 } },
-      { new: true, session },
+      { returnDocument: 'after', session },
     ).exec();
     if (!reservation) {
       const current = await this.models.StockReservation.findOne({ orderId }).session(session || null).exec();
@@ -257,7 +257,7 @@ export class CommerceRepository {
       const changed = await this.models.Inventory.findOneAndUpdate(
         { productId, onHand: { $gte: item.quantity }, reserved: { $gte: item.quantity } },
         { $inc: { onHand: -item.quantity, reserved: -item.quantity, version: 1 } },
-        { new: true, session },
+        { returnDocument: 'after', session },
       ).exec();
       if (!changed) throw new Error('Inventory invariant violated while shipping reservation');
       await this.models.InventoryMovement.create([{
@@ -282,7 +282,7 @@ export class CommerceRepository {
     }
     const changed = await this.models.Inventory.findOneAndUpdate(
       { productId, $expr: { $gte: [{ $add: ['$onHand', delta] }, '$reserved'] } },
-      { $inc: { onHand: delta, version: 1 } }, { new: true, session, runValidators: true },
+      { $inc: { onHand: delta, version: 1 } }, { returnDocument: 'after', session, runValidators: true },
     ).exec();
     if (!changed) throw Object.assign(new Error('Điều chỉnh sẽ làm tồn khả dụng âm'), { code: 'OUT_OF_STOCK' });
     await this.models.InventoryMovement.create([{

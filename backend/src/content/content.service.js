@@ -75,7 +75,7 @@ export function createContentService({
     const updated = await model.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       { $set: values, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     );
     if (updated) return updated;
     const exists = await model.findById(id).session(session).select({ _id: 1 }).lean();

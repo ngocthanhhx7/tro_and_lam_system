@@ -67,7 +67,7 @@ export class SupportRepository {
     return plain(await this.models.Contact.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).lean().exec());
   }
 
@@ -103,7 +103,7 @@ export class SupportRepository {
     return plain(await this.models.Ticket.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).lean().exec());
   }
 
@@ -159,7 +159,7 @@ export class SupportRepository {
     return plain(await this.models.ReturnRequest.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).lean().exec());
   }
 
@@ -180,7 +180,7 @@ export class SupportRepository {
     return plain(await this.models.Attachment.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).lean().exec());
   }
 
@@ -266,7 +266,7 @@ export class ReviewRepository {
     return plain(await this.Review.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       update,
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).lean().exec());
   }
 

@@ -82,7 +82,7 @@ export class AccountRepository {
     if (Object.keys(unset).length) update.$unset = unset;
     const record = await this.models.Address.findOneAndUpdate(
       { _id: addressId, userId, version: expectedVersion }, update,
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).exec();
     return addressDto(record);
   }
@@ -115,7 +115,7 @@ export class AccountRepository {
   async promoteAddressDefault(userId, addressId, { session } = {}) {
     const record = await this.models.Address.findOneAndUpdate(
       { _id: addressId, userId }, { $set: { isDefault: true }, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).exec();
     return addressDto(record);
   }
@@ -150,7 +150,7 @@ export class AccountRepository {
     const record = await this.models.Cart.findOneAndUpdate(
       { _id: cart.id, version: expectedVersion },
       { $set: patch, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).exec();
     return cartRecord(record);
   }

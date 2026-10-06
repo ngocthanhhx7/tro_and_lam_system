@@ -100,7 +100,7 @@ export function createOutboxWorker({
         lastErrorCode: null,
       },
       $inc: { attempts: 1 },
-    }, { sort: { nextAttemptAt: 1, _id: 1 }, new: true });
+    }, { sort: { nextAttemptAt: 1, _id: 1 }, returnDocument: 'after' });
     return result ? plain(result) : null;
   }
 

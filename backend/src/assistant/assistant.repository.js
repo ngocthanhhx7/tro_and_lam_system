@@ -48,7 +48,7 @@ export function createAssistantRepository({ Conversation = AiConversation } = {}
       }, {
         $push: { messagesRedacted: { $each: [message], $slice: -MAX_MESSAGES } },
         $set: { expiresAt, consentAt },
-      }, { new: true, runValidators: true }).lean();
+      }, { returnDocument: 'after', runValidators: true }).lean();
       return document;
     },
 

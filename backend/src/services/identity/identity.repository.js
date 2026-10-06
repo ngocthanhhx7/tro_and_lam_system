@@ -60,7 +60,7 @@ export class IdentityRepository {
     return this.models.User.findOneAndUpdate(
       { _id: id, version: expectedVersion },
       update,
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).select(publicUserFilter()).exec();
   }
 
@@ -84,7 +84,7 @@ export class IdentityRepository {
   }
 
   async updateSession(id, changes, { session } = {}) {
-    return this.models.AuthSession.findByIdAndUpdate(id, { $set: changes }, { new: true, session }).exec();
+    return this.models.AuthSession.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', session }).exec();
   }
 
   async revokeSessions(userId, now, { session } = {}) {
@@ -159,7 +159,7 @@ export class IdentityRepository {
     return this.models.AccountAppeal.findOneAndUpdate(
       { _id: id, version: expectedVersion, status: 'pending' },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, runValidators: true, session },
+      { returnDocument: 'after', runValidators: true, session },
     ).exec();
   }
 
@@ -200,7 +200,7 @@ export class IdentityRepository {
     return this.models.IdentityGuard.findOneAndUpdate(
       { key: 'active-admins' },
       { $inc: { version: 1 } },
-      { new: true, session },
+      { returnDocument: 'after', session },
     ).exec();
   }
 

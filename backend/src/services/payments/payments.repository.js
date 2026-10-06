@@ -52,7 +52,7 @@ export class PaymentsRepository {
 
   updateAttempt(id, version, changes, { session } = {}) {
     return this.models.PaymentAttempt.findOneAndUpdate(
-      { _id: id, version }, { $set: changes, $inc: { version: 1 } }, { new: true, session },
+      { _id: id, version }, { $set: changes, $inc: { version: 1 } }, { returnDocument: 'after', session },
     ).exec();
   }
 
@@ -75,7 +75,7 @@ export class PaymentsRepository {
   }
 
   updateEvent(id, changes, { session } = {}) {
-    return this.models.PaymentEvent.findByIdAndUpdate(id, { $set: changes }, { new: true, session }).exec();
+    return this.models.PaymentEvent.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', session }).exec();
   }
 
   findLatestReviewEvent(orderId) {
@@ -109,7 +109,7 @@ export class PaymentsRepository {
     return this.models.Refund.findOneAndUpdate(
       { _id: id, version, status: { $in: statuses } },
       { $set: changes, $inc: { version: 1 } },
-      { new: true, session },
+      { returnDocument: 'after', session },
     ).exec();
   }
 

@@ -192,7 +192,7 @@ export function createMongooseCatalogRepository({
       let query = Product.findOneAndUpdate(
         { _id: id, version: currentVersion },
         { $set: changes, $inc: { version: 1 } },
-        { new: true, runValidators: true, session },
+        { returnDocument: 'after', runValidators: true, session },
       ).lean();
       query = withSession(query, session);
       return query;
@@ -202,7 +202,7 @@ export function createMongooseCatalogRepository({
       let query = Product.findOneAndUpdate(
         { _id: id, version: expectedVersion },
         { $set: { status: 'archived' }, $inc: { version: 1 } },
-        { new: true, session },
+        { returnDocument: 'after', session },
       ).lean();
       query = withSession(query, session);
       return query;
@@ -236,7 +236,7 @@ export function createMongooseCatalogRepository({
       let query = Category.findOneAndUpdate(
         { _id: id, version: expectedVersion },
         { $set: changes, $inc: { version: 1 } },
-        { new: true, runValidators: true, session },
+        { returnDocument: 'after', runValidators: true, session },
       ).lean();
       query = withSession(query, session);
       return query;
@@ -246,7 +246,7 @@ export function createMongooseCatalogRepository({
       let query = Category.findOneAndUpdate(
         { _id: id, version: expectedVersion },
         { $set: { status: 'archived' }, $inc: { version: 1 } },
-        { new: true, session },
+        { returnDocument: 'after', session },
       ).lean();
       query = withSession(query, session);
       return query;
