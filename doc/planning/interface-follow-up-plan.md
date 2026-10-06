@@ -44,3 +44,10 @@ Trong lượt UI này dùng lại ảnh concept có sẵn, không tạo hoặc t
 - Thêm ba liên kết public dựa trên nguồn chủ dự án cung cấp: Zalo `0966051231`, Messenger cho Facebook `gomchudautrovalam`, Hotline `0966051231`. Chi tiết nguồn ở [`../brand/contact-channels.md`](../brand/contact-channels.md).
 - Đặt nút thành một cụm ở góc dưới trái; trợ lý ở góc dưới phải. Liên kết ngoài mở tab mới, link Hotline dùng giao thức điện thoại, focus ring có độ tương phản và animation tắt theo `prefers-reduced-motion`. Tại màn hình dưới 371 px, nhãn chữ được ẩn trực quan nhưng accessible name vẫn còn.
 - Browser E2E xác nhận đích và nhãn của cả ba link, khoảng cách ngang với nút trợ lý, không tràn ngang ở 360/390/1280 px. Screenshot ở [`../release/evidence/interface-followup/`](../release/evidence/interface-followup/); ảnh chụp home dùng danh sách sản phẩm trống từ API stub, không phải bằng chứng catalog/provider live.
+
+## Bổ sung theo brief nhận diện 2026-10-06
+
+- Giữ bảng màu lam đậm, vàng kim và nền ngà; dùng Noto Serif cho tiêu đề, Be Vietnam Pro cho nội dung. Hai font tiếng Việt đã được self-host, không đổi token nhận diện đã chốt.
+- Thêm SVG hoa sen nét mảnh lấy cảm hứng từ logo tại `fondend/public/assets/editorial/lotus-line-ornament.svg`. Họa tiết chỉ xuất hiện nhẹ ở đoạn kết trang chủ, không sửa hoặc thay logo và không đè lên ảnh sản phẩm.
+- Trang chi tiết luôn có vùng biên tập câu chuyện. Câu chuyện đã xuất bản được hiển thị từ DTO hiện có; nếu chưa có nội dung được duyệt, giao diện nói rõ đang chờ biên tập và dẫn tới góc câu chuyện, không tự viết nguồn gốc hay lịch sử.
+- Browser E2E kiểm tra vùng câu chuyện chờ nội dung, họa tiết trang trí, tắt video hero khi `prefers-reduced-motion` và không tràn ngang tại 360/390/768/1280/1440 px. Nội dung story được duyệt và ảnh chụp SKU thật vẫn thuộc đầu vào owner R03/R08.

@@ -505,3 +505,20 @@
   .line-panel { transition: none; }
   .product-skeleton span { animation: none; }
 }
+
+/* Restrained lotus line art and editorial product storytelling. */
+.closing-note { position: relative; isolation: isolate; overflow: hidden; }
+.closing-note__content { position: relative; z-index: 1; }
+.closing-note__lotus { position: absolute; z-index: 0; right: 2%; top: 50%; width: clamp(120px,17vw,205px); height: auto; opacity: .2; transform: translateY(-50%); pointer-events: none; }
+.product-story { margin-top: 34px; padding: 22px 72px 10px 20px; border: 0; border-top: 1px solid #c7ad72; border-left: 1px solid #c7ad72; background: transparent; }
+.product-story h2 { max-width: 540px; font-size: clamp(24px,2.3vw,31px); line-height: 1.3; }
+.product-story p:not(.eyebrow) { max-width: 570px; font-size: 13px; line-height: 1.8; }
+.product-story .text-link { margin-top: 6px; }
+.product-story--pending { border-color: #c8c3b5; }
+.product-story--pending .eyebrow { color: #74766f; }
+
+@media(max-width:639px) {
+  .closing-note { padding-block: 65px; }
+  .closing-note__lotus { right: -12px; width: 122px; opacity: .13; }
+  .product-story { padding-right: 58px; }
+}

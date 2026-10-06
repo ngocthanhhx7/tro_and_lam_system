@@ -21,6 +21,9 @@ logo, nội dung, sản phẩm hoặc ảnh của họ.
 - Giữ nguyên tỷ lệ, nền lam, vòng tròn, chữ và hình sen; không vẽ lại, cắt hoặc đổi màu.
 - Logo là ảnh raster vuông có nền. Dùng `object-fit: contain`; không đặt toàn bộ logo làm ảnh nền.
 - Bản vector hoặc biến thể nền trong suốt cần chủ thương hiệu cung cấp.
+- Có thể dùng họa tiết hoa sen nét mảnh lấy cảm hứng từ đường nét vàng trong logo làm chi tiết phụ.
+  Tệp `fondend/public/assets/editorial/lotus-line-ornament.svg` chỉ là họa tiết trang trí, không thay
+  logo; ưu tiên một vị trí thoáng trên nền ngà, độ tương phản thấp, không chồng lên nội dung hay ảnh SKU.
 
 ## Màu sắc và chữ
 
@@ -40,6 +43,8 @@ Màu vàng dùng làm chi tiết hoặc chữ lớn trên nền đậm; không d
 
 - **Tiêu đề:** Noto Serif, self-host trong `fondend/public/assets/fonts/`.
 - **Nội dung, điều hướng và biểu mẫu:** Be Vietnam Pro, self-host, hỗ trợ tiếng Việt.
+- Bố cục public dùng khoảng thở và ảnh lớn theo nhịp tạp chí; chuyển động chỉ hỗ trợ khám phá,
+  luôn tắt hoặc giảm theo `prefers-reduced-motion`.
 - Giấy phép SIL Open Font License được giữ cạnh các tệp font trong thư mục fonts.
 - Không tải font ngoài khi đã có bản local.
 

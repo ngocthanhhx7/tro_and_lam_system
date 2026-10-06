@@ -136,7 +136,18 @@ export default function ProductDetailPage() {
           {product.careInstructions && <div><dt>Hướng dẫn chăm sóc</dt><dd>{product.careInstructions}</dd></div>}
           <div><dt>Hình thức</dt><dd>{product.saleMode === 'quote' ? 'Yêu cầu tư vấn' : product.saleMode === 'both' ? 'Mua trực tiếp hoặc yêu cầu tư vấn' : 'Mua trực tiếp khi còn hàng'}</dd></div>
         </dl>
-        {product.story && <section className="product-story"><p className="eyebrow">CÂU CHUYỆN LIÊN QUAN</p><h2>{product.story.title}</h2><p>{product.story.summary || product.story.origin}</p>{product.story.slug && <Link className="text-link" to={`/cau-chuyen/${encodeURIComponent(product.story.slug)}`}>Đọc câu chuyện <span aria-hidden="true">→</span></Link>}</section>}
+        <section className={`product-story${product.story ? '' : ' product-story--pending'}`} aria-labelledby="product-story-title">
+          <p className="eyebrow">{product.story ? 'CÂU CHUYỆN LIÊN QUAN' : 'GÓC CÂU CHUYỆN'}</p>
+          {product.story ? <>
+            <h2 id="product-story-title">{product.story.title}</h2>
+            <p>{product.story.summary || product.story.origin}</p>
+            {product.story.slug && <Link className="text-link" to={`/cau-chuyen/${encodeURIComponent(product.story.slug)}`}>Đọc câu chuyện <span aria-hidden="true">→</span></Link>}
+          </> : <>
+            <h2 id="product-story-title">Câu chuyện của sản phẩm đang được biên tập</h2>
+            <p>TRO & LAM sẽ bổ sung nội dung đã được kiểm chứng cho sản phẩm này. Trong lúc chờ, bạn có thể ghé thăm góc câu chuyện về gốm.</p>
+            <Link className="text-link" to="/cau-chuyen">Khám phá góc câu chuyện <span aria-hidden="true">→</span></Link>
+          </>}
+        </section>
       </section>
     </div>
     {['quote', 'both'].includes(product.saleMode) && <div id="quote-form" className="product-detail__quote"><QuoteForm product={product} /></div>}
