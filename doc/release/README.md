@@ -10,14 +10,16 @@ Các lần chạy được ghi ngày 2026-10-06, trên Node 24.21.0.
 
 | Check | Checkout / revision | Kết quả | Giới hạn |
 | --- | --- | --- | --- |
-| `npm ci` | Checkout QA sạch, dùng package-lock và allowlist script đã commit | Pass | Không đưa browser binary vào Git; dùng Chromium cài/cached ngoài repo |
-| `npm run check` | P11 worktree `D:\WW\tro&lam_system\.worktrees\p11-release`, source `b8d6cae` | Pass — contracts 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures; lint sạch; backend 177 pass, 2 skip; Vite build 123 modules | Hai test replica-set P05/P06 skip vì chưa cấu hình URI riêng. Build có cảnh báo chunk 522.93 kB. |
-| `npm run test:e2e` | Checkout QA sạch `D:\WW\tro_lam_integration_verify_20261006`, source `274aa34` (coordinator base `c755481` cùng P11 `5da5c1b` và `218c85a`) | Pass — 4/4 browser tests | Chạy bằng URI mới, loopback, database riêng khớp mẫu P11. Không kiểm tra provider staging. |
+| `npm ci` | Checkout QA sạch `D:\WW\tro_lam_final_verify_20261006`, integrated source `be70e7b` | Pass — 312 package, 0 lỗ hổng audit | npm báo phiên bản ESLint đã deprecated; Chromium được cài/cache ngoài repo. |
+| `npm run check` | Cùng checkout, integrated source `be70e7b` | Pass — contracts 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures; lint sạch; backend 177 pass, 2 skip; Vite build 123 modules | Hai test replica-set P05/P06 skip vì chưa cấu hình URI riêng. Build cảnh báo chunk 522.93 kB. |
+| `npm run test:e2e` | Cùng checkout, integrated source `be70e7b` | Pass — 4/4 browser tests | Dùng MongoDB loopback và database riêng theo mẫu P11; teardown xóa database. Không kiểm tra provider staging. |
 | `npm run test:e2e` | P11 worktree có dấu `&` trong đường dẫn | Không chạy xong — Vite dependency optimizer lỗi `config.js:32098`, báo thiếu `imports` | Cùng source chạy pass trong checkout sạch có đường dẫn không chứa `&`; ghi nhận đây là giới hạn môi trường path của worktree này. |
 
 E2E xác minh public catalog không lộ draft, khách guest thêm sản phẩm vào giỏ và đọc giỏ qua API, checkout trả đúng trạng thái cấu hình R06 chưa sẵn sàng với nút đặt hàng bị khóa, customer bị từ chối staff/admin API, staff bị từ chối admin API, admin đọc được thống kê/catalog, và truy cập staff ẩn danh bị từ chối. Smoke layout chỉ kiểm tra trang catalog ở viewport 390px.
 
 Checkout E2E cố ý dừng ở lỗi `DATABASE_UNAVAILABLE` từ quote do vùng giao hàng/phí/chính sách checkout chưa được cấu hình. Test không tạo order thành công và không giả lập PayOS thành công. Harness dùng fixture tổng hợp `example.test`, không gửi mail, không gọi provider, và teardown xóa đúng database P11. Sau khi teardown, kiểm tra local MongoDB không còn database tên theo prefix `tro_lam_p11_e2e_test_`.
+
+Lần chạy tích hợp cuối trên `be70e7b` xác nhận lại `npm ci`, `npm run check` và `npm run test:e2e`; sau E2E, truy vấn read-only trên MongoDB cho kết quả `[]` với strict prefix P11. Playwright tạo `test-results/.last-run.json`, đã xóa sau khi xác minh đường dẫn bên trong checkout QA. E2E có hai cảnh báo Mongoose không làm fail test: index trùng `AccountAppeal.userId` và dùng tùy chọn `new` đã deprecated cho `findOneAndUpdate()`/`findOneAndReplace()`.
 
 Ma trận acceptance theo từng luồng ở [acceptance-coverage.md](acceptance-coverage.md). Các unit/route tests chứng minh hành vi được nêu tại đó; chúng không thay thế E2E, replica-set race test hoặc UAT của chủ dự án.
 

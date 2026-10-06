@@ -1,6 +1,6 @@
 # Ma trận coverage nghiệm thu hiện hành
 
-Ma trận này phản ánh source P11 `b8d6cae` và lần chạy browser sạch tại source `274aa34` ngày 2026-10-06. Kết quả lệnh đầy đủ và giới hạn môi trường nằm trong [README release](README.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
+Ma trận này phản ánh integrated source `be70e7b`, được kiểm tra trong checkout QA sạch ngày 2026-10-06. Kết quả lệnh đầy đủ và giới hạn môi trường nằm trong [README release](README.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
 
 - **Partial**: có unit/service/route hoặc browser evidence cho một phần yêu cầu; còn thiếu tích hợp, browser, replica-set, provider staging hoặc xác nhận của owner.
 - **Pending**: chưa có evidence phù hợp cho điều kiện cốt lõi của acceptance.
@@ -36,7 +36,7 @@ Ma trận này phản ánh source P11 `b8d6cae` và lần chạy browser sạch 
 
 ## P11 browser evidence
 
-`tests/e2e/acceptance.spec.js` có bốn luồng chạy trên checkout QA sạch `D:\WW\tro_lam_integration_verify_20261006`, source `274aa34`, Node 24.21.0:
+`tests/e2e/acceptance.spec.js` có bốn luồng chạy trên checkout QA sạch `D:\WW\tro_lam_final_verify_20261006`, source `be70e7b`, Node 24.21.0:
 
 1. Public catalog ẩn draft; guest thêm sản phẩm vào cart, đọc cart qua API và thấy checkout fallback thật do cấu hình R06 chưa có. Không tạo order hoặc kết quả thanh toán giả.
 2. Customer đọc identity của mình nhưng không truy cập staff/admin API.
@@ -47,4 +47,4 @@ Kết quả `npm run test:e2e`: **4 passed, 0 failed**. Database là URI loopbac
 
 ## Tình trạng tích hợp
 
-Các gap ở baseline cũ về router composition, P07 support/review, P10 assistant và thiếu Playwright runner đã được tích hợp trong source hiện tại. `npm run check` trên P11 source `b8d6cae` pass: contract validation 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures, lint sạch, backend 177 pass và 2 skip, Vite build 123 modules. Hai skip thuộc P05/P06 replica-set do chưa có URI test riêng. Đây là bằng chứng automated check; không thay thế staging, replica-set hoặc UAT.
+Các gap ở baseline cũ về router composition, P07 support/review, P10 assistant và thiếu Playwright runner đã được tích hợp. `npm run check` trên integrated source `be70e7b` pass: contract validation 102 paths / 121 operations / 60 schemas / 22 enums / 23 fixtures, lint sạch, backend 177 pass và 2 skip, Vite build 123 modules. Hai skip thuộc P05/P06 replica-set do chưa có URI test riêng. Đây là bằng chứng automated check; không thay thế staging, replica-set hoặc UAT.
