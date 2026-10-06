@@ -100,14 +100,26 @@ export function ForgotPasswordPage() {
   </Frame>;
 }
 
+const pendingEmailVerifications = new Map();
+
+function verifyEmailOnce(token) {
+  const pending = pendingEmailVerifications.get(token);
+  if (pending) return pending;
+
+  const request = identityApi.verifyEmail(token).finally(() => {
+    if (pendingEmailVerifications.get(token) === request) pendingEmailVerifications.delete(token);
+  });
+  pendingEmailVerifications.set(token, request);
+  return request;
+}
+
 function useFragmentToken(key) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const token = useMemo(() => new URLSearchParams(location.hash.slice(1)).get(key), [key, location.hash]);
+  const fragmentToken = useMemo(() => new URLSearchParams(location.hash.slice(1)).get(key), [key, location.hash]);
   useEffect(() => {
-    if (token) navigate(`${location.pathname}${location.search}`, { replace: true });
-  }, [location.pathname, location.search, navigate, token]);
-  return token;
+    if (fragmentToken) window.history.replaceState(window.history.state, '', `${location.pathname}${location.search}`);
+  }, [fragmentToken, location.pathname, location.search]);
+  return fragmentToken;
 }
 
 export function VerifyEmailPage() {
@@ -123,7 +135,7 @@ export function VerifyEmailPage() {
   useEffect(() => {
     if (!token) return;
     let live = true;
-    identityApi.verifyEmail(token).then(() => {
+    verifyEmailOnce(token).then(() => {
       if (live) setResult({ token, loading: false, message: 'Email đã được xác minh. Bạn có thể đăng nhập.' });
     }).catch((error) => {
       if (live) setResult({ token, loading: false, message: error.message || 'Liên kết không hợp lệ hoặc đã hết hạn.' });
