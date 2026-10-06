@@ -81,6 +81,7 @@ test('customer session reads itself and is denied staff/admin APIs', async ({ pa
 
 test('staff session reaches operations dashboard and is denied admin APIs', async ({ page }) => {
   await login(page, USERS.staff);
+  await expect(page.locator('.catalog-header')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Bảng công việc', exact: true })).toBeVisible();
   await expect(page.getByText('Chưa cấu hình ngưỡng tồn kho; chưa thể đếm sản phẩm sắp hết hàng.')).toBeVisible();
 
@@ -104,6 +105,7 @@ test('admin session can read admin statistics and catalog while anonymous caller
   expect(ownIdentity.status).toBe(200);
   expect(ownIdentity.body.data.role).toBe('admin');
   await page.goto('/admin');
+  await expect(page.locator('.catalog-header')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
 
   const adminStatistics = await browserApi(page, '/api/v1/admin/statistics?from=2026-10-01T00%3A00%3A00.000Z&to=2026-10-31T23%3A59%3A59.999Z');
