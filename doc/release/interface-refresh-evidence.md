@@ -29,8 +29,10 @@ E2E xác minh catalog ẩn draft, guest đi từ sản phẩm đến giỏ và n
 
 Poster và khung hình của banner video có phụ đề gắn sẵn trong footage. Đã phóng khung hero và cắt phần dưới video bằng CSS để phụ đề không chồng lên dòng chú thích; ảnh [home mới](evidence/interface-refresh/home-1440.png) được chụp lại sau chỉnh sửa. `home-video-diagnostic.png` giữ ảnh trước khi sửa để đối chiếu. Nguồn và quyền sử dụng do chủ dự án yêu cầu được ghi ở [`../brand/media/video-sources.md`](../brand/media/video-sources.md).
 
-## Cổng còn mở
+## Trạng thái sau kiểm tra
 
-- Merge fast-forward source đã kiểm tra từ `feature/interface-refresh` sang `develop`; sau merge xác nhận cây sạch và HEAD đúng revision.
+- `feature/interface-refresh` đã được fast-forward vào `develop` tại `9cc3a51`; source code kiểm tra nằm ở `0fb7d9d`, commit cuối chỉ cập nhật hồ sơ release.
+- Cây làm việc sạch. Không push lên remote và không triển khai production.
+- Các cổng còn mở là provider staging, WCAG/UAT, Atlas backup/restore, owner policy/catalog/media approval được liệt kê trong [acceptance coverage](acceptance-coverage.md).
 - Chạy ba suite replica-set P02/P05/P06 với URI loopback riêng trong CI; bằng chứng local race suite cũ nằm trong [README release](README.md).
 - Hoàn tất WCAG/accessibility audit và các UAT/provider/owner gate còn lại trong [acceptance coverage](acceptance-coverage.md).
