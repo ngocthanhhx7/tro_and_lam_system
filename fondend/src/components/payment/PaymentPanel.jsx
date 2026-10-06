@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { paymentsApi } from '../../services/payments/payments.api.js';
 import './payment.css';
 
@@ -15,27 +15,38 @@ function createIdempotencyKey(orderId) {
   return key;
 }
 
-export default function PaymentPanel({ orderId, paymentMethod, paymentStatus, orderStatus, reviewRequired = false }) {
+export default function PaymentPanel({ orderId, paymentMethod, paymentStatus, orderStatus, reviewRequired = false, autoCreate = false }) {
   const [requestKey] = useState(() => createIdempotencyKey(orderId));
   const [attempt, setAttempt] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  if (paymentMethod !== 'payos') return null;
+  const autoCreateStarted = useRef(false);
   const canCreate = orderStatus === 'pending' && ['pending', 'failed', 'expired', 'cancelled'].includes(paymentStatus);
 
-  async function createAttempt() {
+  const createAttempt = useCallback(async () => {
     setBusy(true);
     setError('');
     try {
       const response = await paymentsApi.createPaymentAttempt(orderId, requestKey);
-      setAttempt(response.data);
+      const createdAttempt = response.data;
+      if (createdAttempt.checkoutUrl && new URL(createdAttempt.checkoutUrl).protocol !== 'https:') {
+        throw new Error('Đường dẫn thanh toán không dùng HTTPS nên đã bị chặn.');
+      }
+      setAttempt(createdAttempt);
     } catch (requestError) {
       setError(requestError.message || 'Không thể tạo liên kết thanh toán. Đơn hàng vẫn được giữ để thử lại.');
     } finally {
       setBusy(false);
     }
-  }
+  }, [orderId, requestKey]);
+
+  useEffect(() => {
+    if (!autoCreate || paymentMethod !== 'payos' || autoCreateStarted.current || !canCreate) return;
+    autoCreateStarted.current = true;
+    void createAttempt();
+  }, [autoCreate, canCreate, createAttempt, paymentMethod]);
+
+  if (paymentMethod !== 'payos') return null;
 
   return <section className="payment-panel" aria-labelledby="payment-panel-title">
     <div>

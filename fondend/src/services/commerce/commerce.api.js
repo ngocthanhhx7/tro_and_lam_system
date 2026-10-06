@@ -14,9 +14,6 @@ export const commerceApi = Object.freeze({
   issueOrderChallenge: async (body) => json(await requestJson('/order-access/challenges', { method: 'POST', body })),
   verifyOrderChallenge: async (body) => json(await requestJson('/order-access/verify', { method: 'POST', body })),
   getOrder: async (id) => json(await getJson(`/orders/${encodeURIComponent(id)}`)),
-  createPaymentAttempt: async (id, key) => json(await requestJson(`/orders/${encodeURIComponent(id)}/payment-attempts`, {
-    method: 'POST', body: {}, headers: idempotencyHeaders(key),
-  })),
   cancelOrder: async (id, body, key) => json(await requestJson(`/orders/${encodeURIComponent(id)}/cancel`, {
     method: 'POST', body, headers: idempotencyHeaders(key),
   })),

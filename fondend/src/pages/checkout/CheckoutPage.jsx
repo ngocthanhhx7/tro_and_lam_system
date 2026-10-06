@@ -4,9 +4,9 @@ import { useAuth } from '../../contexts/auth.context.js';
 import {
   clearRetryableCheckoutKey,
   commerceApi,
-  createIdempotencyKey,
   retryableCheckoutKey,
 } from '../../services/commerce/commerce.api.js';
+import PaymentPanel from '../../components/payment/PaymentPanel.jsx';
 import { formatMoney } from '../commerce/commerce.format.js';
 import '../commerce/commerce.css';
 
@@ -37,7 +37,6 @@ export default function CheckoutPage() {
   const [error, setError] = useState(null);
   const [addressError, setAddressError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
-  const [paymentAttempt, setPaymentAttempt] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
@@ -122,22 +121,6 @@ export default function CheckoutPage() {
     }
   }
 
-  async function createPaymentLink(orderId) {
-    setBusy('payment');
-    setError(null);
-    try {
-      const attempt = await commerceApi.createPaymentAttempt(orderId, createIdempotencyKey());
-      if (attempt.checkoutUrl && new URL(attempt.checkoutUrl).protocol !== 'https:') {
-        throw new Error('Đường dẫn thanh toán không dùng HTTPS nên đã bị chặn.');
-      }
-      setPaymentAttempt(attempt);
-    } catch (requestError) {
-      setError(requestError);
-    } finally {
-      setBusy('');
-    }
-  }
-
   async function submitOrder(event) {
     event.preventDefault();
     setError(null);
@@ -156,7 +139,6 @@ export default function CheckoutPage() {
       const result = await commerceApi.createOrder(body, key);
       clearRetryableCheckoutKey();
       setConfirmation(result);
-      if (body.paymentMethod === 'payos' && result.order?.id) await createPaymentLink(result.order.id);
     } catch (requestError) {
       setError(requestError);
     } finally {
@@ -178,17 +160,14 @@ export default function CheckoutPage() {
       <h1>Cảm ơn bạn đã đặt hàng</h1>
       <p>Mã đơn <strong>{order.code}</strong>. Trạng thái hiện tại: <strong>{order.status}</strong>.</p>
       <p>Tổng tiền do hệ thống xác nhận: <strong>{formatMoney(order.totalVnd)}</strong>.</p>
-      {order.paymentMethod === 'payos' && paymentAttempt?.checkoutUrl && <div className="commerce-notice">
-        <p>Đơn đang chờ thanh toán. Đường dẫn bên dưới do cổng thanh toán trả về; trạng thái chỉ đổi sau khi máy chủ xác minh.</p>
-        <a className="commerce-primary" href={paymentAttempt.checkoutUrl}>Tiếp tục thanh toán</a>
-      </div>}
-      {order.paymentMethod === 'payos' && !paymentAttempt?.checkoutUrl && <div className="commerce-notice" role="status">
-        <p>Đơn đã được tạo và đang chờ thanh toán. Chưa có đường dẫn thanh toán được xác nhận; đơn vẫn được giữ để bạn thử lại.</p>
-        <button className="commerce-secondary" type="button" disabled={busy === 'payment'} onClick={() => void createPaymentLink(order.id)}>
-          {busy === 'payment' ? 'Đang yêu cầu…' : 'Thử tạo đường dẫn thanh toán'}
-        </button>
-      </div>}
-      {error && <p className="commerce-error" role="alert">{messageFor(error, 'Không thể yêu cầu đường dẫn thanh toán.')}</p>}
+      <PaymentPanel
+        orderId={order.id}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+        orderStatus={order.status}
+        autoCreate
+      />
+      {error && <p className="commerce-error" role="alert">{messageFor(error, 'Không thể hoàn tất đơn hàng.')}</p>}
       <div className="commerce-actions">
         <Link className="commerce-primary" to={`/don-hang/${encodeURIComponent(order.id)}`}>Xem chi tiết đơn</Link>
         <Link className="commerce-secondary" to="/tra-cuu-don-hang">Tra cứu đơn hàng</Link>
@@ -243,7 +222,7 @@ export default function CheckoutPage() {
         </div>}
 
         <label className="commerce-field" htmlFor="checkout-payment"><span>Phương thức thanh toán</span>
-          <select id="checkout-payment" value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setQuote(null); setPaymentAttempt(null); }}>
+          <select id="checkout-payment" value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setQuote(null); }}>
             <option value="cod">Thanh toán khi nhận hàng (nếu đang được cấu hình)</option>
             <option value="payos">Thanh toán trực tuyến qua PayOS (nếu đang được cấu hình)</option>
           </select>

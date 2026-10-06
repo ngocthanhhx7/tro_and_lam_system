@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import { commerceApi, createIdempotencyKey } from '../../services/commerce/commerce.api.js';
+import PaymentPanel from '../../components/payment/PaymentPanel.jsx';
 import { errorText, formatDate, formatMoney, orderStatusLabel, paymentStatusLabel } from '../commerce/commerce.format.js';
 import '../commerce/commerce.css';
 
@@ -43,18 +44,6 @@ export default function OrderDetailPage() {
     setError(null);
     try {
       setOrder(await commerceApi.claimGuestOrder(id, createIdempotencyKey()));
-    } catch (requestError) { setError(requestError); }
-    finally { setBusy(''); }
-  }
-
-  async function createPaymentLink() {
-    setBusy('payment');
-    setError(null);
-    try {
-      const attempt = await commerceApi.createPaymentAttempt(id, createIdempotencyKey());
-      if (attempt.checkoutUrl && new URL(attempt.checkoutUrl).protocol !== 'https:') throw new Error('Đường dẫn thanh toán không dùng HTTPS nên đã bị chặn.');
-      if (attempt.checkoutUrl) window.location.assign(attempt.checkoutUrl);
-      else setError(new Error('Nhà cung cấp chưa trả về đường dẫn thanh toán. Đơn vẫn đang chờ xác minh.'));
     } catch (requestError) { setError(requestError); }
     finally { setBusy(''); }
   }
@@ -103,9 +92,13 @@ export default function OrderDetailPage() {
           <div><dt>Điện thoại</dt><dd>{order.recipient.phone}</dd></div>
           <div><dt>Địa chỉ</dt><dd>{order.recipient.formattedAddress}</dd></div>
         </dl>
-        {order.paymentMethod === 'payos' && order.paymentStatus === 'pending' && <button className="commerce-primary" type="button" disabled={busy !== ''} onClick={() => void createPaymentLink()}>
-          {busy === 'payment' ? 'Đang tạo đường dẫn…' : 'Tiếp tục thanh toán'}
-        </button>}
+        <PaymentPanel
+          orderId={order.id}
+          paymentMethod={order.paymentMethod}
+          paymentStatus={order.paymentStatus}
+          orderStatus={order.status}
+          reviewRequired={order.paymentReview?.required}
+        />
       </div>
     </div>
 
