@@ -245,3 +245,9 @@ The admin browser flow changes a synthetic customer to staff through the real ro
 A dedicated loopback MongoDB replica-set test races two active administrators attempting to demote each other. Exactly one role mutation succeeds; one active administrator remains, the demoted account's auth version increments and its old session is revoked, and one successful redacted role audit is persisted. The service-level fake-repository test remains as a fast unit check.
 
 In the isolated `feature/p02-last-admin-race` worktree, `npm run check` passed contract validation, lint, backend **197/197 with 0 skipped**, and Vite build (132 modules). The suite ran with distinct loopback replica-set URIs for P02/P05/P06; the final read-only database-prefix audit returned `[]` for P02/P05/P06/P11. No live provider, production data or deployment was used. The first remote GitHub Actions run and owner admin-bootstrap/recovery rehearsal remain open.
+
+## P11 admin audit-filter browser follow-up (2026-10-07)
+
+The admin role-change browser flow now follows its real persisted audit event into `/admin/logs`. It filters by action, target ID and a date range, verifies the query sent to the live test API, opens the redacted detail, and checks the affected customer's email is absent.
+
+The targeted browser flow passed **1/1**; the complete suite passed **26/26**. On the same worktree, `npm run check` passed contracts, lint, backend **197/197 with 0 skipped**, and the 132-module build. The read-only database-prefix audit returned `[]` for P02/P05/P06/P11 after teardown. No provider or production database was used. A full sensitive-log scan and manual accessibility review remain open.

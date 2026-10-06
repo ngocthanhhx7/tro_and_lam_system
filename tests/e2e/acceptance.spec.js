@@ -1437,6 +1437,33 @@ test('admin role changes require a reason and confirmation, audit the result and
       outcome: 'success', reasonCode: 'ADMIN_ROLE_CHANGE',
       changesRedacted: { before: { role: 'customer', status: 'active' }, after: { role: 'staff', status: 'active' } },
     });
+
+    const auditDate = new Date(persisted.audit.createdAt.getTime() + (7 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+    const initialAuditResponsePromise = adminPage.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/admin/audit-logs'
+      && response.request().method() === 'GET');
+    await adminPage.goto('/admin/logs');
+    const initialAuditResponse = await initialAuditResponsePromise;
+    expect(initialAuditResponse.status()).toBe(200);
+    const auditFilters = adminPage.locator('.operations-filters');
+    await auditFilters.getByLabel('Hành động').fill('identity.user.role');
+    await auditFilters.getByLabel('Đối tượng ID').fill(userId);
+    await auditFilters.getByLabel('Từ ngày').fill(auditDate);
+    await auditFilters.getByLabel('Đến ngày').fill(auditDate);
+    const filteredAuditResponsePromise = adminPage.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/admin/audit-logs'
+      && response.request().method() === 'GET');
+    await auditFilters.getByRole('button', { name: 'Lọc nhật ký', exact: true }).click();
+    const filteredAuditResponse = await filteredAuditResponsePromise;
+    expect(filteredAuditResponse.status()).toBe(200);
+    const auditQuery = new URL(filteredAuditResponse.url()).searchParams;
+    expect(auditQuery.get('action')).toBe('identity.user.role');
+    expect(auditQuery.get('targetId')).toBe(userId);
+    expect(auditQuery.get('from')).toBeTruthy();
+    expect(auditQuery.get('to')).toBeTruthy();
+    const auditRow = adminPage.getByRole('row').filter({ hasText: userId }).filter({ hasText: 'identity.user.role' });
+    await expect(auditRow).toHaveCount(1);
+    await auditRow.getByText('Xem tóm tắt').click();
+    await expect(auditRow.locator('pre')).toContainText('ADMIN_ROLE_CHANGE');
+    await expect(auditRow.locator('pre')).not.toContainText(USERS.otherCustomer.email);
   } finally {
     await Promise.all([customerContext.close().catch(() => {}), adminContext.close().catch(() => {})]);
   }
