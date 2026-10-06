@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
 import Icon from '../components/catalog/Icon.jsx';
+import { QuickContactLinks } from '../components/catalog/QuickContactLinks.jsx';
 import { setPageMetadata } from '../utils/pageMetadata.js';
 
 const links = [
@@ -117,6 +118,7 @@ export default function PublicCatalogLayout() {
         <div><h3>Kết nối với TRO & LAM</h3><p>Chọn gốm cho ngôi nhà, hay một món quà cho đối tác? Chúng tôi luôn sẵn lòng lắng nghe.</p><Link className="footer-contact" to="/lien-he">Gửi lời nhắn <Icon name="arrow" size={18} /></Link><Link className="footer-contact" to="/qua-tang-doanh-nghiep">Quà tặng doanh nghiệp <Icon name="gift" size={18} /></Link></div>
       </div><div className="footer-bottom"><span>© {new Date().getFullYear()} TRO & LAM</span><span>Gốm Chu Đậu · Văn hóa Việt</span><Link to="/nguon-tu-lieu">Nguồn hình ảnh & phim</Link></div>
     </footer>
+    <QuickContactLinks />
     {!/^\/(?:admin|staff)(?:\/|$)/u.test(pathname) && <AssistantWidget />}
   </div>;
 }

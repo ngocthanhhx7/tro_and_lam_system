@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { CatalogEmpty, CatalogError, CatalogLoading, Pagination } from '../../components/catalog/CatalogStates.jsx';
 import { getPublishedCategories, searchPublishedProducts } from '../../services/catalog/catalogApi.js';
-import { media } from '../../constants/editorialMedia.js';
+import { lineImagery } from '../../constants/editorialMedia.js';
 
 const lineLabels = { lifestyle: 'Lifestyle Line', diplomacy: 'Diplomacy Line' };
 const lineIntroductions = {
@@ -11,18 +11,20 @@ const lineIntroductions = {
     eyebrow: 'GỐM TRONG ĐỜI SỐNG',
     heading: 'Một chút gốm. Một khoảng bình yên.',
     summary: 'Lifestyle Line gợi mở những món gốm cho góc trà, không gian sống và những món quà gần gũi.',
-    image: media.tea,
-    alt: 'Hai chén trà trong một góc bàn gỗ — ảnh cảm hứng, không phải ảnh sản phẩm TRO & LAM',
-    caption: 'Ảnh cảm hứng về khoảnh khắc thưởng trà · Không phải ảnh SKU',
+    image: lineImagery.lifestyle.landing,
+    alt: lineImagery.lifestyle.alt,
+    caption: 'Hũ trà Chu Đậu · Ảnh concept AI, chưa xác nhận là ảnh sản phẩm thực tế',
+    disclosure: lineImagery.lifestyle.disclosure,
     items: ['Gợi ý cho góc hương', 'Gợi ý lưu trữ trà', 'Gợi ý thưởng trà'],
   },
   diplomacy: {
     eyebrow: 'GỐM CHO NHỮNG DỊP TRAO TẶNG',
     heading: 'Gửi một món quà. Gói một tấm lòng.',
     summary: 'Diplomacy Line dành cho những lựa chọn quà tặng văn hóa, doanh nghiệp và các dịp trang trọng.',
-    image: media.vases,
-    alt: 'Bình gốm trong không gian trưng bày — ảnh cảm hứng, không phải ảnh sản phẩm TRO & LAM',
-    caption: 'Ảnh cảm hứng về gốm trao tặng · Không phải ảnh SKU',
+    image: lineImagery.diplomacy.landing,
+    alt: lineImagery.diplomacy.alt,
+    caption: 'Bình Thiên Nga · Ảnh concept AI, chưa xác nhận là ảnh sản phẩm thực tế',
+    disclosure: lineImagery.diplomacy.disclosure,
     items: ['Bình Thiên Nga', 'Bình Phú Quý', 'Bình Giọt Ngọc', 'Bình Hoa Lam', 'Bình Tỳ Bà'],
   },
 };
@@ -125,7 +127,7 @@ export default function ProductCatalogPage() {
     {forcedLine ? <section className="product-line-intro">
       <div className="product-line-intro__feature">
         <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>
-        <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" /><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
+        <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" width="896" height="1152" /><small className="collection-story__disclosure">{lineIntroductions[forcedLine].disclosure}</small><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
       </div>
       <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2><p className="product-line-intro__note">Đây là gợi ý phong cách. Tên mẫu, SKU, nguồn cung và giá cần được xác nhận khi tư vấn.</p></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
       <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle" aria-current={forcedLine === 'lifestyle' ? 'page' : undefined}>Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy" aria-current={forcedLine === 'diplomacy' ? 'page' : undefined}>Diplomacy · Gốm trao tặng</Link></nav>

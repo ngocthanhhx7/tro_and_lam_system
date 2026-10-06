@@ -17,6 +17,8 @@ Ngày khảo sát: 06/10/2026, Asia/Saigon. Đây là bộ đặc tả nguồn y
 12. [Bằng chứng nghiên cứu](research/README.md).
 13. [Prompt giao agent](../agent-handoff-prompt.md).
 
+Ghi chú triển khai follow-up giao diện: [interface-follow-up-plan.md](interface-follow-up-plan.md). Đây là phần cập nhật trình bày asset và liên hệ nhanh theo yêu cầu mới; `03-design-and-pages.md` vẫn là đặc tả giao diện, không đổi contract.
+
 Hợp đồng hiện hành nằm trong [`../contracts/openapi.yaml`](../contracts/openapi.yaml),
 manifest baseline trong [`../contracts/manifest.json`](../contracts/manifest.json),
 và bộ từ vựng ở `contract-enums.json`. Khi sửa contract, cập nhật cùng các consumer và

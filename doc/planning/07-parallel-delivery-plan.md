@@ -46,6 +46,8 @@ Rà soát các worktree `feature/p01-contracts` đến `feature/p11-release`: c�
 
 **P11 logout follow-up:** a real browser session calls the CSRF-protected logout route, receives 204, loses its HttpOnly session cookie, and can no longer access `/auth/me`; the persisted server session is revoked. The expanded E2E suite passes 19/19. The current customer shell still needs a visible logout control. See [release evidence](../release/README.md#p11-customer-logout-browser-follow-up-2026-10-06).
 
+**Storefront and quick-contact follow-up:** home and both line landing pages present matching concept-product imagery with visible AI disclosures; the journey, two product lines and “Gốm dành cho bạn” remain in the requested order. Public pages also expose verified Zalo, Messenger and hotline links from the owner-supplied project brief. Browser E2E passes 21/21 and `npm run check` passes 195/195 backend tests with 0 skipped. See the [UI follow-up plan](interface-follow-up-plan.md) and [release evidence](../release/README.md#storefront-and-quick-contact-follow-up-2026-10-06).
+
 **Architecture:** React+Vite ở `fondend`, Express+Mongoose theo lớp `backend/src`, Atlas lưu transactional commerce. Các domain có folder riêng dưới từng lớp, route fragments+service ports giúp agent triển khai độc lập; chỉ integrator sửa composition root.
 
 **Tech Stack:** JavaScript ESM, React, Node 24.x theo scaffold, Express, Mongoose, MongoDB Atlas; SMTP/PayOS/Gemini/geocoder dùng adapter. Không tự chuyển TypeScript hay rename `fondend`.

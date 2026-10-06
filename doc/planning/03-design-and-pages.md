@@ -28,6 +28,12 @@ Baseline dữ liệu: mỗi product là **một SKU**, có giá/tồn kho riêng
 
 Brand Awareness và storytelling không thay thế luồng thương mại: CTA “Khám phá bộ sưu tập” và “Tư vấn quà tặng” luôn có đích thật. Không bịa thành tựu, chứng nhận, số năm, nghệ nhân, địa chỉ, hotline, giá sản phẩm hoặc feedback. Nội dung chưa có dữ liệu phải được đánh dấu draft, không đưa dữ liệu mẫu lên production như dữ liệu thật.
 
+Các kênh liên hệ public chỉ được dùng sau khi chủ dự án cung cấp/duyệt nguồn. Hotline, Zalo và Messenger hiện tại được ghi tại [`../brand/contact-channels.md`](../brand/contact-channels.md).
+
+## 2.5. Kênh liên hệ nhanh
+
+Shell trang công khai hiển thị ba nút dùng được: Zalo, Messenger và Hotline. Dữ liệu đích lấy từ hồ sơ liên hệ đã được chủ dự án cung cấp; nút điện thoại dùng `tel:`, còn liên kết ngoài mở an toàn ở tab mới. Nhãn truy cập giữ rõ tên kênh và số gọi kể cả khi nhãn chữ được thu gọn ở viewport hẹp. Cụm này có focus ring, tôn trọng reduced motion, safe area và không chồng nút trợ lý.
+
 ## 3. Design tokens dùng chung
 
 | Token | Giá trị đề xuất | Cách dùng |

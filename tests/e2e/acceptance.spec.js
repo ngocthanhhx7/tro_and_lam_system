@@ -134,6 +134,68 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
 });
 
+test('public pages expose working Zalo, Messenger, and hotline quick-contact links without covering the assistant', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 360, height: 780 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+
+    const contactNav = page.getByRole('navigation', { name: 'Liên hệ nhanh', exact: true });
+    await expect(contactNav).toBeVisible();
+    const zalo = page.getByRole('link', { name: 'Nhắn tin qua Zalo (mở tab mới)', exact: true });
+    const messenger = page.getByRole('link', { name: 'Nhắn tin qua Messenger (mở tab mới)', exact: true });
+    const hotline = page.getByRole('link', { name: 'Gọi hotline 0966 051 231', exact: true });
+    await expect(zalo).toHaveAttribute('href', 'https://zalo.me/0966051231');
+    await expect(messenger).toHaveAttribute('href', 'https://m.me/gomchudautrovalam');
+    await expect(hotline).toHaveAttribute('href', 'tel:0966051231');
+    await expect(zalo).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(messenger).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const contactBox = await contactNav.boundingBox();
+    const assistantBox = await page.locator('.assistant-widget__launcher').boundingBox();
+    expect(contactBox).not.toBeNull();
+    expect(assistantBox).not.toBeNull();
+    expect(contactBox.x + contactBox.width).toBeLessThan(assistantBox.x);
+    expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= globalThis.window.innerWidth)).toBe(true);
+  }
+});
+
+test('home tells the TRO & LAM story, introduces both lines and links to their illustrated landing pages', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Đưa gốm đến gần/u })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gốm dành cho bạn', exact: true })).toBeVisible();
+
+  const homeStories = page.locator('.collection-story');
+  await expect(homeStories).toHaveCount(2);
+  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('src', '/assets/products/concepts/lifestyle/hu-tra-03-context.jpg');
+  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('alt', /Ảnh concept AI/u);
+  await expect(homeStories.nth(0).getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+  await expect(homeStories.nth(1).locator('img')).toHaveAttribute('src', '/assets/products/concepts/diplomacy/binh-thien-nga-01-front.jpg');
+  await expect(homeStories.nth(1).getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Khám phá Lifestyle', exact: true }).click();
+  await expect(page).toHaveURL(/\/bo-suu-tap\/lifestyle$/u);
+  await expect(page.getByRole('heading', { level: 1, name: 'Một chút gốm. Một khoảng bình yên.', exact: true })).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/concepts/lifestyle/hu-tra-01-front.jpg');
+  await expect(page.locator('.product-line-intro__feature').getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Khám phá Diplomacy', exact: true }).click();
+  await expect(page).toHaveURL(/\/bo-suu-tap\/diplomacy$/u);
+  await expect(page.getByRole('heading', { level: 1, name: 'Gửi một món quà. Gói một tấm lòng.', exact: true })).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/concepts/diplomacy/binh-thien-nga-01-front.jpg');
+  await expect(page.locator('.product-line-intro__feature').getByText('Ảnh concept AI · Chưa xác nhận là ảnh sản phẩm thực tế', { exact: true })).toBeVisible();
+
+  for (const width of [360, 390, 768, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of ['/', '/bo-suu-tap/lifestyle', '/bo-suu-tap/diplomacy']) {
+      await page.goto(path);
+      const layout = await page.evaluate(() => ({ viewportWidth: globalThis.innerWidth, documentWidth: globalThis.document.documentElement.scrollWidth }));
+      expect(layout.documentWidth, `${path} overflowed at ${width}px`).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    }
+  }
+});
+
 test('public catalog filters are reflected in the URL and pagination restores after reload', async ({ page }) => {
   await page.goto('/san-pham');
   const filters = page.locator('.catalog-filters');

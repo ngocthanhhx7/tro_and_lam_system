@@ -147,6 +147,15 @@
 .media-credits article { border-top: 1px solid #dedbd0; padding: 25px 0; }
 .media-credits h2 { font-size: 25px; }
 .assistant-widget__launcher { border-radius: 50% !important; width: 54px; height: 54px; min-width: 54px; padding: 0 !important; display: grid; place-items: center; box-shadow: 0 4px 20px #092b3b30; }
+.quick-contact { position: fixed; z-index: 79; left: max(20px, env(safe-area-inset-left)); bottom: max(20px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; }
+.quick-contact__link { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; padding: 6px 13px 6px 7px; border: 1px solid #d8c58f; border-radius: 999px; background: #fffdf8; box-shadow: 0 5px 18px rgb(9 43 59 / 13%); color: #123f56; font-size: 12px; font-weight: 650; line-height: 1; text-decoration: none; transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
+.quick-contact__link:hover { transform: translateY(-2px); background: #fff; box-shadow: 0 8px 22px rgb(9 43 59 / 18%); color: #092b3b; }
+.quick-contact__icon { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 50%; background: #123f56; color: #fff; }
+.quick-contact__link--zalo .quick-contact__icon { background: #0068ff; }
+.quick-contact__link--message .quick-contact__icon { background: #0866ff; }
+.quick-contact__zalo-mark { font-size: 17px; font-weight: 750; letter-spacing: -.08em; }
+.quick-contact__link--phone .quick-contact__icon { background: #092b3b; }
+.quick-contact__link:focus-visible { outline: 3px solid #8a620e; outline-offset: 3px; }
 @media (min-width: 1600px) { .atelier-hero { min-height: 780px; } }
 @media (max-width: 1100px) {
   .catalog-header__inner { width: calc(100% - 48px); gap: 16px; }
@@ -229,7 +238,14 @@
   .values-grid h2 { font-size: 27px; }
   .page-masthead { padding-block: 45px; }
   .assistant-widget { right: 16px; bottom: 16px; }
+  .quick-contact { left: max(12px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); gap: 6px; }
+  .quick-contact__link { gap: 6px; padding-right: 10px; font-size: 11px; }
 }
+@media (max-width: 370px) {
+  .quick-contact__link { width: 44px; justify-content: center; padding: 6px; }
+  .quick-contact__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) { .quick-contact__link { transition: none; } }
 @media (prefers-reduced-motion: reduce) { .collection-story__image img { transition: none; } }
 
 .public-site .commerce-panel { border-radius: 2px; box-shadow: none; border-color: #dedbd0; }

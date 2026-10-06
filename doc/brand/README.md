@@ -79,3 +79,7 @@ Chi tiết token, breakpoint và yêu cầu component xem tại
 - Trang public: `fondend/src/layouts/PublicCatalogLayout.jsx` và `fondend/src/pages/public/`.
 - Kiểu chữ và token giao diện: `fondend/src/styles/fonts.css`, `fondend/src/styles/atelier.css`.
 - Ghi nguồn media hiển thị cho khách: `/nguon-tu-lieu`.
+
+## Kênh liên hệ công khai
+
+Nguồn và đích liên hệ đã được đối chiếu với tài liệu do chủ dự án cung cấp tại [`contact-channels.md`](contact-channels.md). Không tự điền thông tin liên hệ chưa được xác nhận.
