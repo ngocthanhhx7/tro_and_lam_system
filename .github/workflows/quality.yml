@@ -67,6 +67,7 @@ jobs:
           P02_TEST_REPLICA_SET_URI: mongodb://127.0.0.1:27017/tro_lam_p02_ci_test
           P05_TEST_REPLICA_SET_URI: mongodb://127.0.0.1:27017/tro_lam_p05_ci_test
           P06_TEST_REPLICA_SET_URI: mongodb://127.0.0.1:27017/tro_lam_p06_ci_test
+          P09_TEST_REPLICA_SET_URI: mongodb://127.0.0.1:27017/tro_lam_p09_ci_test
         run: npm run check
 
       - name: Set isolated browser-test database
