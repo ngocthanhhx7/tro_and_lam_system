@@ -148,9 +148,13 @@ export async function createDomainComposition(env) {
   const catalogService = createCatalogService({
     productRepository: createMongooseCatalogRepository(),
     inventoryPort: {
-      getAvailability(ids, options) {
+      async getAvailability(ids, options) {
         if (!commerceService) throw unavailable('DATABASE_UNAVAILABLE', 'Tồn kho chưa sẵn sàng');
-        return commerceService.getAvailability(ids, options);
+        const rows = await commerceService.getAvailability(ids, options);
+        return rows.map(({ productId, available }) => ({
+          productId,
+          available: Number.isFinite(available) && available > 0,
+        }));
       },
     },
     storyPort: {
