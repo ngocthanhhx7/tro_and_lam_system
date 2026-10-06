@@ -48,7 +48,7 @@ Không ghi credential hoặc giá trị secret vào Git. Các ID dưới đây t
 | R09 | Geocoder key/quota/billing và dữ liệu địa giới | Kiểm tra provider; giữ manual fallback |
 | R10 | Gemini key/model/quota/ngân sách | Kiểm tra staging và fallback/handoff; không coi unit test là provider live |
 | R11 | Media storage, backup, retention và RPO/RTO | Upload/retrieval, backup và restore evidence |
-| R12 | Admin bootstrap và quy trình khôi phục | Runbook được diễn tập, không commit mật khẩu mặc định |
+| R12 | Admin bootstrap và quy trình khôi phục | [Script/runbook](../runbooks/first-admin-bootstrap.md) và replica-set concurrency test có; owner phải xác nhận kiểm soát DB/mailbox, rehearsal và break-glass recovery còn thiếu |
 
 Chỉ mở những provider cần thiết sau khi owner cấp cấu hình qua secret store. Nếu credential chưa có, adapter và fallback vẫn báo unavailable; không đổi sang kết quả giả thành công.
 
@@ -62,3 +62,9 @@ Two P11 databases left by interrupted browser attempts were verified against the
 Integrated commit `ee68ecd` passed `npm run check`: contract validation (102 paths, 121 operations, 60 DTO schemas, 22 enums, 23 fixtures), lint, 177 backend tests passed with 2 replica-set tests skipped because the default command had no replica-set URI, and Vite production build (128 modules). The build still reports a 536.66 kB minified JavaScript chunk warning. The working tree also contained the separate, uncommitted interface refresh while this check ran.
 
 The two skipped database race suites were then run explicitly against the local loopback MongoDB replica set: P05 final-unit checkout race and P06 unique open-refund race both passed (3 tests total including the refund index assertion; 0 skipped). P05 removed its generated database in `finally`; P06's exact dedicated test database was audited empty and removed afterward. This is local database evidence, not release-CI, Atlas backup/restore, or staging-provider evidence. See [acceptance coverage](acceptance-coverage.md) for the detailed outcome and the separate email verification browser regression.
+
+## Initial admin bootstrap follow-up (2026-10-06)
+
+Added `backend/src/scripts/bootstrap-admin.js` and [the operator runbook](../runbooks/first-admin-bootstrap.md). `backend/tests/identity/admin-bootstrap.replica-set.test.js` verifies explicit database and mailbox confirmation, one-time refusal, transaction serialization when two bootstrap attempts race, Argon2id credentials, verified login, and a redacted audit record. The test is restricted to a loopback URI and tears down its generated database.
+
+With distinct loopback replica-set URIs configured for P02, P05, and P06, the integrated `npm run check` passed on workspace commit `2f95b5b` plus the uncommitted bootstrap work: 102 OpenAPI paths, 121 operations, 60 DTO schemas, 22 enums, 23 fixtures; lint clean; backend **180 passed, 0 failed, 0 skipped**; Vite build 128 modules. The local P02/P05 generated test databases were removed by teardown. P06's exact dedicated database was audited empty and then removed. This validates the tool against a test replica set only. The owner still must confirm the production database and mailbox, perform the one-time bootstrap, and rehearse break-glass recovery before R12 is complete.

@@ -88,7 +88,7 @@ Media storage lifecycle/backup và mapping trong DB cần cùng kế hoạch; ro
 2. Staging rehearsal: catalog thật hoặc fixture gắn nhãn, roles, guest/customer purchase, block appeal,
    SMTP/PayOS/geolocation/Gemini lỗi bình thường và provider live khi credentials cho phép.
 3. Domain/cookie/CORS, Atlas access list, webhook verification, worker scheduler và upload storage đã xác minh.
-4. Admin bootstrap qua script chỉ chạy bằng ủy quyền owner, không default password trong repo.
+4. Owner-only initial admin provisioning uses [the one-time bootstrap runbook](../runbooks/first-admin-bootstrap.md); the script requires explicit database and mailbox confirmation, refuses any existing admin, and never includes a default password.
 5. Chủ dự án xác nhận giá/tồn kho/chính sách/liên hệ/nội dung và không còn fixture hiển thị như thật.
 6. Tag release Conventional Commits/version; production từ main, config deploy riêng.
 7. Health liveness + readiness và smoke checkout sau deploy; monitor errors, mail queue, pending payments,

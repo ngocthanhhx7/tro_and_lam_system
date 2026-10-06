@@ -101,7 +101,7 @@ nhưng không tuyên bố đã mở bán hoàn chỉnh khi chưa có:
 | R09 | Geocoding provider/key/quota/billing, dataset hành chính | Location-to-address live | Browser permission/manual fallback/provider stub |
 | R10 | Gemini key/model thực khả dụng và ngân sách | AI live | Redaction/grounded retrieval/adapter/human fallback |
 | R11 | Media storage/provider, backup/retention/RPO/RTO | Upload bền vững/operations | Signed upload contract/storage stub |
-| R12 | Bootstrap admin owner + quy trình phục hồi | Vận hành an toàn | Script hướng dẫn, tests last-admin/lock |
+| R12 | First-admin bootstrap and recovery | The one-time script, runbook, and local replica-set concurrency test exist; owner verification and break-glass rehearsal remain required |
 
 Tự chọn provider có phí, gửi email khách thật, tạo thanh toán/hoàn tiền thật, seed/migrate/xóa DB
 production hoặc deploy live cần scope/credential phù hợp; không suy ra từ quyền lập tài liệu.
