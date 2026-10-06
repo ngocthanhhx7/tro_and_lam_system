@@ -94,3 +94,7 @@ The check did not call real providers. Provider staging, domain-dependent preren
 P11's expanded browser suite passed **9/9** on a dedicated loopback replica set. It verifies guest quantity updates, cart persistence after reload, item removal, separate carts in independent browser contexts, and one-time merge into the customer cart after login. `npm run check` passed contracts, lint, backend **188/188 with 0 skipped**, and the 129-module build. The bundle remains 544.87 kB minified (149.97 kB gzip), above Vite's 500 kB advisory threshold.
 
 The P11 runtime alone raises the global API request limit to 10,000 because its browser tests share one loopback IP. The production `createApp()` defaults remain 100 requests per 15 minutes. The harness removed its database; the P06 replica-set test database was audited empty and removed. No real provider was configured or called. Remaining release gates are provider staging, WCAG/screen-reader review, Atlas restore, owner content/policy approval and UAT.
+
+## Public catalog browser acceptance follow-up (2026-10-06)
+
+P11 now also verifies catalog filters, URL restoration after reload and page navigation across a synthetic 13-product dataset. `npm run test:e2e` passes **10/10**. The full `npm run check` passes contracts, lint, backend **188/188 with 0 skipped**, and build (129 modules). Data is synthetic and confined to the dedicated P11 database, which teardown removes; owner product approval and WCAG remain open.

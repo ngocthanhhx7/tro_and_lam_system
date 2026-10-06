@@ -20,7 +20,7 @@ Các package P01–P11 đã có implementation trong source tích hợp. Điều
 | P08 | CMS/story, locale, NFC routing và safe-content handling có tests | Chủ dự án duyệt nguồn văn hóa, nội dung và quyền media; browser UAT |
 | P09 | Notifications, audit, metrics và encrypted SMTP outbox/worker có tests | SMTP staging/deliverability, worker supervision và audit persistence UAT |
 | P10 | Assistant grounding, redaction, injection guards, fallback và Gemini adapter có tests | Gemini credentials/quota/staging và browser handoff UAT |
-| P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke; clean-checkout/responsive content smoke đã qua tại `61e6bd4`; guest cart E2E bao phủ sửa/xóa, reload, cách ly session và merge sau đăng nhập | WCAG, owner UAT, provider staging và restore gates |
+| P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke; clean-checkout/responsive content smoke đã qua tại `61e6bd4`; E2E bao phủ catalog filter/pagination và guest cart lifecycle/session/merge | WCAG, owner UAT, provider staging và restore gates |
 
 `feature/interface-refresh` có các commit implementation `4529fda` (Mongoose/index), `28103f3` (catalog seed), `3b35180` (storefront/media) và release evidence; đã fast-forward vào `develop` tại `9cc3a51`. Source code revision `0fb7d9d` qua `npm run check` với 185/185 tests và `npm run test:e2e` 6/6; commit cuối cập nhật riêng trạng thái merge. Xem [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md). Không push hoặc deploy production.
 
