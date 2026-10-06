@@ -1,17 +1,17 @@
 # Ma trận coverage nghiệm thu hiện hành
 
-Ma trận này phản ánh integrated source `be70e7b`, được kiểm tra trong checkout QA sạch ngày 2026-10-06. Kết quả lệnh đầy đủ và giới hạn môi trường nằm trong [README release](README.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
+Ma trận này tổng hợp bằng chứng từ integrated source cũ và working tree `feature/interface-refresh` trên nền `4230130` ngày 2026-10-06. Working tree mới còn thay đổi chưa commit; kết quả tương ứng không phải bằng chứng clean-checkout. Chi tiết lệnh, giới hạn và ảnh chụp nằm trong [README release](README.md) và [interface refresh evidence](interface-refresh-evidence.md). Không có luồng nào được xem là UAT hoặc release pass đầy đủ.
 
 - **Partial**: có unit/service/route hoặc browser evidence cho một phần yêu cầu; còn thiếu tích hợp, browser, replica-set, provider staging hoặc xác nhận của owner.
 - **Pending**: chưa có evidence phù hợp cho điều kiện cốt lõi của acceptance.
 
 | ID | Luồng / module | Bằng chứng test hiện có | Còn thiếu | Status |
 | --- | --- | --- | --- | --- |
-| A-PUB-01 | Catalog/search/filter | `backend/tests/catalog/catalog.service.test.js`, `backend/tests/catalog/catalog.routes.test.js`; E2E catalog kiểm tra published/draft | Browser query restore, filter, pagination và đầy đủ viewport | Partial |
-| A-GST-01 | Guest cart | `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js`; E2E thêm sản phẩm và đọc cart API | Browser sửa/xóa, reload/session policy và cart persistence đầy đủ | Partial |
-| A-GST-02 | Guest checkout | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`; E2E quote xác nhận checkout unavailable và order button bị disable | R06 cần owner cấu hình; chưa E2E tạo order, retry/idempotency qua server và email outbox | Partial |
+| A-PUB-01 | Catalog/search/filter | `backend/tests/catalog/catalog.service.test.js`, `backend/tests/catalog/catalog.routes.test.js`; E2E public catalog ẩn draft; UI smoke các viewport 360–1440 px | Browser query restore, filter, pagination và WCAG audit | Partial |
+| A-GST-01 | Guest cart | `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js`; E2E thêm sản phẩm, mở giỏ và đối chiếu cart API | Browser sửa/xóa, reload/session policy và cart persistence đầy đủ | Partial |
+| A-GST-02 | Guest checkout | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`; E2E kiểm tra quote trả 503 `DATABASE_UNAVAILABLE`, thông báo cấu hình R06 và nút đặt hàng bị khóa | R06 cần owner cấu hình; chưa E2E tạo order, retry/idempotency qua server và email outbox | Partial |
 | A-GST-03 | Guest order tracking/proof | `backend/tests/commerce/commerce.behavior.test.js`, `backend/tests/commerce/commerce.routes.test.js`, `backend/tests/identity/restricted-proof-model.test.js` | Browser OTP/delivery, sai credential cùng response shape và PII chỉ sau proof | Partial |
-| A-AUTH-01 | Register/login/reset/session | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`, `backend/tests/identity/admin-bootstrap.replica-set.test.js`; E2E login customer/staff/admin + email fragment verification | Browser register/reset/logout, email thật trên staging và no-enumeration UAT | Partial |
+| A-AUTH-01 | Register/login/reset/session | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`, `backend/tests/identity/admin-bootstrap.replica-set.test.js`; E2E login các vai trò và xác minh link còn hạn/hết hạn | Browser register/reset/logout, email thật trên staging và no-enumeration UAT | Partial |
 | A-ADR-01 | Address CRUD/ownership | `backend/tests/account/account-models-validator.test.js`, `backend/tests/account/account-service.test.js`, `backend/tests/account/account-routes.test.js` | Browser ownership/error states và snapshot qua DB replica-set | Partial |
 | A-ADR-02 | Geolocation/manual fallback | `backend/tests/account/account-service.test.js` | Browser success/denied/timeout; geocoder staging key/quota/billing | Partial |
 | A-ORD-01 | Pricing/inventory/race | `backend/tests/commerce/commerce.behavior.test.js`; có `backend/tests/commerce/commerce.replica-set.test.js` | Replica-set race test passed on local loopback; rerun with configured URI for CI evidence | Partial |
@@ -24,15 +24,15 @@ Ma trận này phản ánh integrated source `be70e7b`, được kiểm tra tron
 | A-TKT-01 | Ticket/complaint/attachment | `backend/tests/support/support-review.test.js` kiểm tra owner, staff note, attachment và guest proof | Browser customer/staff flow, storage staging và full assignment/attachment UAT | Partial |
 | A-BLK-01 | Blocked session/appeal | `backend/tests/identity/identity-behavior.test.js`, `backend/tests/identity/identity-routes.test.js`, `backend/tests/identity/restricted-proof-model.test.js` | Browser appeal round-trip, admin decision và audit trên DB tích hợp | Partial |
 | A-STF-01 | Staff dashboard/permissions | `backend/tests/operations/operations.test.js`, commerce/support route tests; E2E staff dashboard và từ chối admin API | Browser fulfillment/support queues và toàn bộ staff capability matrix | Partial |
-| A-ADM-01 | Admin users/appeals/catalog/audit | Identity/catalog/operations tests; E2E committed checkout reveals `/admin` still renders `.catalog-header`; dirty interface workspace passes with uncommitted AppRoutes change | Browser role/status mutation, appeal, last-admin race và đủ admin API | Partial |
+| A-ADM-01 | Admin users/appeals/catalog/audit | Identity/catalog/operations tests; E2E trên working tree xác nhận admin shell riêng và đọc statistics/catalog; checkout sạch `951740b` trước đó bắt lỗi shell | Browser role/status mutation, appeal, last-admin race và đủ admin API | Partial |
 | A-PRD-01 | Product CRUD/archive/snapshot | `backend/tests/catalog/catalog-validation.test.js`, `backend/tests/catalog/catalog.service.test.js`, `backend/tests/catalog/catalog.routes.test.js` | DB-backed CRUD/archive, optimistic concurrency, history snapshot và admin browser flow | Partial |
 | A-NOT-01 | Notification owner/dedupe | `backend/tests/operations/operations.test.js` | Browser read/mark-all và persistence/actor isolation E2E | Partial |
 | A-MAIL-01 | SMTP/outbox | `backend/tests/operations/operations.test.js` kiểm tra encryption, retry, dead-letter và adapter failure | SMTP mailbox/staging, replica-set recovery và deliverability; không có mail thật trong QA | Partial |
 | A-AI-01 | Assistant grounding/redaction/fallback | `backend/tests/assistant/assistant.models.test.js`, `assistant.routes.test.js`, `assistant.service.test.js`, `gemini.adapter.test.js`; `backend/tests/support/support-review.test.js` kiểm tra handoff ownership | Browser assistant flow và Gemini staging/quota; QA không gọi provider | Partial |
 | A-NFC-01 | Published/draft/revoked story | `backend/tests/content/nfc-public-routing.test.js` | Mounted server/browser flow, owner duyệt nguồn story và bản quyền media | Partial |
 | A-LOG-01 | Audit access/redaction | `backend/tests/operations/operations.test.js` | Browser/admin query trên server tích hợp, stored event verification và full sensitive-log scan | Partial |
-| A-UI-01 | Responsive/accessibility | E2E kiểm tra catalog không overflow ở viewport 390px | Viewport 360/768/1280/1440, keyboard, focus, labels, errors, alt text, reduced motion và audit WCAG | Partial |
-| A-REL-01 | Build/check/E2E/release | `npm run check` pass; `npm run test:e2e` pass 5/5 trong integrated workspace | P05/P06 replica-set, provider staging, accessibility, restore/rollback và owner UAT còn thiếu | Partial |
+| A-UI-01 | Responsive/accessibility | E2E catalog/cart/checkout ở 390px; UI smoke không tràn ngang ở 360/390/768/1280/1440, menu Escape trả focus, reduced-motion dừng video; ảnh trong `evidence/interface-refresh/` | Keyboard/labels/errors/alt text đầy đủ, kiểm tra screen reader và audit WCAG | Partial |
+| A-REL-01 | Build/check/E2E/release | Working tree `feature/interface-refresh`: `npm run check` contract/lint/build pass, backend 182 pass/3 skip; `npm run test:e2e` 6/6 | Clean-checkout gate sau commit, chạy P02/P05/P06 URI riêng trong CI, provider staging, accessibility, restore/rollback và owner UAT | Partial |
 
 ## P11 browser evidence
 

@@ -40,3 +40,11 @@ Không coi việc model có trong Agy là bằng chứng model tương ứng có
 Không gọi live PayOS, SMTP, Gemini hoặc geocoding bằng key chủ dự án. Chưa có credentials Atlas thật,
 chưa deploy hoặc xác minh domain/cookie/provider readiness. Các plan/test/security defaults là thiết kế
 TRO & LAM, không quảng bá là chức năng đã hoạt động trong source tham khảo hay scaffold.
+
+### Tra cứu catalog Gốm Chu Đậu
+
+Đã đối chiếu các tên trong concept manifest với catalog hãng ngày 06/10/2026. Kết quả, URL sản phẩm,
+nhãn biến thể và giới hạn diễn giải nằm trong [bảng nghiên cứu catalog](chudau-catalog-2026-10-06.md).
+Ba truy vấn Lifestyle không tìm thấy tên khớp; các mẫu Diplomacy có nhiều trang/biến thể riêng.
+Giá và nhãn F/H là nội dung website hãng tại thời điểm truy cập, không xác nhận SKU, quyền bán, đơn vị,
+giá hay tồn kho của TRO & LAM. Không tải hoặc tái sử dụng ảnh hãng.

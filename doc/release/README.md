@@ -4,6 +4,8 @@
 
 P11 đã thêm harness Playwright đi qua trình duyệt, Vite, Express và một MongoDB replica set cục bộ riêng cho test. Bằng chứng tích hợp hiện tại đã có, nhưng chưa đủ để chấp thuận mở bán hoặc production. Chưa deploy production, tạo đơn hàng thật hay gọi PayOS, SMTP, Gemini hoặc geocoder thật.
 
+Bằng chứng giao diện mới nhất và các giới hạn của working tree hiện tại nằm trong [interface refresh evidence](interface-refresh-evidence.md).
+
 ## Bằng chứng tích hợp
 
 Các lần chạy được ghi ngày 2026-10-06, trên Node 24.21.0.
@@ -25,7 +27,7 @@ Ma trận acceptance theo từng luồng ở [acceptance-coverage.md](acceptance
 
 ## Còn thiếu trước khi mở bán
 
-- P05/P06 replica-set suites passed on a dedicated local replica set (follow-up evidence below); rerun them in release CI with isolated URIs and complete the owner-provided Atlas backup/restore rehearsal.
+- P05/P06 replica-set suites đã qua trên replica set loopback riêng (bằng chứng bên dưới); cần chạy lại trong release CI với URI biệt lập và hoàn tất rehearsal backup/restore Atlas do chủ dự án cung cấp.
 - Hoàn tất browser/UAT cho guest order tracking/OTP, address/geolocation, checkout retry/idempotency, customer review/ticket/return, staff fulfillment và admin appeal/mutation. Checkout thật cần chính sách, vùng giao hàng, phí và COD được owner cấu hình.
 - Chạy kiểm tra accessibility đầy đủ theo viewport/keyboard/labels/errors/reduced motion; 390px catalog smoke không phải WCAG audit.
 - Chạy rehearsal provider ở staging: PayOS sandbox, SMTP mailbox, Gemini quota/fallback và geocoder. Hiện không có kết quả live nào được khẳng định.
@@ -71,4 +73,4 @@ With distinct loopback replica-set URIs configured for P02, P05, and P06, the in
 
 ## Clean-checkout browser gate (2026-10-06)
 
-Fresh worktree `D:\WW\tro_lam_verify_20261006_951740b` at commit `951740b` passed `npm ci` (312 packages) and `npm run check` (180/180 backend tests with P02/P05/P06 loopback replica-set URIs; contract, lint, and build pass). `npm run test:e2e` was **4/5**: admin login/API worked, but `/admin` still rendered the public `.catalog-header`, failing the required shell-separation assertion. The other four flows, including email verification, passed. The shared worktree passed 5/5 only with the interface agent's uncommitted `AppRoutes.jsx` work, which is not in the clean commit. Do not use that dirty-worktree pass as release proof; integrate the agent's UI changes and rerun all five E2E tests from a clean worktree.
+At that point the fresh worktree `D:\WW\tro_lam_verify_20261006_951740b` on `951740b` passed `npm ci` (312 packages) and `npm run check` (180/180 backend tests with P02/P05/P06 loopback replica-set URIs). Its E2E result was **4/5** because `/admin` still rendered `.catalog-header`. The subsequent interface refresh separated the admin shell, and the integrated workspace passed 6/6 after adding expired-link coverage. Those later results are recorded in [interface refresh evidence](interface-refresh-evidence.md); they still require the post-commit rerun described there.

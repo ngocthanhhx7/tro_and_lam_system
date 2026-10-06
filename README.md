@@ -1,8 +1,9 @@
 # TRO & LAM
 
-Khung website thương hiệu gốm Chu Đậu: ReactJS, NodeJS/Express và MongoDB Atlas.
-Phạm vi hiện tại: scaffold có thể chạy, trang giới thiệu cơ bản, API health, env validation,
-CI và tài liệu. Chưa triển khai catalog, lead form, quản trị, NFC hay thanh toán.
+Website giới thiệu và thương mại gốm Chu Đậu với storefront công khai, tài khoản,
+giỏ/checkout có kiểm tra cấu hình, workspace staff/admin và các adapter dịch vụ.
+Các hợp đồng và phạm vi đầy đủ nằm trong `doc/planning/`; bằng chứng kiểm thử cùng
+những điều kiện còn mở nằm trong `doc/release/`.
 
 ## Cấu trúc
 ```text
@@ -47,7 +48,8 @@ npm ci
 Copy-Item backend/.env.example backend/.env
 Copy-Item fondend/.env.example fondend/.env
 ```
-Điền `MONGODB_URI` thật trong `backend/.env` theo [hướng dẫn setup](doc/setup.md).
+Điền `MONGODB_URI` trong `backend/.env` theo [hướng dẫn setup](doc/setup.md).
+Không dùng production URI cho local hoặc test.
 ```powershell
 npm run dev
 ```
@@ -58,14 +60,35 @@ Có thể chạy riêng frontend bằng `npm run dev:web` khi chưa có Atlas.
 ```powershell
 npm run check
 ```
-Lệnh này chạy ESLint, backend tests và production build React. Tests dùng dependency injection
-cho trạng thái DB, không kết nối Atlas. Atlas thực phải được kiểm tra riêng.
+Lệnh này xác thực contract, chạy ESLint/backend tests và build frontend. Unit/route tests dùng
+dependency injection. Các test replica-set cần URI loopback riêng; browser E2E yêu cầu
+`P11_E2E_MONGODB_URI` có tên database theo mẫu kiểm thử. Xem
+[bằng chứng release](doc/release/README.md) trước khi diễn giải kết quả.
+
+## Các phần đã có trong mã nguồn
+
+- Storefront tiếng Việt với danh mục, tìm kiếm, hai dòng Lifestyle/Diplomacy, gallery,
+  câu chuyện, liên hệ và trạng thái tải/lỗi/rỗng.
+- Tài khoản customer, xác minh email và khôi phục, hồ sơ/địa chỉ, giỏ guest/customer,
+  đơn hàng, hỗ trợ và đánh giá có kiểm tra quyền.
+- Workspace riêng cho staff/admin, catalog/CMS, xử lý vận hành, audit, notifications
+  và bootstrap admin có runbook.
+- Adapter cùng test/fallback cho SMTP outbox, PayOS, Gemini và geocoder. Provider live
+  không được xem là đã xác minh khi thiếu credential/staging.
+
+Ảnh trong `fondend/public/assets/products/concepts/` là concept AI, không xác nhận sản phẩm
+hoặc tồn kho. Dữ liệu sản phẩm, giá, sale mode, media có quyền và chính sách cần chủ dự án
+xác nhận theo R03/R06 trước khi mở bán. Domain, Atlas, mailbox, PayOS, contact, nội dung văn
+hóa, geocoder, Gemini, media storage và bootstrap được liệt kê tại
+[readiness](doc/planning/10-decisions-and-readiness.md).
 
 ## Tài liệu
 - [Hồ sơ phát triển đầy đủ và kế hoạch chia agent](doc/planning/README.md)
 - [Prompt giao agent hoàn thiện dự án](doc/agent-handoff-prompt.md)
 - [Thiết kế](doc/design.md)
+- [Nhận diện thương hiệu và hướng dẫn nội dung](doc/brand/README.md)
 - [Nghiệp vụ và phạm vi](doc/business-requirements.md)
+- [Catalog demo chỉ dùng local](doc/development/demo-catalog.md)
 - [Setup Atlas và deployment](doc/setup.md)
 - [Gitflow và review](doc/contributing.md)
 - [API](doc/api.md)
@@ -74,5 +97,4 @@ Mã nguồn nghiệp vụ được phát triển trên `feature/*`, PR vào `dev
 Giai đoạn một người: chủ dự án tự review hoặc ủy quyền merge sau CI.
 Khi thêm thành viên: người khác tác giả duyệt; Project Leader thực hiện merge.
 
-Hồ sơ `doc/planning/` mô tả các tính năng cần phát triển tiếp; các tính năng đó chưa được
-triển khai trong scaffold. Logo do chủ dự án cung cấp nằm ở `fondend/public/assets/logo/logo.PNG`.
+Logo do chủ dự án cung cấp nằm ở `fondend/public/assets/logo/logo.PNG`.

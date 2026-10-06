@@ -1,8 +1,30 @@
 # TRO & LAM — kế hoạch phát triển song song
 
-> **For agentic workers:** dùng skill `subagent-driven-development` hoặc `executing-plans` phù hợp môi trường để triển khai từng package. Chủ dự án đã cho phép nhiều agent và tự merge giai đoạn một người. Đây là kế hoạch giao việc, chưa có tính năng được triển khai.
+> **For agentic workers:** dùng skill `subagent-driven-development` hoặc `executing-plans` phù hợp môi trường để triển khai từng package. Chủ dự án đã cho phép nhiều agent và tự merge giai đoạn một người. Bảng dưới là kế hoạch gốc; trạng thái source/evidence hiện hành được cập nhật ở cuối tài liệu.
 
 **Goal:** hoàn thiện website public, guest checkout, customer portal, staff dashboard và admin portal theo hợp đồng đã chốt, có kiểm thử và hướng dẫn production.
+
+## Trạng thái tích hợp (2026-10-06)
+
+Các package P01–P11 đã có implementation trong source tích hợp. Điều đó không đánh dấu package hoặc release là hoàn tất: acceptance, owner input, clean-checkout và provider gates bên dưới vẫn có thể còn mở. Chi tiết test nằm trong [`doc/release/README.md`](../release/README.md) và [`doc/release/acceptance-coverage.md`](../release/acceptance-coverage.md).
+
+| Package | Trạng thái source | Cổng còn mở |
+| --- | --- | --- |
+| P01 | Contract, composition, lỗi chuẩn hóa và test harness tích hợp | Clean-checkout sau các thay đổi hiện tại; CI/release configuration |
+| P02 | Identity, email verification, RBAC, appeal và admin bootstrap có tests | Chạy replica-set suite trong CI; SMTP thật, owner xác nhận mailbox/bootstrap/recovery |
+| P03 | Address, guest/customer cart, ownership, merge và manual geolocation fallback có tests | Browser geolocation và geocoder staging |
+| P04 | Catalog public/admin, demo seed và storefront hai dòng sản phẩm tích hợp | SKU/giá/tồn kho/ảnh sản phẩm thật và quyền media cần chủ dự án duyệt |
+| P05 | Order, checkout, reservation, guest proof, fulfillment/COD logic và race suite có | Chính sách R06, E2E order thành công, retry/UAT và CI replica-set |
+| P06 | PayOS adapter, payment/refund ledger và webhook handling có tests | PayOS sandbox/merchant/webhook và CI replica-set |
+| P07 | Contact, ticket, review, return và moderation logic có tests | Browser UAT, storage staging và SMTP |
+| P08 | CMS/story, locale, NFC routing và safe-content handling có tests | Chủ dự án duyệt nguồn văn hóa, nội dung và quyền media; browser UAT |
+| P09 | Notifications, audit, metrics và encrypted SMTP outbox/worker có tests | SMTP staging/deliverability, worker supervision và audit persistence UAT |
+| P10 | Assistant grounding, redaction, injection guards, fallback và Gemini adapter có tests | Gemini credentials/quota/staging và browser handoff UAT |
+| P11 | E2E harness, acceptance matrix, release evidence và giao diện refresh smoke | Clean-checkout sau commit, WCAG/UAT/provider/restore gates; hero đã crop vùng phụ đề của video nguồn |
+
+Hiện `feature/interface-refresh` có working tree chưa commit trên nền `4230130`. Kết quả 182 backend tests pass, 3 replica-set tests skipped, `npm run test:e2e` 6/6 và các ảnh chụp đang mô tả working tree này; xem [`doc/release/interface-refresh-evidence.md`](../release/interface-refresh-evidence.md). Không dùng chúng làm clean-commit evidence.
+
+Rà soát các worktree `feature/p01-contracts` đến `feature/p11-release`: cả 11 worktree hiện sạch. P01–P06, P08–P09 đã nằm trong lịch sử `develop`; thay đổi P07, P10 và P11 có patch tương đương trong `develop` dù commit graph dùng cherry-pick. Không còn patch package nào đang chờ tích hợp trong các worktree đó.
 
 **Architecture:** React+Vite ở `fondend`, Express+Mongoose theo lớp `backend/src`, Atlas lưu transactional commerce. Các domain có folder riêng dưới từng lớp, route fragments+service ports giúp agent triển khai độc lập; chỉ integrator sửa composition root.
 

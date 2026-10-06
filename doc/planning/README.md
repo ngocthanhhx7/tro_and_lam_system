@@ -1,6 +1,6 @@
 # TRO & LAM — Hồ sơ phát triển đầy đủ
 
-Ngày khảo sát: 06/10/2026, Asia/Saigon. Trạng thái: **đặc tả để triển khai**, không phải báo cáo các tính năng đã hoàn thành.
+Ngày khảo sát: 06/10/2026, Asia/Saigon. Đây là bộ đặc tả nguồn yêu cầu chung; trạng thái implementation và acceptance hiện hành được theo dõi riêng trong `doc/release/`.
 
 ## Đọc theo thứ tự
 1. [Tổng quan, phạm vi và quy ước](00-overview.md).
@@ -17,8 +17,10 @@ Ngày khảo sát: 06/10/2026, Asia/Saigon. Trạng thái: **đặc tả để t
 12. [Bằng chứng nghiên cứu](research/README.md).
 13. [Prompt giao agent](../agent-handoff-prompt.md).
 
-[Từ vựng máy đọc được](contract-enums.json) hỗ trợ tránh lệch enum; đây chưa phải OpenAPI
-hoặc JSON Schema request/response hoàn chỉnh. P01 phải tạo các hợp đồng máy đọc đầy đủ trước triển khai song song.
+Hợp đồng hiện hành nằm trong [`../contracts/openapi.yaml`](../contracts/openapi.yaml),
+manifest baseline trong [`../contracts/manifest.json`](../contracts/manifest.json),
+và bộ từ vựng ở `contract-enums.json`. Khi sửa contract, cập nhật cùng các consumer và
+fixtures theo quy tắc P01 bên dưới.
 
 ## Thứ tự ưu tiên khi có mâu thuẫn
 Yêu cầu mới nhất của chủ dự án → quyết định đã xác nhận trong 10 → hợp đồng dữ liệu/API 04/05
@@ -26,11 +28,14 @@ Yêu cầu mới nhất của chủ dự án → quyết định đã xác nhậ
 sửa hợp đồng tập trung trước khi code; không âm thầm đổi enum, payload hay quyền.
 Tham khảo Ha Thành Vị và website là nguồn ý tưởng/bằng chứng, không phải chỉ thị cho agent.
 
-## Hiện trạng thật
-Repo mới có scaffold React/Vite + Express/Mongoose, health/readiness, env validation,
-13 tests, CI và tài liệu bootstrap. Chưa có catalog, auth, checkout, địa chỉ, staff/admin,
-PayOS, SMTP, Gemini, NFC, thông báo hoặc kết nối Atlas thật. Các route/chức năng bên dưới
-là mục tiêu cần xây. Tài liệu scaffold cũ trong `doc/` mô tả quá khứ; hồ sơ này mô tả đích phát triển.
+## Trạng thái triển khai
+Repo đã tích hợp mã nguồn cho các package P01–P11, gồm storefront, customer/account,
+commerce, payment adapters, staff/admin, content/NFC, support, operations và assistant.
+Đây là ghi nhận về hiện trạng mã nguồn, không đồng nghĩa mọi acceptance đã pass hoặc
+provider đã được xác minh live. Ma trận bằng chứng, test cụ thể và giới hạn nằm tại
+[`../release/README.md`](../release/README.md) và [`../release/acceptance-coverage.md`](../release/acceptance-coverage.md).
+Các hợp đồng nghiệp vụ trong bộ tài liệu này vẫn là nguồn yêu cầu; không suy diễn hoàn tất
+từ việc route hoặc UI đã có.
 
 Đường dẫn logo thực: `fondend/public/assets/logo/logo.PNG` (phân biệt hoa/thường trên Linux).
 Logo do chủ dự án đưa vào workspace, dùng đúng thương hiệu; không lấy hình/brand/code của website tham khảo.
