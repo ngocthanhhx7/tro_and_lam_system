@@ -20,6 +20,7 @@ import { User } from '../../backend/src/models/identity/user.model.js';
 import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
 import { Contact, Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
+  ASSISTANT_PRODUCT,
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
   GUEST_ORDER_CODE,
@@ -460,7 +461,7 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
 });
 
-test('guest assistant shows the provider-unavailable fallback and a human handoff option', async ({ page, context }) => {
+test('guest assistant gives a truthful no-context reply and offers a human handoff', async ({ page, context }) => {
   await page.goto('/');
   await page.locator('.assistant-widget__launcher').click();
   const form = page.locator('.assistant-widget__form');
@@ -472,7 +473,7 @@ test('guest assistant shows the provider-unavailable fallback and a human handof
   expect(response.status()).toBe(200);
   const responseBody = await response.json();
   const result = responseBody.data;
-  expect(result.reply).toMatch(/^Trợ lý tự động hiện chưa sẵn sàng/iu);
+  expect(result.reply).toMatch(/^Mình chưa tìm thấy thông tin công khai đã được duyệt/iu);
   expect(result.sources).toEqual([]);
   expect(result.handoffSuggested).toBe(true);
   await expect(page.locator('.assistant-widget__message--assistant p')).toHaveText(result.reply);
@@ -482,6 +483,57 @@ test('guest assistant shows the provider-unavailable fallback and a human handof
   const guestCookie = (await context.cookies()).find((cookie) => cookie.name === 'tl_assistant_guest');
   expect(guestCookie?.httpOnly).toBe(true);
   expect(guestCookie?.path).toBe('/api/v1/assistant');
+});
+
+test('guest assistant answers a product price question from the published catalog when Gemini is disabled', async ({ page }) => {
+  const assistantProductId = await inspectP11Database(async ({ CatalogProduct: Product }) => {
+    const template = await Product.findOne({ slug: PUBLISHED_PRODUCT.slug }).select('categoryId').lean().exec();
+    expect(template).not.toBeNull();
+    const [product] = await Product.create([{
+      ...ASSISTANT_PRODUCT,
+      line: 'lifestyle',
+      categoryId: template.categoryId,
+      description: 'Synthetic assistant test product. Not a real offer.',
+      material: 'Fixture only',
+      images: [PUBLISHED_PRODUCT.images[0]],
+      saleMode: 'buy',
+      status: 'published',
+      featured: false,
+      version: 0,
+    }]);
+    return String(product._id);
+  });
+
+  try {
+    await page.goto('/');
+    await page.locator('.assistant-widget__launcher').click();
+    const form = page.locator('.assistant-widget__form');
+    await form.locator('textarea').fill('Hũ trà có giá bao nhiêu?');
+    await form.locator('input[type="checkbox"]').check();
+    const responsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/assistant/messages'));
+    await form.locator('button[type="submit"]').click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(200);
+    const result = (await response.json()).data;
+
+    expect(result.reply).toContain('Gemini đang tạm thời chưa khả dụng');
+    expect(result.reply).toContain(`${new Intl.NumberFormat('vi-VN').format(ASSISTANT_PRODUCT.priceVnd)} VND`);
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0]).toMatchObject({
+      type: 'product',
+      title: ASSISTANT_PRODUCT.name,
+      href: `/san-pham/${ASSISTANT_PRODUCT.slug}`,
+    });
+    expect(result.handoffSuggested).toBe(true);
+    await expect(page.locator('.assistant-widget__message--assistant p')).toHaveText(result.reply);
+    await expect(page.locator('.assistant-widget__sources').getByRole('link', { name: ASSISTANT_PRODUCT.name }))
+      .toHaveAttribute('href', `/san-pham/${ASSISTANT_PRODUCT.slug}`);
+    await expect(page.locator('.assistant-widget__link-button')).toBeVisible();
+  } finally {
+    await inspectP11Database(async ({ CatalogProduct: Product }) => {
+      await Product.deleteOne({ _id: assistantProductId }).exec();
+    });
+  }
 });
 
 test('public home, catalog, product-line, and contact pages pass automated WCAG checks at mobile and desktop', async ({ page }) => {

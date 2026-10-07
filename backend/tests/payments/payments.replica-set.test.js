@@ -8,15 +8,75 @@ import { createPaymentsService } from '../../src/services/payments/payments.serv
 
 const replicaSetUri = process.env.P06_TEST_REPLICA_SET_URI;
 
+function assertDedicatedP06DatabaseUri(value) {
+  let target;
+  try {
+    target = new URL(value);
+  } catch {
+    throw new Error('P06_TEST_REPLICA_SET_URI must be a dedicated loopback MongoDB URI.');
+  }
+
+  const allowedHosts = new Set(['127.0.0.1', 'localhost', '[::1]']);
+  if (target.protocol !== 'mongodb:'
+    || !allowedHosts.has(target.hostname)
+    || target.username
+    || target.password
+    || target.search
+    || target.hash) {
+    throw new Error('P06 replica-set tests may connect only to unauthenticated loopback MongoDB without URI options.');
+  }
+
+  let databaseName;
+  try {
+    databaseName = decodeURIComponent(target.pathname.replace(/^\/+/, ''));
+  } catch {
+    throw new Error('P06_TEST_REPLICA_SET_URI contains an invalid database name.');
+  }
+  const isCiDatabase = databaseName === 'tro_lam_p06_ci_test';
+  const isDedicatedLocalDatabase = /^tro_lam_p06_test_[a-f0-9]{12}$/u.test(databaseName);
+  if (!isCiDatabase && !isDedicatedLocalDatabase) {
+    throw new Error('P06_TEST_REPLICA_SET_URI must name a dedicated P06 test database.');
+  }
+  return databaseName;
+}
+
+async function assertP06DatabaseDoesNotExist(value, databaseName) {
+  const adminUri = new URL(value);
+  adminUri.pathname = '/admin';
+  const adminConnection = await mongoose.createConnection(adminUri.toString(), {
+    serverSelectionTimeoutMS: 10000,
+  }).asPromise();
+  try {
+    const existingDatabases = await adminConnection.db.admin().listDatabases({ nameOnly: true });
+    if (existingDatabases.databases.some((database) => database.name === databaseName)) {
+      throw new Error('P06 replica-set tests require a new, unused test database.');
+    }
+  } finally {
+    await adminConnection.close();
+  }
+}
+
+test('P06 replica-set URI is restricted to dedicated loopback test databases', () => {
+  assert.equal(assertDedicatedP06DatabaseUri('mongodb://127.0.0.1:27017/tro_lam_p06_test_0123456789ab'), 'tro_lam_p06_test_0123456789ab');
+  assert.equal(assertDedicatedP06DatabaseUri('mongodb://127.0.0.1:27017/tro_lam_p06_ci_test'), 'tro_lam_p06_ci_test');
+  assert.throws(() => assertDedicatedP06DatabaseUri('mongodb://example.com/tro_lam_p06_test_0123456789ab'), /loopback MongoDB/u);
+  assert.throws(() => assertDedicatedP06DatabaseUri('mongodb://user:secret@127.0.0.1/tro_lam_p06_test_0123456789ab'), /unauthenticated loopback/u);
+  assert.throws(() => assertDedicatedP06DatabaseUri('mongodb://127.0.0.1/tro_lam_p06_test_0123456789ab?retryWrites=true'), /URI options/u);
+  assert.throws(() => assertDedicatedP06DatabaseUri('mongodb://127.0.0.1/tro_lam_production'), /dedicated P06 test database/u);
+});
+
 test('MongoDB replica-set unique open-refund index serializes competing refund requests', {
   skip: !replicaSetUri,
 }, async () => {
   let orderId;
+  let databaseName;
+  let ownsDatabase = false;
   try {
-    const target = new URL(replicaSetUri);
-    const databaseName = target.pathname.slice(1).split('/')[0];
-    if (!/test|spec/i.test(databaseName)) throw new Error('P06_TEST_REPLICA_SET_URI must point to a dedicated database whose name contains test or spec');
+    databaseName = assertDedicatedP06DatabaseUri(replicaSetUri);
+    await assertP06DatabaseDoesNotExist(replicaSetUri, databaseName);
+    ownsDatabase = true;
     await mongoose.connect(replicaSetUri, { serverSelectionTimeoutMS: 10000 });
+    assert.equal(mongoose.connection.name, databaseName);
     await ensurePaymentIndexes();
     orderId = new mongoose.Types.ObjectId();
     const staffId = new mongoose.Types.ObjectId();
@@ -58,8 +118,11 @@ test('MongoDB replica-set unique open-refund index serializes competing refund r
     assert.equal(await Refund.countDocuments({ orderId, status: 'requested' }), 1);
   } finally {
     if (mongoose.connection.readyState === 1) {
-      if (orderId) await Refund.deleteMany({ orderId });
-      await mongoose.disconnect();
+      try {
+        if (ownsDatabase && mongoose.connection.name === databaseName) await mongoose.connection.dropDatabase();
+      } finally {
+        await mongoose.disconnect();
+      }
     }
   }
 });

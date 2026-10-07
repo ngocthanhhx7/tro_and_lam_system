@@ -38,6 +38,13 @@ export const PUBLISHED_PRODUCT = Object.freeze({
   ],
 });
 
+export const ASSISTANT_PRODUCT = Object.freeze({
+  slug: 'p11-fixture-hu-tra',
+  sku: 'P11-ASSISTANT-HUTRA',
+  name: 'P11 Fixture — Hũ trà',
+  priceVnd: 345_000,
+});
+
 export const DRAFT_PRODUCT = Object.freeze({
   slug: 'p11-fixture-draft-only',
   sku: 'P11-E2E-DRAFT',
