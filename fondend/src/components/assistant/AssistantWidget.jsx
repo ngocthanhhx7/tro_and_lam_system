@@ -3,7 +3,7 @@ import { requestAssistantHandoff, sendAssistantMessage } from '../../services/as
 import './assistant.css';
 import Icon from '../catalog/Icon.jsx';
 
-const PRIVACY_NOTE = 'Trước khi gửi, TRO & LAM sẽ ẩn các thông tin nhận dạng thường gặp rồi mới chuyển câu hỏi tới dịch vụ Gemini. Không gửi mật khẩu, mã xác nhận hay thông tin thanh toán.';
+const PRIVACY_NOTE = 'Trước khi xử lý, TRO & LAM sẽ ẩn các thông tin nhận dạng thường gặp. Câu hỏi về sản phẩm và câu chuyện có thể được gửi tới dịch vụ Gemini. Không gửi mật khẩu, mã xác nhận hay thông tin thanh toán.';
 
 function safeSourceHref(href) {
   return typeof href === 'string' && href.startsWith('/') && !href.startsWith('//') && !href.includes('\\')

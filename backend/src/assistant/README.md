@@ -21,7 +21,7 @@ Coordinator-owned env validation should map these names to route config without 
 - `GEMINI_API_KEY` — server only.
 - `GEMINI_MODEL` — bare model ID supported by the merchant Gemini API (a leading `models/` prefix is accepted and normalized); Agy model IDs are not assumed to match.
 - `AI_TIMEOUT_MS` — capped at 15 seconds.
-- `AI_DAILY_BUDGET` — P10 currently interprets this as a daily estimated-token ceiling; unset/zero disables model calls. Input/output is bounded and budget is reserved before provider I/O. A pricing/VND budget is not implemented because model pricing and owner limits are not configured.
+- `AI_DAILY_BUDGET` — P10 currently interprets this as a daily estimated-token ceiling; unset/zero disables model calls. Input/output is bounded and budget is reserved before provider I/O. A local demo can use `10000` as a conservative token ceiling; this is not a request count or a VND cost limit. A pricing/VND budget is not implemented because model pricing and owner limits are not configured.
 - `aiConversationTtlMs`, `assistantRateLimit`, and `assistantRateWindowMs` are optional server config values; the defaults are 30 days and 10 messages per 15 minutes.
 
 Guest conversation ownership uses a separate random HttpOnly `tl_assistant_guest` cookie scoped to `/api/v1/assistant`; Mongo stores only its SHA-256 hash. The cookie grants access only to that guest's assistant conversation. It is not an order, account, or support-ticket credential. User and guest ownership is checked on every read/write, and expired conversations are rejected at runtime. `expiresAt` has a TTL index for eventual cleanup; `purgeExpired()` is available for bounded explicit cleanup.

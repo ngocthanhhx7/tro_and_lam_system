@@ -8,10 +8,17 @@ const MAX_HISTORY = 8;
 const MAX_PRODUCTS = 4;
 const MAX_STORIES = 2;
 const MAX_OUTPUT_TOKENS = 600;
+const CATALOG_QUERY_STOP_WORDS = new Set([
+  'a', 'anh', 'bao', 'ban', 'bạn', 'bằng', 'các', 'có', 'của', 'cho', 'chủ', 'chị',
+  'đang', 'đã', 'được', 'em', 'giá', 'giup', 'giúp', 'hay', 'hỏi', 'không', 'la', 'là',
+  'loai', 'loại', 'mình', 'mua', 'nào', 'này', 'những', 'nhiêu', 'phẩm', 'sản', 'sao',
+  'tìm', 'tiền', 'tôi', 'thế', 'thông', 'tin', 'về', 'vậy', 'với', 'xem', 'xin', 'ạ',
+]);
 
 export const ASSISTANT_UNAVAILABLE_REPLY = 'Trợ lý tự động hiện chưa sẵn sàng. Bạn có thể tiếp tục xem danh mục hoặc yêu cầu nhân viên hỗ trợ.';
 export const ASSISTANT_NO_CONTEXT_REPLY = 'Mình chưa tìm thấy thông tin công khai đã được duyệt cho câu hỏi này. Mình có thể chuyển bạn tới nhân viên hỗ trợ.';
 export const ASSISTANT_RETRIEVAL_REPLY = 'Danh mục và câu chuyện đang tạm thời chưa truy cập được. Bạn có thể thử lại hoặc yêu cầu nhân viên hỗ trợ.';
+export const ASSISTANT_GREETING_REPLY = 'Xin chào! Mình có thể giúp bạn tìm sản phẩm ở Lifestyle Line, Diplomacy Line hoặc đọc những câu chuyện gốm đã công bố. Bạn đang quan tâm điều gì?';
 
 function idOf(value) {
   return String(value?._id ?? value?.id ?? value ?? '');
@@ -38,6 +45,42 @@ function ownerKey(owner) {
 
 function boundedText(value, limit) {
   return redactSensitiveText(value, { maxLength: limit });
+}
+
+function isGreeting(value) {
+  const normalized = value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+    .replace(/[.!?,;:]/gu, ' ').trim().replace(/\s+/gu, ' ');
+  return /^(?:xin chao|chao|hello|hi|hey|alo)(?: ban)?$/u.test(normalized);
+}
+
+function catalogSearchQuery(message) {
+  const words = boundedText(message, 120)
+    .replace(/[^\p{L}\p{N}-]+/gu, ' ')
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean);
+  const meaningfulWords = words.filter((word) => {
+    const normalized = word.normalize('NFC').toLocaleLowerCase('vi-VN');
+    return !CATALOG_QUERY_STOP_WORDS.has(normalized);
+  });
+  return meaningfulWords.join(' ');
+}
+
+function catalogFallbackReply(approvedContext) {
+  const products = approvedContext
+    .filter((item) => item?.type === 'product' && typeof item.product?.name === 'string')
+    .slice(0, MAX_PRODUCTS)
+    .map(({ product }) => {
+      const details = [product.name];
+      if (Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0) {
+        details.push(`${new Intl.NumberFormat('vi-VN').format(product.priceVnd)} VND`);
+      }
+      if (product.material) details.push(boundedText(product.material, 200));
+      if (product.dimensions) details.push(boundedText(product.dimensions, 200));
+      return `• ${details.join(' — ')}`;
+    });
+  if (!products.length) return ASSISTANT_UNAVAILABLE_REPLY;
+  return `Gemini đang tạm thời chưa khả dụng. Theo danh mục sản phẩm đã công bố:\n${products.join('\n')}\nBạn có thể mở sản phẩm từ nguồn bên dưới hoặc liên hệ nhân viên để được hỗ trợ.`;
 }
 
 function productContext(product) {
@@ -181,7 +224,9 @@ export function createAssistantService({
       || typeof contentPort?.getPublishedStoryById !== 'function') {
       return { available: false, products: [], stories: [] };
     }
-    const query = boundedText(message, 120);
+    // Catalog search matches phrases literally. Remove common question words so
+    // "Hũ trà có giá bao nhiêu?" searches for the published product name.
+    const query = catalogSearchQuery(message);
     const result = await productPort.searchPublished({ q: query, page: 1, limit: MAX_PRODUCTS });
     const rawProducts = Array.isArray(result) ? result : result?.items;
     if (!Array.isArray(rawProducts)) throw new Error('Published catalog port returned an invalid result');
@@ -235,51 +280,55 @@ export function createAssistantService({
 
     await appendMessage(conversationId, owner, 'user', redactSensitiveText(request.message), at);
 
+    if (isGreeting(request.message)) {
+      const reply = ASSISTANT_GREETING_REPLY;
+      await appendMessage(conversationId, owner, 'assistant', reply, dateOf(now()));
+      return { conversationId, reply, sources: [], handoffSuggested: false };
+    }
+
     let reply = ASSISTANT_UNAVAILABLE_REPLY;
     let sources = [];
     let providerUsed = false;
-    if (aiProvider && config.aiEnabled !== false) {
-      let retrieval;
-      try {
-        retrieval = await retrieveApprovedContext(request.message);
-      } catch {
-        retrieval = null;
-      }
-      if (retrieval?.available) {
-        const usableProducts = retrieval.products.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
-        const usableStories = retrieval.stories.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
-        const approvedContext = [...usableProducts, ...usableStories].map((item) => item.context);
-        sources = publishedSources(usableProducts, usableStories);
-        if (approvedContext.length > 0) {
-          const history = previousMessages.map((item) => ({ ...item, text: redactSensitiveText(item.text) }));
-          const estimate = estimateTokens({ message: request.message, history, approvedContext }) + maxOutputTokens;
-          const day = at.toISOString().slice(0, 10);
-          const withinBudget = await usageGuard.reserveDailyTokens(day, estimate, dailyTokenBudget);
-          if (withinBudget) {
-            try {
-              const result = await timeoutReply(aiProvider, {
-                message: redactSensitiveText(request.message),
-                approvedContext,
-                history,
-                maxOutputTokens,
-              }, timeoutMs);
-              const candidate = redactSensitiveText(result?.text, { maxLength: 4000 });
-              if (!candidate) throw new Error('Empty assistant provider response');
-              reply = candidate;
-              providerUsed = true;
-            } catch {
-              reply = ASSISTANT_UNAVAILABLE_REPLY;
-              sources = [];
-            }
-          } else {
-            reply = ASSISTANT_UNAVAILABLE_REPLY;
-            sources = [];
+    let retrieval;
+    try {
+      retrieval = await retrieveApprovedContext(request.message);
+    } catch {
+      retrieval = null;
+    }
+    if (!retrieval?.available) {
+      reply = ASSISTANT_RETRIEVAL_REPLY;
+    } else {
+      const usableProducts = retrieval.products.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
+      const usableStories = retrieval.stories.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
+      const approvedContext = [...usableProducts, ...usableStories].map((item) => item.context);
+      sources = publishedSources(usableProducts, usableStories);
+      if (approvedContext.length === 0) {
+        reply = ASSISTANT_NO_CONTEXT_REPLY;
+      } else {
+        const history = previousMessages.map((item) => ({ ...item, text: redactSensitiveText(item.text) }));
+        const estimate = estimateTokens({ message: request.message, history, approvedContext }) + maxOutputTokens;
+        const day = at.toISOString().slice(0, 10);
+        const withinBudget = aiProvider && config.aiEnabled !== false
+          ? await usageGuard.reserveDailyTokens(day, estimate, dailyTokenBudget)
+          : false;
+        if (withinBudget) {
+          try {
+            const result = await timeoutReply(aiProvider, {
+              message: redactSensitiveText(request.message),
+              approvedContext,
+              history,
+              maxOutputTokens,
+            }, timeoutMs);
+            const candidate = redactSensitiveText(result?.text, { maxLength: 4000 });
+            if (!candidate) throw new Error('Empty assistant provider response');
+            reply = candidate;
+            providerUsed = true;
+          } catch {
+            reply = catalogFallbackReply(approvedContext);
           }
         } else {
-          reply = ASSISTANT_NO_CONTEXT_REPLY;
+          reply = catalogFallbackReply(approvedContext);
         }
-      } else {
-        reply = ASSISTANT_RETRIEVAL_REPLY;
       }
     }
 

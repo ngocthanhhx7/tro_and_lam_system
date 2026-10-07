@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAssistantService } from '../../src/assistant/assistant.service.js';
+import { ASSISTANT_GREETING_REPLY, createAssistantService } from '../../src/assistant/assistant.service.js';
 import { createAssistantTranscriptPort } from '../../src/assistant/assistant.ports.js';
 import { MemoryAssistantRepository, GUEST, USER, publishedProduct, publishedStory } from './assistant.test-helpers.js';
 
@@ -36,6 +36,22 @@ function harness({ provider, products, story, config = {}, now = () => new Date(
   });
   return { service, repository, calls };
 }
+
+test('greeting receives an immediate local welcome without catalog, Gemini, or handoff calls', async () => {
+  let providerCalls = 0;
+  const { service, repository, calls } = harness({
+    provider: { async reply() { providerCalls += 1; return { text: 'Unexpected provider response.' }; } },
+  });
+
+  const result = await service.sendMessage({ actor: GUEST, input: { message: 'xin chào', consent: true } });
+
+  assert.equal(result.reply, ASSISTANT_GREETING_REPLY);
+  assert.equal(result.handoffSuggested, false);
+  assert.deepEqual(result.sources, []);
+  assert.equal(providerCalls, 0);
+  assert.deepEqual(calls, []);
+  assert.deepEqual((await repository.inspect(result.conversationId)).messagesRedacted.map(({ role }) => role), ['user', 'assistant']);
+});
 
 test('persists only redacted conversation messages and retrieves published product/story citations', async () => {
   const { service, repository, calls } = harness();
@@ -127,7 +143,7 @@ test('guest conversation is scoped to the assistant cookie hash and the handoff 
   );
 });
 
-test('disabled provider returns an explicit unavailable fallback and never fabricates an AI answer', async () => {
+test('disabled provider answers from published catalog facts and never fabricates a Gemini answer', async () => {
   let providerCalls = 0;
   const { service } = harness({
     provider: { async reply() { providerCalls += 1; return { text: 'Fake success must not be used.' }; } },
@@ -137,8 +153,22 @@ test('disabled provider returns an explicit unavailable fallback and never fabri
 
   assert.equal(providerCalls, 0);
   assert.equal(result.handoffSuggested, true);
-  assert.match(result.reply, /Trợ lý tự động hiện chưa sẵn sàng/);
-  assert.deepEqual(result.sources, []);
+  assert.match(result.reply, /Gemini đang tạm thời chưa khả dụng/u);
+  assert.match(result.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
+  assert.equal(result.sources.length, 2);
+});
+
+test('catalog retrieval removes question wording so product questions match published names', async () => {
+  const { service, calls } = harness({ config: { aiEnabled: false } });
+  const result = await service.sendMessage({
+    actor: USER,
+    input: { message: 'Hũ trà có giá bao nhiêu?', consent: true },
+  });
+
+  const catalogCall = calls.find((call) => call.operation === 'catalog.search');
+  assert.equal(catalogCall.query.q, 'Hũ trà');
+  assert.match(result.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
+  assert.equal(result.sources[0].href, '/san-pham/hu-tra-lam-vien');
 });
 
 test('provider timeout, exhausted daily token budget and per-owner rate limit fall back or reject without fake provider success', async () => {
@@ -148,13 +178,15 @@ test('provider timeout, exhausted daily token budget and per-owner rate limit fa
   const timeoutResult = await timed.service.sendMessage({ actor: USER, input: { message: 'Hũ trà', consent: true } });
   assert.equal(timeoutCalls, 1);
   assert.equal(timeoutResult.handoffSuggested, true);
-  assert.match(timeoutResult.reply, /Trợ lý tự động hiện chưa sẵn sàng/);
+  assert.match(timeoutResult.reply, /Gemini đang tạm thời chưa khả dụng/u);
+  assert.match(timeoutResult.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
 
   let budgetCalls = 0;
   const budget = harness({ provider: { async reply() { budgetCalls += 1; return { text: 'Không được gọi' }; } }, config: { aiDailyBudget: 1 } });
   const budgetResult = await budget.service.sendMessage({ actor: USER, input: { message: 'Hũ trà', consent: true } });
   assert.equal(budgetCalls, 0);
   assert.equal(budgetResult.handoffSuggested, true);
+  assert.match(budgetResult.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
 
   const limited = harness({ config: { assistantRateLimit: 1, assistantRateWindowMs: 60_000 } });
   await limited.service.sendMessage({ actor: USER, input: { message: 'Hũ trà', consent: true } });
