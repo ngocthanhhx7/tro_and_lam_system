@@ -6,13 +6,14 @@ import '../../styles/catalog.css';
 
 const CatalogHomePage = lazy(() => import('../../pages/public/CatalogHomePage.jsx'));
 const ProductCatalogPage = lazy(() => import('../../pages/catalog/ProductCatalogPage.jsx'));
+const CuratedProductListingPage = lazy(() => import('../../pages/catalog/CuratedProductListingPage.jsx'));
 const ProductDetailPage = lazy(() => import('../../pages/public/ProductDetailPage.jsx'));
 const AdminCatalogPage = lazy(() => import('../../pages/admin/catalog/AdminCatalogPage.jsx'));
 
 export const catalogRoutes = [
   <Route key="catalog-public-shell" path="/" element={<PublicCatalogLayout />}>
     <Route index element={<CatalogHomePage />} />
-    <Route path="san-pham" element={<ProductCatalogPage />} />
+    <Route path="san-pham" element={<CuratedProductListingPage />} />
     <Route path="san-pham/:slug" element={<ProductDetailPage />} />
     <Route path="bo-suu-tap/:line" element={<ProductCatalogPage />} />
   </Route>,

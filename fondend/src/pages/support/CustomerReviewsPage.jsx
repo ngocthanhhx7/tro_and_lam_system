@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Icon from '../../components/catalog/Icon.jsx';
 import { supportApi } from '../../services/support/support.api.js';
 import './support.css';
 
@@ -132,9 +133,13 @@ export default function CustomerReviewsPage() {
 
 export function PublicProductReviews({ productId }) {
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(productId));
   const [error, setError] = useState('');
   const load = useCallback(async () => {
+    if (!productId) {
+      setReviews([]); setError(''); setLoading(false);
+      return;
+    }
     setLoading(true); setError('');
     try { const response = await supportApi.listPublicReviews(productId, { page: 1, limit: 20 }); setReviews(response.data || []); }
     catch (requestError) { setError(requestError.message || 'Không thể tải đánh giá công khai.'); }
@@ -146,7 +151,7 @@ export function PublicProductReviews({ productId }) {
     <div className="support-section__heading"><div><p className="support-eyebrow">TỪ KHÁCH HÀNG ĐÃ MUA</p><h2 id="public-reviews-title">Đánh giá sản phẩm</h2></div></div>
     {loading && <p role="status">Đang tải đánh giá…</p>}
     {error && <div className="support-feedback support-feedback--error" role="alert"><p>{error}</p><button className="support-link-button" type="button" onClick={load}>Thử lại</button></div>}
-    {!loading && !error && reviews.length === 0 && <p className="support-empty">Chưa có đánh giá được công bố.</p>}
+    {!loading && !error && reviews.length === 0 && <p className="support-empty"><Icon name="message" size={24} />Chưa có đánh giá được công bố.</p>}
     <div className="support-review-grid">{reviews.map((review) => <article className="support-card support-public-review" key={review.id}>
       <p className="support-review-stars" aria-label={`${review.rating} trên 5 sao`}>{'★'.repeat(review.rating)}<span>{'★'.repeat(5 - review.rating)}</span></p>
       <p>{review.comment || 'Khách hàng đã gửi đánh giá cho sản phẩm này.'}</p>
