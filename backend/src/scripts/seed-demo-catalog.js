@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { CatalogCategory } from '../models/catalog/category.model.js';
 import { CatalogProduct } from '../models/catalog/product.model.js';
@@ -10,9 +11,13 @@ const DEMO_DATABASE = 'tro_lam_dev_catalog_demo';
 const REPOSITORY_ROOT = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
 const PUBLIC_ROOT = resolve(REPOSITORY_ROOT, 'fondend/public');
 
-export function assertDemoCatalogMongoUri(value) {
+export function assertDemoCatalogMongoUri(value, {
+  allowAtlasDemo = false,
+  expectedAtlasHost,
+  expectedAtlasDatabase,
+} = {}) {
   if (typeof value !== 'string' || value.trim() === '') {
-    throw new Error('Set DEMO_CATALOG_MONGODB_URI to the dedicated local demo database URI.');
+    throw new Error('Set MONGODB_URI in backend/.env or DEMO_CATALOG_MONGODB_URI.');
   }
 
   const uri = value.trim();
@@ -23,17 +28,29 @@ export function assertDemoCatalogMongoUri(value) {
     throw new Error('DEMO_CATALOG_MONGODB_URI is not a valid MongoDB URI.');
   }
 
-  if (parsed.protocol !== 'mongodb:'
-    || !new Set(['127.0.0.1', 'localhost', '[::1]']).has(parsed.hostname)
-    || parsed.username
-    || parsed.password
-    || parsed.search
-    || parsed.hash
-    || decodeURIComponent(parsed.pathname.replace(/^\/+/, '')) !== DEMO_DATABASE) {
-    throw new Error(`Refusing catalog demo seed: use an unauthenticated loopback URI for ${DEMO_DATABASE} without query options.`);
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
+  const isLoopbackDemo = parsed.protocol === 'mongodb:'
+    && new Set(['127.0.0.1', 'localhost', '[::1]']).has(parsed.hostname)
+    && !parsed.username
+    && !parsed.password
+    && !parsed.search
+    && !parsed.hash
+    && databaseName === DEMO_DATABASE;
+  const isExplicitAtlasDemo = allowAtlasDemo === true
+    && parsed.protocol === 'mongodb+srv:'
+    && parsed.hostname.endsWith('.mongodb.net')
+    && parsed.hostname === expectedAtlasHost
+    && Boolean(parsed.username)
+    && Boolean(parsed.password)
+    && Boolean(parsed.search)
+    && !parsed.hash
+    && databaseName === expectedAtlasDatabase;
+
+  if (!isLoopbackDemo && !isExplicitAtlasDemo) {
+    throw new Error(`Refusing catalog demo seed: use the dedicated loopback database or explicitly authorize the exact Atlas demo host and database.`);
   }
 
-  return Object.freeze({ uri, databaseName: DEMO_DATABASE });
+  return Object.freeze({ uri, databaseName });
 }
 
 const PRODUCT_COPY = Object.freeze({
@@ -124,8 +141,8 @@ async function upsertCategory(data) {
   ).exec();
 }
 
-export async function seedDemoCatalog(uri) {
-  const { databaseName } = assertDemoCatalogMongoUri(uri);
+export async function seedDemoCatalog(uri, targetOptions) {
+  const { databaseName } = assertDemoCatalogMongoUri(uri, targetOptions);
   const manifestProducts = await readConceptManifest();
 
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, autoIndex: true });
@@ -209,7 +226,15 @@ export async function seedDemoCatalog(uri) {
 }
 
 async function main() {
-  const result = await seedDemoCatalog(process.env.DEMO_CATALOG_MONGODB_URI);
+  dotenv.config({ path: resolve(REPOSITORY_ROOT, 'backend/.env'), quiet: true });
+  const allowAtlasDemo = process.env.DEMO_CATALOG_TARGET === 'atlas-demo';
+  const uri = process.env.DEMO_CATALOG_MONGODB_URI
+    || (allowAtlasDemo ? process.env.MONGODB_URI : undefined);
+  const result = await seedDemoCatalog(uri, {
+    allowAtlasDemo,
+    expectedAtlasHost: process.env.DEMO_CATALOG_ATLAS_HOST,
+    expectedAtlasDatabase: process.env.DEMO_CATALOG_ATLAS_DATABASE,
+  });
   console.log(JSON.stringify(result));
 }
 

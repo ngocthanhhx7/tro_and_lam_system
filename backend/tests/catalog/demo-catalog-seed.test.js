@@ -58,6 +58,19 @@ test('demo catalog seed rejects missing, remote, authenticated, configured, and 
     'mongodb://127.0.0.1:27017/production',
     'mongodb+srv://127.0.0.1/tro_lam_dev_catalog_demo',
   ]) {
-    assert.throws(() => assertDemoCatalogMongoUri(uri), /Refusing catalog demo seed|Set DEMO_CATALOG_MONGODB_URI/);
+    assert.throws(() => assertDemoCatalogMongoUri(uri), /Refusing catalog demo seed|Set MONGODB_URI/);
   }
+});
+
+test('demo catalog seed accepts Atlas only with explicit target, exact host, and exact database', () => {
+  const uri = 'mongodb+srv://demo-user:demo-password@demo.example.mongodb.net/trolamtest?retryWrites=true&w=majority';
+  const options = {
+    allowAtlasDemo: true,
+    expectedAtlasHost: 'demo.example.mongodb.net',
+    expectedAtlasDatabase: 'trolamtest',
+  };
+  assert.deepEqual(assertDemoCatalogMongoUri(uri, options), { uri, databaseName: 'trolamtest' });
+  assert.throws(() => assertDemoCatalogMongoUri(uri), /Refusing catalog demo seed/u);
+  assert.throws(() => assertDemoCatalogMongoUri(uri, { ...options, expectedAtlasHost: 'other.example.mongodb.net' }), /Refusing catalog demo seed/u);
+  assert.throws(() => assertDemoCatalogMongoUri(uri, { ...options, expectedAtlasDatabase: 'production' }), /Refusing catalog demo seed/u);
 });
