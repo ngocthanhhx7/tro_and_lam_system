@@ -6,6 +6,8 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const concurrentlyCli = resolve(repositoryRoot, 'node_modules/concurrently/dist/bin/concurrently.js');
 const demoMongoUri = 'mongodb://127.0.0.1:27017/tro_lam_dev_catalog_demo';
 const demoApiPort = process.env.PORT || '5000';
+const frontendPort = process.env.FRONTEND_PORT || '5173';
+const webOrigin = `http://localhost:${frontendPort}`;
 
 const processes = spawn(process.execPath, [
   concurrentlyCli,
@@ -20,6 +22,9 @@ const processes = spawn(process.execPath, [
     ...process.env,
     MONGODB_URI: demoMongoUri,
     PORT: demoApiPort,
+    FRONTEND_PORT: frontendPort,
+    CORS_ORIGIN: webOrigin,
+    PUBLIC_WEB_URL: webOrigin,
     API_PROXY_TARGET: `http://localhost:${demoApiPort}`,
   },
   stdio: 'inherit',
