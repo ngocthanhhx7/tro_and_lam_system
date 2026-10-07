@@ -54,27 +54,27 @@ export function assertDemoCatalogMongoUri(value, {
 }
 
 const PRODUCT_COPY = Object.freeze({
-  'lu-xong-tram-mini': Object.freeze({ sku: 'DEMO-LIF-001', name: 'Lư xông trầm mini', line: 'lifestyle' }),
-  'hu-tra': Object.freeze({ sku: 'DEMO-LIF-002', name: 'Hũ trà', line: 'lifestyle' }),
-  'bo-chen-doc-am': Object.freeze({ sku: 'DEMO-LIF-003', name: 'Bộ chén độc ẩm', line: 'lifestyle' }),
-  'binh-thien-nga': Object.freeze({ sku: 'DEMO-DIP-001', name: 'Bình Thiên Nga', line: 'diplomacy' }),
-  'binh-phu-quy': Object.freeze({ sku: 'DEMO-DIP-002', name: 'Bình Phú Quý', line: 'diplomacy' }),
-  'binh-giot-ngoc': Object.freeze({ sku: 'DEMO-DIP-003', name: 'Bình Giọt Ngọc', line: 'diplomacy' }),
-  'binh-hoa-lam': Object.freeze({ sku: 'DEMO-DIP-004', name: 'Bình Hoa Lam', line: 'diplomacy' }),
-  'binh-ty-ba': Object.freeze({ sku: 'DEMO-DIP-005', name: 'Bình Tỳ Bà', line: 'diplomacy' }),
+  'lu-xong-tram-mini': Object.freeze({ sku: 'DEMO-LIF-001', name: 'Lư xông trầm mini', line: 'lifestyle', priceVnd: 390_000 }),
+  'hu-tra': Object.freeze({ sku: 'DEMO-LIF-002', name: 'Hũ trà', line: 'lifestyle', priceVnd: 590_000 }),
+  'bo-chen-doc-am': Object.freeze({ sku: 'DEMO-LIF-003', name: 'Bộ chén độc ẩm', line: 'lifestyle', priceVnd: 1_290_000 }),
+  'binh-thien-nga': Object.freeze({ sku: 'DEMO-DIP-001', name: 'Bình Thiên Nga', line: 'diplomacy', priceVnd: 5_800_000 }),
+  'binh-phu-quy': Object.freeze({ sku: 'DEMO-DIP-002', name: 'Bình Phú Quý', line: 'diplomacy', priceVnd: 4_800_000 }),
+  'binh-giot-ngoc': Object.freeze({ sku: 'DEMO-DIP-003', name: 'Bình Giọt Ngọc', line: 'diplomacy', priceVnd: 4_200_000 }),
+  'binh-hoa-lam': Object.freeze({ sku: 'DEMO-DIP-004', name: 'Bình Hoa Lam', line: 'diplomacy', priceVnd: 3_900_000 }),
+  'binh-ty-ba': Object.freeze({ sku: 'DEMO-DIP-005', name: 'Bình Tỳ Bà', line: 'diplomacy', priceVnd: 5_200_000 }),
 });
 
 const CATEGORY_DATA = Object.freeze({
   lifestyle: Object.freeze({
     slug: 'demo-lifestyle',
     name: 'Lifestyle · dữ liệu xem trước',
-    description: 'Danh mục demo local để xem giao diện. Tên và khả năng cung cấp cần chủ dự án xác nhận.',
+    description: 'Danh mục demo cho dòng sản phẩm phong cách sống. Nội dung và khả năng cung cấp cần chủ dự án xác nhận.',
     sortOrder: 900,
   }),
   diplomacy: Object.freeze({
     slug: 'demo-diplomacy',
     name: 'Diplomacy · dữ liệu xem trước',
-    description: 'Danh mục demo local để xem giao diện. Tên và khả năng cung cấp cần chủ dự án xác nhận.',
+    description: 'Danh mục demo cho dòng sản phẩm ngoại giao. Nội dung và khả năng cung cấp cần chủ dự án xác nhận.',
     sortOrder: 901,
   }),
 });
@@ -136,7 +136,7 @@ export async function readConceptManifest() {
 async function upsertCategory(data) {
   return CatalogCategory.findOneAndUpdate(
     { slug: data.slug },
-    { $setOnInsert: { ...data, status: 'published', version: 0 } },
+    { $set: data, $setOnInsert: { status: 'published', version: 0 } },
     { upsert: true, returnDocument: 'after', runValidators: true },
   ).exec();
 }
@@ -156,7 +156,7 @@ export async function seedDemoCatalog(uri, targetOptions) {
       throw new Error('A demo category already exists but is not published; refusing to change it.');
     }
     const categoryByLine = { lifestyle: lifestyleCategory, diplomacy: diplomacyCategory };
-    const demoNotice = 'Mẫu xem trước chỉ dùng trên máy local. Giá, thông số, tồn kho và khả năng cung cấp chưa được xác nhận. Nguồn từng ảnh được ghi trong gallery.';
+    const demoNotice = 'Giá hiện tại là mức tham khảo cho dữ liệu demo; thông số, tồn kho và khả năng cung cấp cần chủ dự án xác nhận. Nguồn từng ảnh được ghi trong gallery.';
 
     for (const product of manifestProducts) {
       const copy = PRODUCT_COPY[product.slug];
@@ -176,6 +176,8 @@ export async function seedDemoCatalog(uri, targetOptions) {
           $set: {
             description: demoNotice,
             images: product.images,
+            saleMode: 'buy',
+            priceVnd: copy.priceVnd,
           },
           $setOnInsert: {
             slug: product.slug,
@@ -183,7 +185,6 @@ export async function seedDemoCatalog(uri, targetOptions) {
             name: copy.name,
             line: copy.line,
             categoryId: category._id,
-            saleMode: 'quote',
             status: 'published',
             featured: true,
             version: 0,
@@ -205,19 +206,19 @@ export async function seedDemoCatalog(uri, targetOptions) {
       database: databaseName,
       demoProducts: products.length,
       byLine,
-      quoteOnly: products.every((product) => product.saleMode === 'quote'),
-      pricesUnset: products.every((product) => product.priceVnd === undefined),
+      directSaleProducts: products.every((product) => product.saleMode === 'buy'),
+      pricesSet: products.every((product) => Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0),
       threeImagesEach: products.every((product) => product.images.length === 3),
-      publicLocalPreviewOnly: products.every((product) => product.status === 'published'),
+      allPublished: products.every((product) => product.status === 'published'),
     };
     if (result.demoProducts !== Object.keys(PRODUCT_COPY).length
       || byLine.lifestyle !== 3
       || byLine.diplomacy !== 5
-      || !result.quoteOnly
-      || !result.pricesUnset
+      || !result.directSaleProducts
+      || !result.pricesSet
       || !result.threeImagesEach
-      || !result.publicLocalPreviewOnly) {
-      throw new Error('Seed verification failed; inspect only the dedicated local demo database.');
+      || !result.allPublished) {
+      throw new Error('Seed verification failed; inspect only the explicitly selected demo database.');
     }
     return result;
   } finally {

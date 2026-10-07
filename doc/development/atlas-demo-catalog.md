@@ -19,7 +19,7 @@ try {
 }
 ```
 
-Seed tạo hai danh mục và tối đa tám sản phẩm demo đã được khai báo trong manifest: ba Lifestyle, năm Diplomacy, mỗi sản phẩm có ba ảnh. Lệnh chỉ upsert các slug/SKU demo đã biết, dừng nếu phát hiện xung đột, không xóa collection và không thay đổi các collection khác. Giá và tồn kho không được đặt; sản phẩm ở chế độ chỉ hỏi tư vấn.
+Seed tạo hai danh mục và tám sản phẩm demo: ba Lifestyle, năm Diplomacy, mỗi sản phẩm có ba ảnh và giá tham khảo để hiển thị giá bán trực tiếp. Các sản phẩm dùng `saleMode=buy`, không có tồn kho nên chưa thể đặt hàng. Giá là số minh họa cho catalog demo, chưa phải bảng giá được chủ dự án duyệt.
 
 Các document lưu đường dẫn ảnh cùng site; lệnh không tải tệp ảnh lên Atlas. Frontend cần phục vụ các asset trong `fondend/public/assets/products/` tại cùng đường dẫn.
 
@@ -27,6 +27,20 @@ Nếu lệnh báo host/database không khớp, hãy dừng và xác minh cấu h
 
 ## Kết quả nạp ngày 2026-10-07
 
-Catalog trên Atlas `trolamtest` đã được xác minh có hai danh mục demo và tám sản phẩm published: ba Lifestyle, năm Diplomacy. Mỗi SKU demo có đúng ba đường dẫn ảnh, mọi sản phẩm ở chế độ hỏi tư vấn, không có giá. Các đường dẫn ảnh đều trỏ vào asset cùng site trong dự án.
+Catalog trên Atlas `trolamtest` được xác minh có hai danh mục demo và tám sản phẩm published: ba Lifestyle, năm Diplomacy. Mỗi SKU có đúng ba đường dẫn ảnh, `saleMode=buy`, một giá tham khảo, không có tồn kho.
 
-Trước khi ghi, `products` và `categories` chưa có document nào. Database có document trong một số collection ứng dụng khác; thao tác seed chỉ ghi `products` và `categories`, không đọc nội dung hay sửa các collection đó. Tệp ảnh vẫn nằm trong dự án, không được tải thành binary lên Atlas.
+Ở lần seed đầu, `products` và `categories` chưa có document nào. Database có document trong một số collection ứng dụng khác; seed chỉ ghi `products` và `categories`, không đọc nội dung hay sửa các collection đó. Tệp ảnh vẫn nằm trong dự án, không được tải thành binary lên Atlas.
+
+
+Giá tham khảo demo đã nạp (VND):
+
+| Dòng sản phẩm | Sản phẩm | Giá |
+|---|---|---:|
+| Lifestyle | Lư xông trầm mini | 390.000 |
+| Lifestyle | Hũ trà | 590.000 |
+| Lifestyle | Bộ chén độc ẩm | 1.290.000 |
+| Diplomacy | Bình Thiên Nga | 5.800.000 |
+| Diplomacy | Bình Phú Quý | 4.800.000 |
+| Diplomacy | Bình Giọt Ngọc | 4.200.000 |
+| Diplomacy | Bình Hoa Lam | 3.900.000 |
+| Diplomacy | Bình Tỳ Bà | 5.200.000 |
