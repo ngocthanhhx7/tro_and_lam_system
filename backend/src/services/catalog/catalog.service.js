@@ -13,6 +13,11 @@ const PUBLIC_PRODUCT_FIELDS = Object.freeze([
   'id', 'slug', 'name', 'line', 'categoryId', 'description', 'material', 'dimensions',
   'careInstructions', 'images', 'saleMode', 'priceVnd', 'storyId', 'featured', 'availableForPurchase', 'stockLabel',
 ]);
+const DEMO_CATALOG_SKU = /^DEMO-(?:LIF|DIP)-\d{3}$/u;
+
+function isDemoCatalogProduct(product) {
+  return DEMO_CATALOG_SKU.test(String(product?.sku || '').toUpperCase());
+}
 
 function plainId(value) {
   return String(value?._id ?? value?.id ?? value ?? '');
@@ -66,7 +71,8 @@ function toCategory(category) {
 function toPublicProduct(product, availability) {
   const categoryId = asCategoryId(product);
   const quoteOnly = product.saleMode === 'quote';
-  const available = !quoteOnly && availability.status === 'known' && availability.available;
+  const demoOnly = isDemoCatalogProduct(product);
+  const available = !quoteOnly && !demoOnly && availability.status === 'known' && availability.available;
   const data = {
     id: plainId(product),
     slug: product.slug,
@@ -85,6 +91,8 @@ function toPublicProduct(product, availability) {
     availableForPurchase: available,
     stockLabel: quoteOnly
       ? 'Yêu cầu tư vấn'
+      : demoOnly
+      ? 'Chưa xác nhận khả năng cung ứng'
       : availability.status === 'unknown'
       ? 'Đang xác minh khả năng cung ứng'
       : available ? 'Có thể đặt mua' : 'Tạm thời chưa có hàng',
@@ -172,22 +180,26 @@ export function createCatalogService({
 
   async function availabilityFor(products, { session, required = false } = {}) {
     const quoteOnly = products.filter((product) => product.saleMode === 'quote');
-    const buyable = products.filter((product) => product.saleMode !== 'quote');
+    const demoOnly = products.filter((product) => product.saleMode !== 'quote' && isDemoCatalogProduct(product));
+    const buyable = products.filter((product) => product.saleMode !== 'quote' && !isDemoCatalogProduct(product));
     const ids = buyable.map(plainId);
-    const quoteStates = new Map(quoteOnly.map((product) => [plainId(product), { status: 'quote', available: false }]));
-    if (!ids.length) return quoteStates;
+    const fixedStates = new Map([
+      ...quoteOnly.map((product) => [plainId(product), { status: 'quote', available: false }]),
+      ...demoOnly.map((product) => [plainId(product), { status: 'known', available: false }]),
+    ]);
+    if (!ids.length) return fixedStates;
     if (!inventoryPort || typeof inventoryPort.getAvailability !== 'function') {
       if (required) throw unavailable('DATABASE_UNAVAILABLE', 'Tình trạng tồn kho chưa sẵn sàng để lọc danh mục');
-      return new Map([...quoteStates, ...ids.map((id) => [id, { status: 'unknown', available: false }])]);
+      return new Map([...fixedStates, ...ids.map((id) => [id, { status: 'unknown', available: false }])]);
     }
     try {
       const found = toAvailabilityMap(await inventoryPort.getAvailability(ids, { session }));
-      return new Map([...quoteStates, ...ids.map((id) => [id, found.has(id)
+      return new Map([...fixedStates, ...ids.map((id) => [id, found.has(id)
         ? { status: 'known', available: found.get(id) }
         : { status: 'unknown', available: false }])]);
     } catch {
       if (required) throw unavailable('DATABASE_UNAVAILABLE', 'Không thể xác minh tình trạng tồn kho');
-      return new Map([...quoteStates, ...ids.map((id) => [id, { status: 'unknown', available: false }])]);
+      return new Map([...fixedStates, ...ids.map((id) => [id, { status: 'unknown', available: false }])]);
     }
   }
 
@@ -301,6 +313,7 @@ export function createCatalogService({
       if (!Array.isArray(ids)) throw badRequest('BAD_REQUEST', 'Sản phẩm không hợp lệ');
       const products = await productRepository.findPublishedProductsByIds(ids, { session });
       return products.filter((product) => ['buy', 'both'].includes(product.saleMode)
+        && !isDemoCatalogProduct(product)
         && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0).map(toCheckoutProduct);
     },
 

@@ -70,7 +70,7 @@ function CatalogFilterForm({ filters, categories, forcedLine, onApply, onReset }
   </aside>;
 }
 
-export default function ProductCatalogPage() {
+export default function ProductCatalogPage({ showIntro = true } = {}) {
   const [searchParams] = useSearchParams();
   const { line: routeLine } = useParams();
   const location = useLocation();
@@ -122,9 +122,9 @@ export default function ProductCatalogPage() {
   }
 
   const pageTitle = forcedLine ? lineLabels[forcedLine] : 'Sản phẩm';
-  return <div className="catalog-page section-wrap">
-    <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{pageTitle}</span></nav>
-    {forcedLine ? <section className="product-line-intro">
+  return <div className={`catalog-page section-wrap${showIntro ? '' : ' catalog-page--embedded'}`}>
+    {showIntro && <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{pageTitle}</span></nav>}
+    {showIntro && (forcedLine ? <section className="product-line-intro">
       <div className="product-line-intro__feature">
         <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>
         <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" width="896" height="1152" /><small className="collection-story__disclosure">{lineIntroductions[forcedLine].disclosure}</small><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
@@ -136,7 +136,7 @@ export default function ProductCatalogPage() {
       <h1>{pageTitle}</h1>
       <p>Tìm một món gốm cho không gian của bạn, hay một món quà cho người bạn trân quý.</p>
       <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham" aria-current="page">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle">Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy">Diplomacy · Gốm trao tặng</Link></nav>
-    </section>}
+    </section>)}
     <div className="catalog-layout">
       <CatalogFilterForm key={routeKey} filters={filters} categories={categories} forcedLine={forcedLine} onApply={setQuery} onReset={resetFilters} />
       <section className="catalog-results" id="san-pham-trong-dong" aria-label="Kết quả sản phẩm" aria-live="polite">

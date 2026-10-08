@@ -21,6 +21,7 @@ import { CatalogProduct } from '../../backend/src/models/catalog/product.model.j
 import { Contact, Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
 import {
   ASSISTANT_PRODUCT,
+  DEMO_REFERENCE_PRODUCT,
   DRAFT_PRODUCT,
   FIXTURE_PASSWORD,
   GUEST_ORDER_CODE,
@@ -125,11 +126,11 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
 
   await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
   await expect(page.getByRole('heading', { name: PUBLISHED_PRODUCT.name, exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Câu chuyện của sản phẩm đang được biên tập', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Khám phá câu chuyện gốm Việt', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
   await expect(page.getByText('Đã cập nhật giỏ hàng từ danh mục hiện tại.')).toBeVisible();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Giỏ hàng', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Giỏ hàng của bạn', exact: true })).toBeVisible();
   await expect(page.getByText(PUBLISHED_PRODUCT.name, { exact: true })).toBeVisible();
 
   const cart = await browserApi(page, '/api/v1/cart');
@@ -137,7 +138,7 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   expect(cart.body.data.items).toHaveLength(1);
   expect(String(cart.body.data.items[0].productId)).toBe(process.env.P11_E2E_FIXTURE_PRODUCT_ID);
 
-  await page.getByRole('link', { name: 'Tiếp tục thanh toán', exact: true }).click();
+  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Thông tin nhận hàng', exact: true })).toBeVisible();
   await page.getByLabel('Người nhận', { exact: true }).fill('P11 Checkout Fixture');
   await page.getByLabel('Email nhận xác nhận', { exact: true }).fill('checkout.p11@example.test');
@@ -159,6 +160,90 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
     documentWidth: globalThis.document.documentElement.scrollWidth,
   }));
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+});
+
+test('demo reference SKUs stay unavailable and reject direct cart writes despite synthetic stock', async ({ page }) => {
+  await page.goto(`/san-pham/${DEMO_REFERENCE_PRODUCT.slug}`);
+  await expect(page.getByRole('heading', { name: DEMO_REFERENCE_PRODUCT.name, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Thêm vào giỏ', exact: true })).toBeDisabled();
+
+  const detail = await browserApi(page, `/api/v1/products/${DEMO_REFERENCE_PRODUCT.slug}`);
+  expect(detail.status).toBe(200);
+  expect(detail.body.data).toMatchObject({
+    id: process.env.P11_E2E_FIXTURE_DEMO_PRODUCT_ID,
+    sku: DEMO_REFERENCE_PRODUCT.sku,
+    priceVnd: DEMO_REFERENCE_PRODUCT.priceVnd,
+    availableForPurchase: false,
+    stockLabel: 'Chưa xác nhận khả năng cung ứng',
+  });
+
+  const cart = await browserApi(page, '/api/v1/cart');
+  expect(cart.status).toBe(200);
+  const demoProductId = process.env.P11_E2E_FIXTURE_DEMO_PRODUCT_ID;
+  expect(demoProductId).toBeTruthy();
+  const rejectedWrite = await browserApi(page, `/api/v1/cart/items/${demoProductId}`, {
+    method: 'PUT',
+    body: { quantity: 1, expectedVersion: cart.body.data.version },
+  });
+  expect(rejectedWrite.status).toBe(422);
+  expect(rejectedWrite.body.error.code).toBe('CHECKOUT_NOT_ALLOWED');
+  const afterAttempt = await browserApi(page, '/api/v1/cart');
+  expect(afterAttempt.body.data.items).toHaveLength(0);
+});
+
+test('product-card cart action updates the red header badge with total quantity', async ({ page }) => {
+  const initialCartResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/cart'
+    && response.request().method() === 'GET');
+  await page.goto('/san-pham');
+  expect((await initialCartResponse).status()).toBe(200);
+
+  const cartLink = page.locator('.catalog-header__cart-link');
+  await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng');
+  await expect(cartLink.locator('.catalog-header__cart-count')).toHaveCount(0);
+
+  const productCard = page.locator('.product-card').filter({
+    has: page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }),
+  });
+  await expect(productCard).toHaveCount(1);
+  const addButton = productCard.locator('.product-card__cart-action');
+  await expect(addButton).toBeEnabled();
+  await expect(addButton).toHaveAttribute('aria-label', /Thêm .* vào giỏ hàng/u);
+  expect(await page.locator('.product-card__bottom .text-link').count()).toBe(0);
+
+  const firstAddResponse = page.waitForResponse((response) => response.url().includes('/api/v1/cart/items/')
+    && response.request().method() === 'PUT');
+  await addButton.click();
+  expect((await firstAddResponse).status()).toBe(200);
+  const badge = cartLink.locator('.catalog-header__cart-count');
+  await expect(badge).toHaveText('1');
+  await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng, 1 sản phẩm');
+  await expect(badge).toHaveCSS('background-color', 'rgb(180, 35, 50)');
+
+  const badgeBox = await badge.boundingBox();
+  const cartLinkBox = await cartLink.boundingBox();
+  expect(badgeBox).not.toBeNull();
+  expect(cartLinkBox).not.toBeNull();
+  expect(badgeBox.x + badgeBox.width).toBeGreaterThanOrEqual(cartLinkBox.x + cartLinkBox.width - 1);
+  expect(badgeBox.y).toBeLessThan(cartLinkBox.y + cartLinkBox.height / 2);
+
+  const secondAddResponse = page.waitForResponse((response) => response.url().includes('/api/v1/cart/items/')
+    && response.request().method() === 'PUT');
+  await addButton.click();
+  expect((await secondAddResponse).status()).toBe(200);
+  await expect(badge).toHaveText('2');
+  await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng, 2 sản phẩm');
+
+  await cartLink.click();
+  const quantity = page.locator('.cart-item .cart-quantity span');
+  await expect(quantity).toHaveText('2');
+  await page.locator('.cart-item .cart-quantity button').last().click();
+  await expect(quantity).toHaveText('3');
+  await expect(badge).toHaveText('3');
+
+  await page.getByRole('button', { name: 'Xóa sản phẩm', exact: true }).click();
+  await expect(page.locator('.cart-empty')).toBeVisible();
+  await expect(cartLink.locator('.catalog-header__cart-count')).toHaveCount(0);
+  await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng');
 });
 
 test('catalog explains an API failure and recovers through the retry action into a truthful empty state', async ({ page }) => {
@@ -606,7 +691,7 @@ test('public catalog filters are reflected in the URL and pagination restores af
 
   await page.getByRole('button', { name: 'Xóa lọc', exact: true }).click();
   await expect(page).toHaveURL(/\/san-pham$/u);
-  await expect(page.getByText('13 sản phẩm', { exact: true })).toBeVisible();
+  await expect(page.getByText('14 sản phẩm', { exact: true })).toBeVisible();
   await expect(page.locator('.product-card')).toHaveCount(12);
   const pagination = page.getByRole('navigation', { name: 'Phân trang danh mục' });
   await expect(pagination.getByText('Trang 1 / 2', { exact: true })).toBeVisible();
@@ -614,11 +699,11 @@ test('public catalog filters are reflected in the URL and pagination restores af
   await page.getByRole('button', { name: 'Trang sau', exact: true }).click();
   await expect(page).toHaveURL(/\/san-pham\?page=2$/u);
   await expect(pagination.getByText('Trang 2 / 2', { exact: true })).toBeVisible();
-  await expect(page.locator('.product-card')).toHaveCount(1);
+  await expect(page.locator('.product-card')).toHaveCount(2);
   await page.reload();
   await expect(page).toHaveURL(/\/san-pham\?page=2$/u);
   await expect(pagination.getByText('Trang 2 / 2', { exact: true })).toBeVisible();
-  await expect(page.locator('.product-card')).toHaveCount(1);
+  await expect(page.locator('.product-card')).toHaveCount(2);
 
   await page.getByRole('button', { name: 'Trang trước', exact: true }).click();
   await expect(page).toHaveURL(/\/san-pham\?page=1$/u);
@@ -1596,7 +1681,7 @@ test('customer checkout keeps its recipient snapshot after the saved address is 
   await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
-  await page.getByRole('link', { name: 'Tiếp tục thanh toán', exact: true }).click();
+  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
   await expect(page.locator('#checkout-address')).toHaveValue(savedAddress.id);
 
   const quoteResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));

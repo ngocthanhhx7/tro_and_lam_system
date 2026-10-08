@@ -178,6 +178,43 @@ test('quote-only products omit price and cannot be returned by the checkout port
   assert.equal(streamReads, 0);
 });
 
+test('demo reference SKUs stay unavailable even when persisted inventory exists', async () => {
+  const demo = product('64f000000000000000000042', { sku: 'DEMO-DIP-005' });
+  let inventoryReads = 0;
+  const { service } = serviceFor({
+    repository: {
+      listPublishedProductPage: async () => ({ items: [demo], total: 1 }),
+      streamPublishedProducts: async function* () { yield demo; },
+      findPublishedProductBySlug: async () => demo,
+      findPublishedProductsByIds: async () => [demo],
+    },
+    inventoryPort: {
+      getAvailability: async (ids) => {
+        inventoryReads += 1;
+        return ids.map((productId) => ({ productId, available: true }));
+      },
+    },
+  });
+
+  const listed = await service.listPublishedProducts({});
+  assert.equal(listed.items[0].priceVnd, demo.priceVnd);
+  assert.equal(listed.items[0].availableForPurchase, false);
+  assert.equal(listed.items[0].stockLabel, 'Chưa xác nhận khả năng cung ứng');
+
+  const available = await service.listPublishedProducts({ available: 'true' });
+  assert.equal(available.pagination.total, 0);
+  assert.deepEqual(available.items, []);
+  const unavailable = await service.listPublishedProducts({ available: 'false' });
+  assert.equal(unavailable.pagination.total, 1);
+  assert.equal(unavailable.items[0].availableForPurchase, false);
+
+  const detail = await service.getPublishedProductBySlug(demo.slug);
+  assert.equal(detail.priceVnd, demo.priceVnd);
+  assert.equal(detail.availableForPurchase, false);
+  assert.deepEqual(await service.getCheckoutProducts([demo._id]), []);
+  assert.equal(inventoryReads, 0);
+});
+
 test('draft and products in unpublished categories stay private by slug and ID', async () => {
   const draft = product('64f000000000000000000051', { status: 'draft' });
   const { service } = serviceFor({

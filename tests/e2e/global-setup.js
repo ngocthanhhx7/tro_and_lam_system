@@ -5,6 +5,7 @@ export default async function globalSetup() {
   globalThis.__P11_E2E_RUNTIME = runtime;
   process.env.P11_E2E_FIXTURE_PRODUCT_ID = runtime.fixture.publishedProductId;
   process.env.P11_E2E_FIXTURE_DRAFT_ID = runtime.fixture.draftProductId;
+  process.env.P11_E2E_FIXTURE_DEMO_PRODUCT_ID = runtime.fixture.demoReferenceProductId;
   process.env.P11_E2E_OTHER_ADDRESS_ID = runtime.fixture.otherCustomerAddressId;
   process.env.P11_E2E_FIXTURE_STAFF_ORDER_ID = runtime.fixture.staffOrderId;
   process.env.P11_E2E_FIXTURE_PAYMENT_ORDER_ID = runtime.fixture.paymentOrderId;

@@ -38,6 +38,14 @@ export const PUBLISHED_PRODUCT = Object.freeze({
   ],
 });
 
+export const DEMO_REFERENCE_PRODUCT = Object.freeze({
+  slug: 'p11-demo-purchase-guard',
+  sku: 'DEMO-DIP-005',
+  name: 'P11 Demo Purchase Guard Fixture',
+  priceVnd: 5_200_000,
+  images: PUBLISHED_PRODUCT.images,
+});
+
 export const ASSISTANT_PRODUCT = Object.freeze({
   slug: 'p11-fixture-hu-tra',
   sku: 'P11-ASSISTANT-HUTRA',

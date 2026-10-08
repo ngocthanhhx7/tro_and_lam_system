@@ -165,7 +165,7 @@ test('browser geolocation success reaches the real unconfigured geocoder, then m
   expect(cartWrite.status()).toBe(200);
   await expect(page.getByRole('link', { name: 'Xem giỏ hàng', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
-  await page.getByRole('link', { name: 'Tiếp tục thanh toán', exact: true }).click();
+  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Thông tin nhận hàng', exact: true })).toBeVisible();
   await expect(page.locator('#checkout-address')).toHaveValue(address.id);
   await expect(page.locator('.commerce-address-card')).toContainText('P03 Browser Fixture');

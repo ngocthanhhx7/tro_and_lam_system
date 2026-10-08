@@ -2,6 +2,8 @@
 
 Script tạo 8 sản phẩm demo trong database riêng `tro_lam_dev_catalog_demo`: 3 mẫu Lifestyle và 5 mẫu Diplomacy. Mỗi sản phẩm có đúng ba tệp gallery khác nhau và một mức giá tham khảo để xem giao diện bán trực tiếp. Giá chưa phải bảng giá được chủ dự án duyệt; tồn kho vẫn chưa được khai báo nên hệ thống chưa cho đặt hàng. Ảnh gốc do chủ dự án cung cấp được ưu tiên; các detail crop được ghi rõ là crop từ ảnh gốc, không phải góc chụp mới. Lư xông trầm mini vẫn dùng concept AI vì thư mục ảnh không có ảnh khớp. Nhãn nguồn thay đổi theo từng ảnh đang xem.
 
+Các SKU demo `DEMO-LIF-NNN` và `DEMO-DIP-NNN` không được coi là hàng bán trực tiếp: API giữ giá tham khảo để hiển thị nhưng luôn trả `availableForPurchase: false`, không đưa chúng vào cart/checkout, kể cả khi DB có tồn kho cũ hoặc bị cấu hình nhầm. Muốn mở bán, chủ dự án cần duyệt SKU, giá, quyền ảnh và khả năng cung ứng rồi tạo SKU được duyệt riêng; không đổi dữ liệu demo để làm cổng này biến mất.
+
 ## Điều kiện
 
 - Node.js 24 và dependency của repo đã cài.

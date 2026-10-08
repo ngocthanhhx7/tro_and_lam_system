@@ -26,6 +26,7 @@ import {
   assertDedicatedLocalMongoUri,
   API_PORT,
   DRAFT_PRODUCT,
+  DEMO_REFERENCE_PRODUCT,
   FIXTURE_PASSWORD,
   GUEST_ORDER_EMAIL,
   PUBLISHED_PRODUCT,
@@ -136,12 +137,33 @@ async function seedSyntheticFixture() {
     },
   ]);
 
-  await Inventory.create({
-    productId: published._id,
-    onHand: 5,
-    reserved: 3,
+  const [demoReference] = await CatalogProduct.create([{
+    ...DEMO_REFERENCE_PRODUCT,
+    line: 'diplomacy',
+    categoryId: category._id,
+    description: 'Synthetic reference-price fixture. Not a real offer.',
+    material: 'Fixture only',
+    images: DEMO_REFERENCE_PRODUCT.images,
+    saleMode: 'buy',
+    status: 'published',
+    featured: false,
     version: 0,
-  });
+  }]);
+
+  await Inventory.create([
+    {
+      productId: published._id,
+      onHand: 5,
+      reserved: 3,
+      version: 0,
+    },
+    {
+      productId: demoReference._id,
+      onHand: 5,
+      reserved: 0,
+      version: 0,
+    },
+  ]);
 
   const now = new Date();
   const fixtureOrders = [
@@ -298,6 +320,7 @@ async function seedSyntheticFixture() {
   return {
     publishedProductId: String(published._id),
     draftProductId: String(draft._id),
+    demoReferenceProductId: String(demoReference._id),
     otherCustomerAddressId: String((await Address.findOne({ userId: otherCustomer._id }).exec())._id),
     staffOrderId: String(orderRecords.find(({ order }) => order.code === STAFF_ORDER_CODE).order._id),
     paymentOrderId: String(orderRecords.find(({ order }) => order.code === PAYMENT_ORDER_CODE).order._id),

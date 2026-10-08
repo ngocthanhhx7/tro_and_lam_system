@@ -4,16 +4,14 @@ import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogSt
 import Icon from '../../components/catalog/Icon.jsx';
 import ProductEditorialStory from '../../components/catalog/ProductEditorialStory.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
-import { getListingProductBySlug, getRelatedListingProducts } from '../catalog/productListingData.js';
-import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
+import { getListingProductBySlug } from '../catalog/productListingData.js';
+import { addCartQuantity, formatVnd, getPublishedProduct, searchPublishedProducts, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { getProductImageSource } from '../../utils/productMedia.js';
 import { setPageIndexability, setPageMetadata } from '../../utils/pageMetadata.js';
 import './product-detail.css';
 
 const PublicProductReviews = lazy(() => import('../support/CustomerReviewsPage.jsx')
   .then((module) => ({ default: module.PublicProductReviews })));
-const curatedPriceFormatter = new Intl.NumberFormat('vi-VN');
-
 function curatedImage(image, product, index) {
   return {
     url: image,
@@ -22,30 +20,17 @@ function curatedImage(image, product, index) {
   };
 }
 
-function curatedSummary(product) {
-  return {
-    ...product,
-    images: product.images.map((image, index) => curatedImage(image, product, index)),
-    saleMode: 'buy',
-    availableForPurchase: false,
-    stockLabel: 'Tạm thời chưa có hàng',
-    priceLabel: `${curatedPriceFormatter.format(product.priceVnd)} đ`,
-  };
-}
-
 function mergeCuratedProduct(curated, apiProduct) {
+  if (!apiProduct) return null;
+  if (!curated) return apiProduct;
   return {
-    ...apiProduct,
     ...curated,
+    ...apiProduct,
     curated: true,
-    backendProductId: apiProduct?.id || '',
-    sku: apiProduct?.sku || '',
-    images: curated.images.map((image, index) => curatedImage(image, curated, index)),
-    saleMode: apiProduct?.saleMode || 'buy',
-    availableForPurchase: apiProduct?.availableForPurchase === true,
-    stockLabel: apiProduct?.stockLabel || 'Tạm thời chưa có hàng',
-    priceLabel: `${curatedPriceFormatter.format(curated.priceVnd)} đ`,
-    relatedProducts: getRelatedListingProducts(curated).map(curatedSummary),
+    images: curated.images?.length
+      ? curated.images.map((image, index) => curatedImage(image, curated, index))
+      : (apiProduct.images || []),
+    priceLabel: formatVnd(apiProduct.priceVnd),
   };
 }
 
@@ -109,35 +94,32 @@ export default function ProductDetailPage() {
   const curatedProduct = getListingProductBySlug(slug);
   const [state, setState] = useState({ status: 'loading', product: null, error: '' });
   const [retry, setRetry] = useState(0);
+  const [relatedProductsState, setRelatedProductsState] = useState({ slug: '', products: [] });
   const [quantity, setQuantity] = useState(1);
   const [selectedImageState, setSelectedImageState] = useState({ slug: '', index: 0 });
   const [cartStatus, setCartStatus] = useState({ busy: false, message: '', error: '' });
 
   useEffect(() => {
     const controller = new AbortController();
-    if (curatedProduct) {
-      if (curatedProduct.apiSlug) {
-        getPublishedProduct(curatedProduct.apiSlug, { signal: controller.signal })
-          .then((response) => setState({ slug, status: 'ready', product: response.data, error: '' }))
-          .catch((error) => { if (error.name !== 'AbortError') setState({ slug, status: 'ready', product: null, error: '' }); });
-      }
-    } else {
-      getPublishedProduct(slug, { signal: controller.signal })
-        .then((response) => setState({ slug, status: 'ready', product: response.data, error: '' }))
-        .catch((error) => { if (error.name !== 'AbortError') setState({ slug, status: 'error', product: null, error: error.message }); });
-    }
+    const apiSlug = curatedProduct?.apiSlug || curatedProduct?.slug || slug;
+    getPublishedProduct(apiSlug, { signal: controller.signal })
+      .then((response) => {
+        if (response?.data) setState({ slug, status: 'ready', product: response.data, error: '' });
+        else setState({ slug, status: 'error', product: null, error: 'Không tìm thấy sản phẩm đã công bố.' });
+      })
+      .catch((error) => {
+        if (error.name !== 'AbortError') setState({ slug, status: 'error', product: null, error: error.message });
+      });
     return () => controller.abort();
   }, [curatedProduct, slug, retry]);
 
   useEffect(() => {
     if (state.slug !== slug) return;
-    if (!curatedProduct && state.status === 'error') {
+    if (state.status === 'error' || !state.product) {
       setPageIndexability(false);
       return;
     }
-    const metadataProduct = curatedProduct
-      ? mergeCuratedProduct(curatedProduct, state.slug === slug ? state.product : null)
-      : state.slug === slug ? state.product : null;
+    const metadataProduct = mergeCuratedProduct(curatedProduct, state.product);
     if (!metadataProduct) return;
     setPageIndexability(true);
     const title = `${metadataProduct.name} | TRO & LAM`;
@@ -148,12 +130,27 @@ export default function ProductDetailPage() {
     setPageMetadata({ title, description });
   }, [curatedProduct, slug, state]);
 
-  if (!curatedProduct && (state.slug !== slug || state.status === 'loading')) return <div className="section-wrap"><CatalogLoading count={1} /></div>;
-  if (!curatedProduct && state.status === 'error') return <div className="section-wrap"><CatalogError message={state.error} onRetry={() => setRetry((value) => value + 1)} /></div>;
-  const product = curatedProduct
-    ? mergeCuratedProduct(curatedProduct, state.slug === slug ? state.product : null)
-    : state.product;
-  const cartProductId = product.backendProductId || (product.curated ? '' : product.id);
+  useEffect(() => {
+    if (!curatedProduct || state.slug !== slug || state.status !== 'ready' || !state.product) return undefined;
+    const controller = new AbortController();
+    searchPublishedProducts({ line: state.product.line, limit: 5 }, { signal: controller.signal })
+      .then((response) => setRelatedProductsState({
+        slug,
+        products: (response.data || []).filter((item) => item.id !== state.product.id).slice(0, 4),
+      }))
+      .catch((error) => {
+        if (error.name !== 'AbortError') setRelatedProductsState({ slug, products: [] });
+      });
+    return () => controller.abort();
+  }, [curatedProduct, slug, state.slug, state.status, state.product]);
+
+  if (state.slug !== slug || state.status === 'loading') return <div className="section-wrap"><CatalogLoading count={1} /></div>;
+  if (state.status === 'error' || !state.product) return <div className="section-wrap"><CatalogError message={state.error || 'Không tìm thấy sản phẩm đã công bố.'} onRetry={() => setRetry((value) => value + 1)} /></div>;
+  const product = mergeCuratedProduct(curatedProduct, state.product);
+  const cartProductId = product.id;
+  const relatedProducts = curatedProduct
+    ? (relatedProductsState.slug === slug ? relatedProductsState.products : [])
+    : (product.relatedProducts || []);
   const canBuy = Boolean(cartProductId) && ['buy', 'both'].includes(product.saleMode) && product.availableForPurchase === true && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0;
   const images = [...(product.images || [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const selectedImage = selectedImageState.slug === slug && selectedImageState.index < images.length ? selectedImageState.index : 0;
@@ -232,6 +229,6 @@ export default function ProductDetailPage() {
     {['quote', 'both'].includes(product.saleMode) && <div id="quote-form" className="product-detail__quote"><QuoteForm product={product} /></div>}
     {product.storyText && <ProductEditorialStory product={product} />}
     <PublicProductReviews productId={cartProductId} />
-    {product.relatedProducts?.length > 0 && <section className="related-products"><div className="section-heading section-heading--split"><div><p className="eyebrow">KHÁM PHÁ THÊM</p><h2>Cùng dòng sản phẩm</h2></div><Link className="text-link" to="/san-pham">Xem tất cả <span aria-hidden="true">→</span></Link></div><div className="product-grid">{product.relatedProducts.map((item) => <ProductCard key={item.id} product={item} headingLevel="h3" />)}</div></section>}
+    {relatedProducts.length > 0 && <section className="related-products"><div className="section-heading section-heading--split"><div><p className="eyebrow">KHÁM PHÁ THÊM</p><h2>Cùng dòng sản phẩm</h2></div><Link className="text-link" to="/san-pham">Xem tất cả <span aria-hidden="true">→</span></Link></div><div className="product-grid">{relatedProducts.map((item) => <ProductCard key={item.id} product={item} headingLevel="h3" />)}</div></section>}
   </div>;
 }

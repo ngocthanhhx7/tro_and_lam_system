@@ -5,6 +5,8 @@ import Icon from '../components/catalog/Icon.jsx';
 import { QuickContactLinks } from '../components/catalog/QuickContactLinks.jsx';
 import LogoutButton from '../components/identity/LogoutButton.jsx';
 import { useAuth } from '../contexts/auth.context.js';
+import { accountApi } from '../services/account/account.api.js';
+import { CART_UPDATED_EVENT, getCartItemCount } from '../services/account/cartEvents.js';
 import { setPageMetadata } from '../utils/pageMetadata.js';
 
 const links = [
@@ -72,11 +74,30 @@ export default function PublicCatalogLayout() {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const { pathname } = useLocation();
   const menuDialog = useRef(null);
   const menuButton = useRef(null);
   const productMenu = useRef(null);
   const isCollection = pathname.startsWith('/bo-suu-tap') || pathname.startsWith('/san-pham');
+  useEffect(() => {
+    let active = true;
+    let receivedCartUpdate = false;
+    const handleCartUpdate = (event) => {
+      receivedCartUpdate = true;
+      setCartCount(event.detail?.count || 0);
+    };
+    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdate);
+    accountApi.getCart()
+      .then((response) => {
+        if (active && !receivedCartUpdate) setCartCount(getCartItemCount(response?.data));
+      })
+      .catch(() => { if (active && !receivedCartUpdate) setCartCount(0); });
+    return () => {
+      active = false;
+      window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdate);
+    };
+  }, [user]);
   useEffect(() => {
     const dialog = menuDialog.current;
     if (menuOpen && !dialog.open) dialog.showModal();
@@ -103,7 +124,7 @@ export default function PublicCatalogLayout() {
         <nav className="catalog-nav" aria-label="Điều hướng chính">{links.map((link) => link.to === '/san-pham'
           ? <div className="nav-products" key={link.to}><NavLink to={link.to} className={isCollection ? 'active' : undefined}>Sản phẩm</NavLink><details ref={productMenu} onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); } }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}><summary aria-label="Mở các dòng sản phẩm"><Icon name="chevron" size={15} /></summary><div className="product-dropdown">{collections.map((item) => <Link key={item.to} to={item.to} onClick={() => { productMenu.current.open = false; }}>{item.label}<Icon name="arrow" size={16} /></Link>)}</div></details></div>
           : <NavLink key={link.to} to={link.to} end={link.to === '/'}>{link.label}</NavLink>)}</nav>
-        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><Link className="catalog-header__icon-link" to="/tai-khoan" aria-label={user ? `Hồ sơ ${user.name}` : 'Tài khoản'}><Icon name="user" /></Link><Link className="catalog-header__icon-link" to="/gio-hang" aria-label="Giỏ hàng"><Icon name="bag" /></Link>{user && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
+        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><Link className="catalog-header__icon-link" to="/tai-khoan" aria-label={user ? `Hồ sơ ${user.name}` : 'Tài khoản'}><Icon name="user" /></Link><Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link>{user && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
         <button ref={menuButton} className="menu-toggle" aria-label="Mở điều hướng" aria-expanded={menuOpen} aria-haspopup="dialog" onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>
       </div>
       {searchOpen && <div id="header-search-panel" className="header-search-panel" onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false); }}><HeaderSearch onSubmitted={() => setSearchOpen(false)} /></div>}

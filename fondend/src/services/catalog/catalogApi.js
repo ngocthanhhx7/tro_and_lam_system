@@ -1,4 +1,5 @@
 import { getJson, requestJson } from '../httpClient.js';
+import { publishCartUpdate } from '../account/cartEvents.js';
 
 export function productListPath(filters = {}) {
   const query = new URLSearchParams();
@@ -36,10 +37,12 @@ export async function addCartQuantity(productId, quantity) {
   if (!Number.isSafeInteger(version) || version < 0) {
     throw new Error('Không thể xác minh phiên bản giỏ hàng. Tải lại rồi thử lại.');
   }
-  return requestJson(`/cart/items/${encodeURIComponent(productId)}`, {
+  const response = await requestJson(`/cart/items/${encodeURIComponent(productId)}`, {
     method: 'PUT',
     body: { quantity: nextQuantity, expectedVersion: version },
   });
+  publishCartUpdate(response?.data);
+  return response;
 }
 
 export function listAdminProducts(filters = {}, { signal } = {}) {

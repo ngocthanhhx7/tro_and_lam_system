@@ -118,6 +118,25 @@
 .catalog-header__icon-link:hover,
 .icon-button:hover { border-color: var(--border-subtle); background: #fff; }
 
+.catalog-header__cart-link { position: relative; }
+.catalog-header__cart-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  min-width: 19px;
+  height: 19px;
+  padding-inline: 4px;
+  place-items: center;
+  border: 2px solid #f7f3e9;
+  border-radius: 999px;
+  color: #fff;
+  background: #b42332;
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .site-search {
   display: flex;
   width: 202px;

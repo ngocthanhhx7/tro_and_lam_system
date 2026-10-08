@@ -4,7 +4,7 @@
 
 P11 đã thêm harness Playwright đi qua trình duyệt, Vite, Express và một MongoDB replica set cục bộ riêng cho test. Bằng chứng tích hợp hiện tại đã có, nhưng chưa đủ để chấp thuận mở bán hoặc production. Chưa deploy production, tạo đơn hàng thật hay gọi PayOS, SMTP, Gemini hoặc geocoder thật.
 
-Bằng chứng giao diện mới nhất và các giới hạn của working tree hiện tại nằm trong [interface refresh evidence](interface-refresh-evidence.md).
+Bằng chứng storefront/cart mới nhất và giới hạn của working tree hiện tại nằm trong [acceptance coverage](acceptance-coverage.md) và phần tích hợp ghi ngày 2026-10-08 bên dưới.
 
 ## Bằng chứng tích hợp
 
@@ -320,3 +320,11 @@ P06 replica-set coverage now refuses remote, credentialed, parameterized, reused
 ## Development API catalog read-only verification (2026-10-07)
 
 The running local development API returned HTTP 200 for `GET /api/v1/products?page=1&limit=100` with 8 public preview products: 3 Lifestyle and 5 Diplomacy. Each product had three distinct images with non-empty alt text. All 8 returned `availableForPurchase: false`; positive reference-price fields are present, but the owner has not approved those values. No seed or mutation was run. This confirms the existing catalog is present and checkout availability is disabled in the current runtime; it does not establish owner approval or production data. The API readiness endpoint also returned HTTP 200. No provider or production system was used.
+
+## Develop merge and runtime catalog recheck (2026-10-08)
+
+After refreshing `origin/develop`, its head was `f751de2` and was already an ancestor of `feature/cart-ui-visible-20261008` at merge commit `ada5612` (parents `4add8a7` and `f751de2`). The merge includes teammate commits `b73af5f` and `f751de2`; `git rev-list --left-right --count HEAD...origin/develop` returned `4 0`, so no fetched `develop` commits remain outside the branch.
+
+The storefront now has a server-backed cart badge, API-backed `/san-pham` listing and product details, and the demo-SKU purchase guard. All modified application and test files were SHA-256 compared with the clean-path QA checkout `D:\WW\tro_lam_verify_cart_catalog_20261008` before verification and every application/test file matched. `npm run check` passed there: contracts (102 paths, 121 operations, 60 DTO schemas, 22 frozen enums, 26 fixtures), lint, backend **210 passed / 0 failed / 0 skipped**, and Vite build (144 modules; entry JavaScript 304.47 kB / 96.72 kB gzip). `npm run test:e2e` passed **41/41**, including API-backed catalog navigation, direct cart-write rejection for a demo SKU, and the red cart badge's total after add, quantity change, and removal. The E2E harness used a dedicated loopback P11 database and local test adapters; teardown removed the test database, and a read-only prefix audit found no P02/P05/P06/P09/P11 test databases. No production data or live provider was used. GitHub Actions remote status was not verified in this run.
+
+Read-only requests to the running local API returned HTTP 200 / `ok` for `/api/v1/health/live`, HTTP 200 / `ready` for `/api/v1/health/ready`, and 8 published products from `/api/v1/products?page=1&limit=100` (3 Lifestyle, 5 Diplomacy). All 8 report `saleMode: buy`, retain positive reference prices, and return `availableForPurchase: false` with `stockLabel: Chưa xác nhận khả năng cung ứng`. This is the expected fail-closed result for the preview SKUs; it supersedes the incorrect `availableForPurchase: true` statement in the earlier version of this section and the 2026-10-07 observation. Data is local development data, not owner approval or production evidence. No database mutation, provider call, or deployment was made.
