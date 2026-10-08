@@ -633,10 +633,21 @@ test('public home, catalog, product-line, and contact pages pass automated WCAG 
     '/lien-he',
     '/dang-nhap',
   ];
-  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+  for (const viewport of [
+    { width: 320, height: 800 },
+    { width: 390, height: 844 },
+    { width: 1024, height: 900 },
+    { width: 1280, height: 900 },
+  ]) {
     await page.setViewportSize(viewport);
     for (const path of paths) {
       await page.goto(path);
+      const layout = await page.evaluate(() => ({
+        viewportWidth: globalThis.innerWidth,
+        documentWidth: globalThis.document.documentElement.scrollWidth,
+      }));
+      expect(layout.documentWidth, `${path} overflowed at ${viewport.width}px`)
+        .toBeLessThanOrEqual(layout.viewportWidth + 1);
       const { violations } = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
         .analyze();

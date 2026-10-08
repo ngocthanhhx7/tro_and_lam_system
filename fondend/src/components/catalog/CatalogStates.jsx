@@ -1,5 +1,5 @@
 export function CatalogLoading({ count = 6 }) {
-  return <div className="product-grid" aria-label="Đang tải sản phẩm" aria-busy="true">
+  return <div className="product-grid" role="status" aria-label="Đang tải sản phẩm" aria-busy="true">
     {Array.from({ length: count }, (_, index) => <div className="product-skeleton" key={index} aria-hidden="true"><span /><span /><span /></div>)}
   </div>;
 }
