@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "node --watch src/server.js", "start": "node src/server.js", "seed:demo-catalog": "node src/scripts/seed-demo-catalog.js", "test": "node --test" },
+  "scripts": { "dev": "node --watch src/server.js", "start": "node src/server.js", "seed:demo-catalog": "node src/scripts/seed-demo-catalog.js", "bootstrap:admin:development": "node src/scripts/bootstrap-admin-development.js", "test": "node --test" },
   "dependencies": { "argon2": "^0.45.1", "cors": "^2.8.5", "dotenv": "^17.2.0", "express": "^5.1.0", "express-rate-limit": "^8.1.0", "helmet": "^8.1.0", "mongoose": "^9.0.0", "nodemailer": "^10.0.15" },
   "devDependencies": { "supertest": "^7.1.0" }
 }

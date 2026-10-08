@@ -178,7 +178,6 @@ export default function ProductDetailPage() {
   }
 
   return <div className="product-detail section-wrap">
-    <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><Link to="/san-pham">Sản phẩm</Link><span aria-hidden="true">/</span><span aria-current="page">{product.name}</span></nav>
     <div className="product-detail__grid">
       <div className="product-gallery">
         <div className="product-gallery__main">
