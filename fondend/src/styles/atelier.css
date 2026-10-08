@@ -28,14 +28,16 @@
 .mobile-menu nav .active { color: #765c2e; }
 .menu-signoff { margin-top: 35px; font-family: var(--font-heading); color: var(--text-secondary); }
 .public-site h1, .public-site h2, .public-site h3 { letter-spacing: -.035em; }
+.public-site:has(.atelier-hero) { background-color: var(--brand-ivory); background-image: none; }
+.public-site .section-wrap { width: min(100% - 80px, 1320px); }
 .public-site .eyebrow { font-size: 10px; letter-spacing: .2em; font-weight: 500; }
 .public-site .button { min-height: 50px; padding: 14px 23px; border-radius: 0; font-size: 12px; font-weight: 500; letter-spacing: .02em; }
 .public-site .text-link { display: inline-flex; align-items: center; gap: 16px; min-height: 44px; border-bottom: 1px solid #a8aaa0; font-size: 12px; text-decoration: none; padding-block: 8px; }
-.atelier-section { width: min(100% - 120px, 1180px); margin-inline: auto; padding-block: 90px; }
+.atelier-section { width: min(100% - 80px, 1320px); margin-inline: auto; padding-block: 90px; }
 .atelier-hero { position: relative; overflow: hidden; min-height: min(760px, 82svh); background: #292a25; color: #fffaf0; display: flex; align-items: center; }
 .atelier-hero__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; transform: scale(1.22); transform-origin: 50% 0%; }
 .atelier-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,#101b1bcb 0%,#17231d85 43%,#11211d16 100%); }
-.atelier-hero__content { position: relative; z-index: 1; width: min(100% - 120px, 1180px); margin: 0 auto; padding: 65px 0 110px; }
+.atelier-hero__content { position: relative; z-index: 1; width: min(100% - 80px, 1320px); margin: 0 auto; padding: 65px 0 110px; }
 .atelier-hero .eyebrow { color: #ece0bb; margin-bottom: 27px; }
 .atelier-hero h1 { color: #fffaf0; max-width: 850px; margin: 0; font-size: clamp(38px,4.4vw,68px); line-height: 1.3; font-weight: 400; }
 .atelier-hero h1 em { font-style: normal; color: #ece0c4; }
@@ -43,7 +45,7 @@
 .atelier-hero .button--light { background: #f8f5ed; color: #163b43; }
 .hero-film-link { display: inline-flex; align-items: center; gap: 13px; color: #fffaf0; font-size: 12px; text-decoration: none; padding: 14px 10px; }
 .hero-film-link:hover { color: #e7c882; }
-.atelier-hero__bottom { position: absolute; z-index: 1; bottom: 28px; left: max(60px,calc((100% - 1180px)/2)); right: max(60px,calc((100% - 1180px)/2)); display: flex; justify-content: space-between; border-top: 1px solid #ffffff40; padding-top: 18px; font-size: 9px; letter-spacing: .18em; }
+.atelier-hero__bottom { position: absolute; z-index: 1; bottom: 28px; left: max(40px,calc((100% - 1320px)/2)); right: max(40px,calc((100% - 1320px)/2)); display: flex; justify-content: space-between; border-top: 1px solid #ffffff40; padding-top: 18px; font-size: 9px; letter-spacing: .18em; }
 .atelier-hero__bottom a { display: flex; align-items: center; gap: 15px; color: #f5eedc; text-decoration: none; letter-spacing: .04em; }
 .editorial-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 13%; align-items: center; }
 .atelier-section h2, .heritage-film h2 { font-size: clamp(32px,3.4vw,48px); line-height: 1.3; font-weight: 400; color: #143d49; margin: 18px 0 23px; }
@@ -92,7 +94,7 @@
 .heritage-film h2 { color: #faf5e7; }
 .heritage-film p:not(.eyebrow) { color: #cad6d2; }
 .heritage-film .text-link { color: #faf5e7; border-color: #ffffff50; }
-.closing-note { text-align: center; padding-block: 95px; }
+.closing-note { background: var(--brand-ivory); text-align: center; padding-block: 95px; }
 .catalog-footer { background: #092b37; color: #d3dedb; border: 0; }
 .footer-invitation, .footer-columns, .footer-bottom { width: min(100% - 120px,1180px); margin: auto; }
 .footer-invitation { padding: 50px 0; display: flex; align-items: center; justify-content: space-between; gap: 32px; border-bottom: 1px solid #ffffff25; }
@@ -126,9 +128,9 @@
 .public-site :is(.support-card,.cart-item,.cart-summary,.cart-empty,.identity-card,.commerce-card,.payment-panel) { border-radius: 2px; box-shadow: none; border-color: #dedbd0; }
 .public-site :is(input,select,textarea) { border-radius: 0; }
 .public-site :is(.cart-button,.support-button,.identity-button,.commerce-button) { border-radius: 0; font-size: 13px; font-weight: 500; }
-.public-site :is(.cart-page,.commerce-page,.identity-page) { width: min(100% - 48px,1180px); margin-inline: auto; padding-block: 50px 80px; }
+.public-site :is(.cart-page,.commerce-page,.identity-page) { width: min(100% - 80px,1320px); margin-inline: auto; padding-block: 50px 80px; }
 .public-site .cart-empty { padding: 65px 30px; }
-.support-page--contact { width: min(100% - 80px,1180px); padding: 35px 0 85px; }
+.public-site .support-page--contact { width: min(100% - 80px,1320px); padding: 35px 0 85px; }
 .support-page--contact .support-intro { padding: 30px 0 35px; border-bottom: 1px solid #d7d8ce; }
 .support-page--contact .support-intro h1 { font-size: clamp(35px,4vw,54px); }
 .support-page--contact .support-intro > div { max-width: 700px; }
@@ -166,8 +168,9 @@
   .catalog-nav > a, .nav-products > a { font-size: 12px; }
   .catalog-header__actions { gap: 0; }
   .catalog-header__actions a, .catalog-header__actions button { width: 38px; min-width: 38px; }
-  .atelier-section, .atelier-hero__content, .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 80px); }
-  .atelier-hero__bottom { left: 40px; right: 40px; }
+  .public-site .section-wrap, .atelier-section, .atelier-hero__content, .public-site :is(.cart-page,.commerce-page,.identity-page), .public-site .support-page--contact { width: calc(100% - 48px); }
+  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 80px); }
+  .atelier-hero__bottom { left: 24px; right: 24px; }
   .footer-columns { gap: 25px; }
   .atelier-featured .product-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
@@ -193,7 +196,8 @@
   .catalog-header__actions a[aria-label='Tài khoản'] { display: none; }
   .catalog-header__actions a, .catalog-header__actions button { min-width: 36px; width: 36px; }
   .menu-toggle { width: 36px; min-width: 36px; }
-  .atelier-section, .atelier-hero__content, .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 40px); }
+  .public-site .section-wrap, .atelier-section, .atelier-hero__content, .public-site :is(.cart-page,.commerce-page,.identity-page), .public-site .support-page--contact { width: calc(100% - 32px); }
+  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 40px); }
   .atelier-section { padding-block: 52px; }
   .atelier-hero { min-height: 640px; }
   .atelier-hero::after { background: linear-gradient(90deg,#14211ec9,#14211e65); }
@@ -204,7 +208,7 @@
   .atelier-hero__content > p:not(.eyebrow) { font-size: 13px; max-width: 340px; }
   .atelier-hero .button-row { flex-direction: column; align-items: start; gap: 13px; }
   .atelier-hero .button-row .button { flex: 0; padding-inline: 22px; }
-  .atelier-hero__bottom { left: 20px; right: 20px; font-size: 8px; gap: 12px; align-items: center; }
+  .atelier-hero__bottom { left: 16px; right: 16px; font-size: 8px; gap: 12px; align-items: center; }
   .atelier-hero__bottom > span { max-width: 120px; }
   .desktop-break { display: none; }
   .editorial-intro, .collection-story, .collection-story--reverse { grid-template-columns: 1fr; gap: 30px; }
@@ -232,7 +236,7 @@
   .catalog-page__intro { padding: 24px 20px; }
   .collection-tabs { gap: 6px; }
   .collection-tabs a { font-size: 11px; padding: 8px 11px; }
-  .support-page--contact { width: calc(100% - 40px); }
+  .public-site .support-page--contact { width: calc(100% - 32px); }
   .support-page--contact .support-intro { display: block; }
   .support-page--contact .support-note { max-width: none; margin-top: 25px; }
   .support-page--contact .support-form { padding: 22px 18px; }

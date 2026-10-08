@@ -7,6 +7,7 @@ import Icon from '../../components/catalog/Icon.jsx';
 import { HeritageFilm } from '../../components/catalog/EditorialMedia.jsx';
 import { lineImagery, media } from '../../constants/editorialMedia.js';
 import HeroMotion from '../../components/catalog/HeroMotion.jsx';
+import './homepage-ornaments.css';
 
 export default function CatalogHomePage() {
   const [state, setState] = useState({ status: 'loading', items: [], error: '' });
