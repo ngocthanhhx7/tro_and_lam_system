@@ -1,0 +1,95 @@
+.http-error-page {
+  display: grid;
+  min-height: min(68vh, 720px);
+  place-items: center;
+  padding-block: clamp(36px, 8vw, 96px);
+}
+
+.http-error-card {
+  width: min(100%, 680px);
+  padding: clamp(28px, 6vw, 64px);
+  border: 1px solid rgba(18, 63, 86, 0.16);
+  border-radius: 4px;
+  background: linear-gradient(145deg, #fff 0%, #fbf8ef 100%);
+  box-shadow: 0 24px 72px rgba(9, 43, 59, 0.08);
+  text-align: center;
+}
+
+.http-error-card__eyebrow {
+  margin: 0;
+  color: var(--brand-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.http-error-card__code {
+  margin: 8px 0 0;
+  color: var(--brand-gold);
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 17vw, 9rem);
+  line-height: 1;
+}
+
+.http-error-card h1 {
+  margin: 14px 0 0;
+  color: var(--brand-deep-blue);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+
+.http-error-card h1:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 6px;
+}
+
+.http-error-card__description {
+  max-width: 460px;
+  margin: 16px auto 0;
+  color: var(--text-secondary);
+}
+
+.http-error-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.http-error-card__primary,
+.http-error-card__secondary {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 1px solid var(--brand-blue);
+  border-radius: 2px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.http-error-card__primary { background: var(--brand-blue); color: #fff; }
+.http-error-card__primary:hover { background: var(--brand-deep-blue); color: #fff; }
+.http-error-card__secondary { background: transparent; color: var(--brand-blue); }
+.http-error-card__secondary:hover { background: rgba(18, 63, 86, 0.06); }
+
+.http-error-card__brand {
+  display: inline-block;
+  margin-top: 36px;
+  color: var(--brand-deep-blue);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+}
+
+@media (max-width: 520px) {
+  .http-error-card__actions { flex-direction: column; }
+  .http-error-card__primary,
+  .http-error-card__secondary { width: 100%; }
+}

@@ -10,10 +10,14 @@ Provider staging/merchant test là kiểm tra riêng có secret do owner cấu h
 | ID | Luồng | Điều kiện pass |
 | --- | --- | --- |
 | A-PUB-01 | Catalog/search/filter | Chỉ published và active; URL query restore; phân trang ổn định; draft direct-ID không rò rỉ |
+| A-SEO-01 | Public metadata và indexability | Trang public có metadata phù hợp; account/commerce/operations và nội dung draft không index; canonical, sitemap và Search Console được xác nhận theo domain/hosting |
 | A-GST-01 | Guest cart | Không đăng nhập vẫn thêm/sửa/xóa, không dùng giá từ client; reload/session policy đúng |
 | A-GST-02 | Guest checkout | Có mã đơn, chỉ một order khi retry; snapshot người nhận; email confirmation queued |
 | A-GST-03 | Guest tracking | Mã đơn đơn lẻ không đọc PII; đúng token/OTP mới thấy đầy đủ; sai credential cùng response shape |
 | A-AUTH-01 | Register/login/reset | Token purpose/expiry/one-time; no enumeration; logout và role/block revoke session |
+| A-ACC-01 | Hồ sơ customer | Sửa tên/ngày sinh/giới tính; email trùng bị từ chối; mã đổi email chỉ dùng đúng phiên/chủ challenge; đổi email hoặc mật khẩu thu hồi phiên cũ |
+| A-ACC-02 | Tổng quan tài khoản customer | `/tai-khoan` hiển thị đơn gần đây, số thông báo chưa đọc và lối tắt địa chỉ/hỗ trợ; mỗi khối có loading, lỗi có retry, và trạng thái rỗng có hướng tiếp theo |
+| A-VCH-01 | Voucher | Admin cấp/thu hồi có audit; customer chỉ thấy voucher của mình; server kiểm tra hạn/tối thiểu/giá trị; checkout redeem cùng transaction; hủy trước giao trả voucher còn hạn |
 | A-ADR-01 | Address CRUD | Collection riêng, tối đa một default, ownership; sửa/xóa address không thay snapshot đơn |
 | A-ADR-02 | Geolocation | Cả success/denied/timeout/provider failure; manual address vẫn save/checkout được |
 | A-SHP-01 | Shipping quote | Chỉ tỉnh/thành khớp chính xác sau chuẩn hóa mới nhận fee đã cấu hình; thiếu tỉnh, vùng trống, dữ liệu chồng lấn hoặc không khớp phải fail-closed; phí được snapshot vào tổng đơn |
@@ -26,10 +30,15 @@ Provider staging/merchant test là kiểm tra riêng có secret do owner cấu h
 | A-REV-01 | Review | Chỉ delivered order item thuộc owner; giới hạn duplicate; edit/moderation không xóa lịch sử không dấu vết |
 | A-TKT-01 | Ticket/complaint | Ownership mọi read/write; assignment atomic; state transitions hợp lệ; attachment không public |
 | A-BLK-01 | Blocked appeal | Full session bị revoke; restricted session chỉ gửi/xem appeal; approve/reject admin có reason/audit |
-| A-STF-01 | Staff | Dashboard/queue/fulfillment/support được phép; product/user/role/audit admin APIs trả 403 |
-| A-ADM-01 | Admin | Bao gồm staff; không khóa/demote admin cuối; role/status change invalidates session ngay |
+| A-STF-01 | Staff | Dashboard/queue/fulfillment/support được phép; admin pages/APIs trả 403 |
+| A-ADM-01 | Admin | Chỉ workspace/admin APIs; staff pages/APIs trả 403; không khóa/demote admin cuối; role/status change invalidates session ngay |
+| A-ACL-01 | Role workspaces | Customer bị từ chối `/staff` và `/admin`; staff chỉ vào `/staff`; admin chỉ vào `/admin`; API kiểm tra cùng ma trận server-side |
+| A-ERR-01 | Error pages | 400/401/403/404/405/408/409/413/422/429/500/502/503/504 có nội dung và điều hướng phù hợp; render exception hiển thị 500 fallback |
+| A-FIN-01 | Admin revenue trend (DEC-30) | Date range uses applied PayOS receipts and recorded COD collections, grouped by Asia/Ho_Chi_Minh day; shows an equal-duration preceding period; fills zero-activity dates; keeps refunds separate; unavailable or inconsistent ledger data fails closed; chart has keyboard/pointer selection, restores the default day when the pointer leaves, and provides a table alternative |
 | A-PRD-01 | Product CRUD | Slug/SKU unique, optimistic concurrency; soft delete referenced product, old order vẫn đọc snapshot; drafts may be created with zero images; published products require 1–5 images with confirmed usage rights; demo catalog has exactly three images per product |
+| A-MEDIA-01 | Media disclosure and accessibility | Product/editorial media show accurate source and AI disclosures; video has Vietnamese captions/transcript; responsive media has alt text, keyboard controls and a fallback when media fails |
 | A-NOT-01 | Notification | Read/mark all chỉ owner, unread đúng, duplicated event không tạo trùng |
+| A-NOT-02 | Nhóm thông báo customer | Bộ lọc đơn hàng/ưu đãi/hệ thống trả đúng loại; thông báo voucher mới vào nhóm ưu đãi; badge phản ánh số chưa đọc |
 | A-MAIL-01 | SMTP/outbox | Retry lease/dead-letter, header injection blocked; mail failure không mất đơn/ticket |
 | A-AI-01 | Gemini | Grounded public context; PII redaction, invalid product ID filtered; quota/timeout → human fallback |
 | A-NFC-01 | Story NFC | Published public, draft private; revoked/missing fallback; không claim authenticity từ URL |

@@ -124,10 +124,14 @@ function actorOrderId(actor) {
 
 function checkTicketAccess(actor, ticket) {
   const role = actorRole(actor);
-  if (role === 'staff' || role === 'admin') return;
-  if (role === 'customer' && idOf(ticket.userId) === idOf(actor.id)) return;
+  if (role === 'staff') return;
+  if (['customer', 'admin'].includes(role) && idOf(ticket.userId) === idOf(actor.id)) return;
   if (role === 'guest' && ticket.orderId && actorOrderId(actor) === idOf(ticket.orderId)) return;
   throw notFound();
+}
+
+function assertStaffActor(actor) {
+  if (actorRole(actor) !== 'staff') throw new ServiceError(403, 'FORBIDDEN', 'Thao tác này chỉ dành cho nhân viên');
 }
 
 function isDuplicate(error) { return error?.code === 11000 || error?.code === '11000'; }
@@ -364,7 +368,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       const ticket = await repo.findTicketById(id);
       if (!ticket) throw notFound();
       checkTicketAccess(actor, ticket);
-      return ticketDto(ticket, { staff: ['staff', 'admin'].includes(actor.role) });
+      return ticketDto(ticket, { staff: actor.role === 'staff' });
     },
 
     async listTicketMessages(actor, id, filters = {}) {
@@ -373,7 +377,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       if (!ticket) throw notFound();
       checkTicketAccess(actor, ticket);
       const query = validateCursorQuery(filters);
-      const staff = ['staff', 'admin'].includes(actor.role);
+      const staff = actor.role === 'staff';
       const result = await repo.listTicketMessages(id, { ...query, includeInternal: staff });
       return { items: result.items.map(ticketMessageDto), nextCursor: result.nextCursor };
     },
@@ -382,15 +386,15 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       validateObjectId(id);
       const data = validateTicketMessageCreate(input);
       const role = actorRole(actor);
-      if ((role === 'customer' || role === 'guest') && data.visibility !== 'customer') {
-        throw new ServiceError(403, 'FORBIDDEN', 'Khách hàng không thể gửi ghi chú nội bộ');
+      if (role !== 'staff' && data.visibility !== 'customer') {
+        throw new ServiceError(403, 'FORBIDDEN', 'Chỉ nhân viên mới có thể gửi ghi chú nội bộ');
       }
       return transaction(async (session) => {
         const ticket = await repo.findTicketById(id, { session });
         if (!ticket) throw notFound();
         checkTicketAccess(actor, ticket);
         if (ticket.status === 'closed') throw conflict('INVALID_TRANSITION', 'Yêu cầu đã đóng; hãy tạo yêu cầu mới');
-        if (ticket.status === 'resolved' && role !== 'staff' && role !== 'admin'
+        if (ticket.status === 'resolved' && role !== 'staff'
           && (!ticket.latestMessageAt || now().getTime() - new Date(ticket.latestMessageAt).getTime() > reopenWindowMs)) {
           throw conflict('INVALID_TRANSITION', 'Thời hạn phản hồi yêu cầu đã kết thúc; hãy tạo yêu cầu mới');
         }
@@ -409,7 +413,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
           const linked = await repo.linkAttachments(data.attachmentIds, ownerFilter, { ticketId: id }, { session });
           if (linked.modifiedCount !== data.attachmentIds.length) throw conflict('VERSION_CONFLICT', 'Tệp đã được sử dụng hoặc thay đổi');
         }
-        const nextStatus = role === 'staff' || role === 'admin'
+        const nextStatus = role === 'staff'
           ? (data.visibility === 'customer' ? 'waiting_customer' : ticket.status)
           : 'in_progress';
         const changed = await repo.updateTicket(id, ticket.version, {
@@ -417,7 +421,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
           ...(nextStatus !== ticket.status && ticket.status !== 'resolved' ? { status: nextStatus } : {}),
         }, { session });
         if (!changed) throw conflict('VERSION_CONFLICT', 'Yêu cầu đã được cập nhật ở nơi khác');
-        if ((role === 'staff' || role === 'admin') && data.visibility === 'customer') {
+        if (role === 'staff' && data.visibility === 'customer') {
           await queueTicketMail(ticket, session);
           const owner = ticket.userId ? [idOf(ticket.userId)] : [];
           await appendNotification({
@@ -430,7 +434,8 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
           await appendNotification({
             eventKey: `support.ticket.message:${idOf(message)}`, aggregateType: 'ticket', aggregateId: id,
             aggregateVersion: changed.version, recipients,
-            title: 'Khách hàng đã phản hồi', body: 'Có phản hồi mới trong yêu cầu hỗ trợ.', href: `/staff/support/${id}`,
+            title: role === 'admin' ? 'Quản trị viên đã phản hồi' : 'Khách hàng đã phản hồi',
+            body: 'Có phản hồi mới trong yêu cầu hỗ trợ.', href: `/staff/support/${id}`,
           }, { session });
         }
         return ticketMessageDto(message);
@@ -438,6 +443,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     },
 
     async updateStaffTicket(actor, id, input, context = {}) {
+      assertStaffActor(actor);
       const patch = validateStaffTicketWrite(input);
       return transaction(async (session) => {
         const ticket = await repo.findTicketById(validateObjectId(id), { session });
@@ -449,7 +455,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
         }
         const nextAssigned = patch.assignedTo !== undefined ? patch.assignedTo : ticket.assignedTo;
         if (patch.assignedTo !== undefined && nextAssigned) {
-          if (actor.role !== 'admin' && idOf(nextAssigned) !== idOf(actor.id)) throw new ServiceError(403, 'FORBIDDEN', 'Nhân viên chỉ có thể nhận yêu cầu về mình');
+          if (idOf(nextAssigned) !== idOf(actor.id)) throw new ServiceError(403, 'FORBIDDEN', 'Nhân viên chỉ có thể nhận yêu cầu về mình');
           if (!await repo.hasActiveStaffUser(nextAssigned, { session })) throw new ServiceError(422, 'VALIDATION_ERROR', 'Chỉ có thể phân công cho nhân viên đang hoạt động');
         }
         if ((patch.status === 'assigned' || (!patch.status && nextAssigned)) && !nextAssigned) {
@@ -561,6 +567,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     },
 
     async decideReturn(actor, id, input, context = {}) {
+      assertStaffActor(actor);
       const decision = validateReturnDecision(input);
       return transaction(async (session) => {
         const request = await repo.findReturnById(validateObjectId(id), { session });
@@ -594,6 +601,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     },
 
     async inspectReturn(actor, id, input, context = {}) {
+      assertStaffActor(actor);
       const inspection = validateReturnInspection(input);
       return transaction(async (session) => {
         const request = await repo.findReturnById(validateObjectId(id), { session });
@@ -628,6 +636,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     },
 
     async closeReturn(actor, id, input, context = {}) {
+      assertStaffActor(actor);
       const payload = validateReasonVersion(input);
       return transaction(async (session) => {
         const request = await repo.findReturnById(validateObjectId(id), { session });
@@ -649,6 +658,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     },
 
     async updateStaffContact(actor, id, input, context = {}) {
+      assertStaffActor(actor);
       const patch = validateStaffContactWrite(input);
       return transaction(async (session) => {
         const current = await repo.findContactById(validateObjectId(id), { session });
@@ -661,7 +671,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
         delete changes.expectedVersion;
         const nextAssigned = patch.assignedTo !== undefined ? patch.assignedTo : current.assignedTo;
         if (patch.assignedTo) {
-          if (actor.role !== 'admin' && idOf(patch.assignedTo) !== idOf(actor.id)) throw new ServiceError(403, 'FORBIDDEN', 'Nhân viên chỉ có thể nhận yêu cầu về mình');
+          if (idOf(patch.assignedTo) !== idOf(actor.id)) throw new ServiceError(403, 'FORBIDDEN', 'Nhân viên chỉ có thể nhận yêu cầu về mình');
           if (!await repo.hasActiveStaffUser(patch.assignedTo, { session })) throw new ServiceError(422, 'VALIDATION_ERROR', 'Chỉ có thể phân công cho nhân viên đang hoạt động');
           if (!patch.status && current.status === 'new') changes.status = 'assigned';
         }
@@ -678,18 +688,18 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
     async createAttachmentUpload(actor, input) {
       const data = validateAttachmentUploadCreate(input);
       const role = actorRole(actor);
-      if (data.visibility === 'internal' && !['staff', 'admin'].includes(role)) {
+      if (data.visibility === 'internal' && role !== 'staff') {
         throw new ServiceError(403, 'FORBIDDEN', 'Chỉ nhân viên được tải tệp nội bộ lên');
       }
-      if (data.purpose === 'refund' && !['staff', 'admin'].includes(role)) {
+      if (data.purpose === 'refund' && role !== 'staff') {
         throw new ServiceError(403, 'FORBIDDEN', 'Chứng từ hoàn tiền chỉ dành cho nhân viên');
       }
       if (data.purpose === 'review' && role !== 'customer') {
         throw new ServiceError(403, 'FORBIDDEN', 'Ảnh đánh giá chỉ dành cho khách hàng đã đăng nhập');
       }
       if (role === 'guest' && (!data.orderId || actorOrderId(actor) !== data.orderId)) throw notFound();
-      if (data.orderId && role === 'customer') await assertOrderActor(actor, data.orderId);
-      if (data.orderId && ['staff', 'admin'].includes(role) && data.purpose === 'refund') {
+      if (data.orderId && ['customer', 'admin'].includes(role)) await assertOrderActor(actor, data.orderId);
+      if (data.orderId && role === 'staff' && data.purpose === 'refund') {
         const getOperationalOrder = assertFunction(commerce.getOperationalOrder, 'DATABASE_UNAVAILABLE', 'Xác minh đơn hàng cần chứng từ chưa sẵn sàng');
         try { await getOperationalOrder.call(commerce, data.orderId); } catch (error) {
           if (error?.status === 404 || error?.code === 'NOT_FOUND') throw notFound();
@@ -735,7 +745,7 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       const ownerMatches = role === 'guest'
         ? idOf(attachment.guestOrderId) === actorOrderId(actor)
         : idOf(attachment.uploadedByUserId) === idOf(actor.id);
-      if (!ownerMatches && role !== 'staff' && role !== 'admin') throw notFound();
+      if (!ownerMatches && role !== 'staff') throw notFound();
       if (attachment.state === 'ready' || attachment.state === 'linked') return attachmentDto(attachment);
       if (attachment.state !== 'pending_upload' || !attachment.expiresAt || new Date(attachment.expiresAt) <= now()) {
         throw new ServiceError(410, 'LINK_EXPIRED', 'Thời hạn tải tệp đã kết thúc');
@@ -760,11 +770,11 @@ export function createSupportService({ ports = {}, repository, config = {} } = {
       const attachment = await repo.findAttachmentById(validateObjectId(id));
       if (!attachment) throw notFound();
       const role = actorRole(actor);
-      const privileged = role === 'staff' || role === 'admin';
+      const privileged = role === 'staff';
       let allowed = privileged;
       if (!privileged && attachment.visibility !== 'internal') {
         if (role === 'guest') allowed = idOf(attachment.guestOrderId) === actorOrderId(actor);
-        else if (role === 'customer') allowed = idOf(attachment.uploadedByUserId) === idOf(actor.id);
+        else if (['customer', 'admin'].includes(role)) allowed = idOf(attachment.uploadedByUserId) === idOf(actor.id);
       }
       if (attachment.ticketId && !allowed && (privileged || attachment.visibility !== 'internal')) {
         const ticket = await repo.findTicketById(idOf(attachment.ticketId));

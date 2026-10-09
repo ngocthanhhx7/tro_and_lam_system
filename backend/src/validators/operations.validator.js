@@ -155,6 +155,20 @@ export function parseDateRange(query = {}) {
   return { from, to };
 }
 
+export function parseAdminStatisticsRange(query = {}) {
+  const { from, to } = parseDateRange(query);
+  if (!from) throw invalid('from');
+  if (!to) throw invalid('to');
+  const utcDay = 24 * 60 * 60 * 1000;
+  const vietnamOffset = 7 * 60 * 60 * 1000;
+  const fromDay = Math.floor((from.getTime() + vietnamOffset) / utcDay);
+  const toDay = Math.floor((to.getTime() + vietnamOffset) / utcDay);
+  if (toDay - fromDay > 366) {
+    throw invalid('to', 'Statistics range must not exceed 367 calendar days');
+  }
+  return { from, to };
+}
+
 export function parseDateTime(value, field = 'date') {
   const parts = typeof value === 'string' ? RFC3339.exec(value) : null;
   if (!parts) throw invalid(field, 'Use ISO 8601 date-time');
@@ -202,7 +216,7 @@ function validateNotificationText(value, field, maximum) {
 
 export function validateNotificationDelivery(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid('notification');
-  const category = ['order', 'support', 'account', 'system'];
+  const category = ['order', 'support', 'account', 'system', 'promotion'];
   if (!category.includes(value.category)) throw invalid('notification.category');
   if (!Array.isArray(value.recipients) || value.recipients.length < 1 || value.recipients.length > 100) throw invalid('notification.recipients');
   if (value.recipients.some((id) => typeof id !== 'string' || !id.trim() || id.length > 80)) throw invalid('notification.recipients');

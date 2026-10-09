@@ -147,11 +147,18 @@ export function createIdentityRouter({ ports = {}, config = {} } = {}) {
   router.post('/auth/reset-password', csrfProtection, challengeLimiter, validateIdentityBody('reset'), challengeIdentityLimiter, async (req, res) => {
     return sendSuccess(res, await service.resetPassword(req.validatedBody));
   });
+  router.post('/account/password', csrfProtection, challengeLimiter, requireActor, requireCapability('self.profile'), validateIdentityBody('changePassword'), async (req, res) => {
+    const result = await service.changePassword(req.actor, req.validatedBody);
+    cleanSessionCookies(res, settings);
+    return sendSuccess(res, result);
+  });
   router.get('/auth/me', requireActor, (req, res) => sendSuccess(res, req.actor.user && {
     id: req.actor.id,
     name: req.actor.user.name,
     email: req.actor.user.emailNormalized,
     ...(req.actor.user.phone ? { phone: req.actor.user.phone } : {}),
+    ...(req.actor.user.birthDate ? { birthDate: req.actor.user.birthDate } : {}),
+    ...(req.actor.user.gender ? { gender: req.actor.user.gender } : {}),
     role: req.actor.role,
     status: req.actor.status,
     ...(req.actor.user.emailVerifiedAt ? { emailVerifiedAt: new Date(req.actor.user.emailVerifiedAt).toISOString() } : {}),
@@ -175,6 +182,14 @@ export function createIdentityRouter({ ports = {}, config = {} } = {}) {
   router.patch('/account/profile', csrfProtection, requireCapability('self.profile'), validateIdentityBody('profile'), async (req, res) => {
     return sendSuccess(res, await service.updateProfile(req.actor, req.validatedBody));
   });
+  router.post('/account/email-change', csrfProtection, challengeLimiter, requireActor, requireCapability('self.profile'), validateIdentityBody('changeEmail'), challengeIdentityLimiter, async (req, res) => {
+    return sendAccepted(res, await service.requestEmailChange(req.actor, req.validatedBody));
+  });
+  router.post('/account/email-change/verify', csrfProtection, requireActor, requireCapability('self.profile'), challengeLimiter, validateIdentityBody('verifyEmailChange'), challengeIdentityLimiter, async (req, res) => {
+    const result = await service.verifyEmailChange(req.actor, req.validatedBody);
+    cleanSessionCookies(res, settings);
+    return sendSuccess(res, result);
+  });
 
   router.get('/admin/users', requireCapability('users.manage'), async (req, res) => {
     const filters = validateUserFilters(req.query);
@@ -197,6 +212,9 @@ export function createIdentityRouter({ ports = {}, config = {} } = {}) {
   router.post('/admin/users/:id/role', validateIdentityId(), csrfProtection, requireCapability('users.manage'), validateIdentityBody('role'), async (req, res) => {
     const user = await service.changeAdminUser(req.actor, req.params.id, req.validatedBody, 'role', { requestId: res.locals.requestId });
     return sendSuccess(res, user);
+  });
+  router.post('/admin/users/:id/password-reset', validateIdentityId(), csrfProtection, requireCapability('users.manage'), challengeLimiter, validateIdentityBody('adminPasswordReset'), async (req, res) => {
+    return sendAccepted(res, await service.requestAdminPasswordReset(req.actor, req.params.id, req.validatedBody, { requestId: res.locals.requestId }));
   });
   router.get('/admin/appeals', requireCapability('appeals.review'), async (req, res) => {
     const filters = validateAppealFilters(req.query);

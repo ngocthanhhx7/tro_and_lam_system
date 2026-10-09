@@ -58,6 +58,14 @@ const paymentReviewSchema = new mongoose.Schema({
   amountVnd: { type: Number, min: 1, validate: Number.isSafeInteger },
 }, { _id: false });
 
+const voucherSnapshotSchema = new mongoose.Schema({
+  voucherId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  code: { type: String, required: true, trim: true, uppercase: true, maxlength: 40 },
+  title: { type: String, required: true, trim: true, maxlength: 120 },
+  discountType: { type: String, required: true, enum: ['fixed', 'percent'] },
+  discountVnd: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   code: { type: String, required: true, trim: true, uppercase: true, maxlength: 32 },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
@@ -67,6 +75,7 @@ const orderSchema = new mongoose.Schema({
   subtotalVnd: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
   shippingFeeVnd: { type: Number, required: true, min: 0, validate: Number.isSafeInteger },
   discountVnd: { type: Number, required: true, min: 0, validate: Number.isSafeInteger },
+  voucherSnapshot: { type: voucherSnapshotSchema },
   totalVnd: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
   status: { type: String, enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned'], required: true },
   paymentMethod: { type: String, enum: ['cod', 'payos'], required: true },

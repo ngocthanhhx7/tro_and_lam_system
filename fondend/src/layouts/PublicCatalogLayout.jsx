@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
+import HeaderAccountMenu from '../components/account/HeaderAccountMenu.jsx';
 import Icon from '../components/catalog/Icon.jsx';
 import { QuickContactLinks } from '../components/catalog/QuickContactLinks.jsx';
 import LogoutButton from '../components/identity/LogoutButton.jsx';
@@ -20,6 +21,15 @@ const collections = [
   { to: '/san-pham', label: 'Tất cả sản phẩm' },
   { to: '/bo-suu-tap/lifestyle', label: 'Lifestyle · Gốm trong đời sống' },
   { to: '/bo-suu-tap/diplomacy', label: 'Diplomacy · Gốm trao tặng' },
+];
+const customerLinks = [
+  { to: '/tai-khoan', label: 'Tổng quan' },
+  { to: '/tai-khoan/ho-so', label: 'Hồ sơ' },
+  { to: '/tai-khoan/dia-chi', label: 'Địa chỉ' },
+  { to: '/tai-khoan/doi-mat-khau', label: 'Đổi mật khẩu' },
+  { to: '/tai-khoan/don-hang', label: 'Đơn mua' },
+  { to: '/tai-khoan/voucher', label: 'Kho voucher' },
+  { to: '/tai-khoan/thong-bao', label: 'Thông báo' },
 ];
 const pageMetadata = {
   '/': {
@@ -124,13 +134,13 @@ export default function PublicCatalogLayout() {
         <nav className="catalog-nav" aria-label="Điều hướng chính">{links.map((link) => link.to === '/san-pham'
           ? <div className="nav-products" key={link.to}><NavLink to={link.to} className={isCollection ? 'active' : undefined}>Sản phẩm</NavLink><details ref={productMenu} onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); } }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}><summary aria-label="Mở các dòng sản phẩm"><Icon name="chevron" size={15} /></summary><div className="product-dropdown">{collections.map((item) => <Link key={item.to} to={item.to} onClick={() => { productMenu.current.open = false; }}>{item.label}<Icon name="arrow" size={16} /></Link>)}</div></details></div>
           : <NavLink key={link.to} to={link.to} end={link.to === '/'}>{link.label}</NavLink>)}</nav>
-        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><Link className="catalog-header__icon-link" to="/tai-khoan" aria-label={user ? `Hồ sơ ${user.name}` : 'Tài khoản'}><Icon name="user" /></Link><Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link>{user && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
+        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><HeaderAccountMenu /><Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link>{user && user.role !== 'customer' && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
         <button ref={menuButton} className="menu-toggle" aria-label="Mở điều hướng" aria-expanded={menuOpen} aria-haspopup="dialog" onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>
       </div>
       {searchOpen && <div id="header-search-panel" className="header-search-panel" onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false); }}><HeaderSearch onSubmitted={() => setSearchOpen(false)} /></div>}
       <dialog className="mobile-menu" ref={menuDialog} aria-label="Điều hướng" onCancel={(event) => { event.preventDefault(); closeMenu(); }} onClick={(event) => { if (event.target === event.currentTarget) { const box = event.currentTarget.getBoundingClientRect(); if (event.clientX < box.left) closeMenu(); } }}>
         <div className="mobile-menu__top"><Brand /><button className="icon-button" onClick={closeMenu} aria-label="Đóng điều hướng"><Icon name="close" /></button></div>
-        <HeaderSearch mobile onSubmitted={closeMenu} /><nav aria-label="Điều hướng điện thoại">{links.map((link) => <div key={link.to}><NavLink to={link.to} end={link.to === '/'} onClick={closeMenu}>{link.label}<Icon name="arrow" size={18} /></NavLink>{link.to === '/san-pham' && <div className="mobile-collections">{collections.slice(1).map((item) => <Link key={item.to} to={item.to} onClick={closeMenu}>{item.label}</Link>)}</div>}</div>)}<Link to="/tai-khoan" onClick={closeMenu}>Tài khoản<Icon name="user" /></Link></nav>{user && <div className="mobile-menu__session"><p>Xin chào, {user.name}</p><LogoutButton variant="mobile" destination="/dang-nhap" onSuccess={closeMenu} /></div>}<p className="menu-signoff">Gốm trong đời sống.<br />Sắc lam trong từng khoảnh khắc.</p>
+        <HeaderSearch mobile onSubmitted={closeMenu} /><nav aria-label="Điều hướng điện thoại">{links.map((link) => <div key={link.to}><NavLink to={link.to} end={link.to === '/'} onClick={closeMenu}>{link.label}<Icon name="arrow" size={18} /></NavLink>{link.to === '/san-pham' && <div className="mobile-collections">{collections.slice(1).map((item) => <Link key={item.to} to={item.to} onClick={closeMenu}>{item.label}</Link>)}</div>}</div>)}{user?.role === 'customer' ? <div className="mobile-account-links"><Link to="/tai-khoan/ho-so" onClick={closeMenu}>Tài khoản của tôi<Icon name="user" /></Link><strong>Các mục tài khoản</strong>{customerLinks.map((item) => <Link key={item.to} to={item.to} onClick={closeMenu}>{item.label}</Link>)}</div> : <Link to="/tai-khoan" onClick={closeMenu}>Tài khoản<Icon name="user" /></Link>}</nav>{user && <div className="mobile-menu__session"><p>Xin chào, {user.name}</p><LogoutButton variant="mobile" destination="/dang-nhap" onSuccess={closeMenu} /></div>}<p className="menu-signoff">Gốm trong đời sống.<br />Sắc lam trong từng khoảnh khắc.</p>
       </dialog>
     </header>
     <main id="main-content" className="catalog-main"><Outlet /></main>

@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 
 const authChallengeSchema = new mongoose.Schema({
-  purpose: { type: String, enum: ['verify_email', 'reset_password', 'appeal_access', 'invite_user', 'guest_order_access'], required: true },
+  purpose: { type: String, enum: ['verify_email', 'reset_password', 'change_email', 'appeal_access', 'invite_user', 'guest_order_access'], required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, index: true },
   orderId: { type: mongoose.Schema.Types.ObjectId },
   invitedRole: { type: String, enum: ['customer', 'staff', 'admin'] },
+  targetEmail: { type: String, lowercase: true, trim: true, maxlength: 254 },
   tokenHash: { type: String, required: true, unique: true },
   expiresAt: { type: Date, required: true },
   consumedAt: { type: Date },
@@ -14,10 +15,12 @@ const authChallengeSchema = new mongoose.Schema({
 authChallengeSchema.pre('validate', function validateChallengeTargets() {
   const needsOrder = this.purpose === 'guest_order_access';
   const needsRole = this.purpose === 'invite_user';
+  const needsTargetEmail = this.purpose === 'change_email';
   const validTarget = needsOrder
     ? Boolean(this.orderId) && !this.userId
     : Boolean(this.userId) && !this.orderId;
-  if (!validTarget || (needsRole ? !this.invitedRole : Boolean(this.invitedRole))) {
+  if (!validTarget || (needsRole ? !this.invitedRole : Boolean(this.invitedRole))
+    || (needsTargetEmail ? !this.targetEmail : Boolean(this.targetEmail))) {
     this.invalidate('purpose', 'Challenge target does not match its purpose');
   }
 });

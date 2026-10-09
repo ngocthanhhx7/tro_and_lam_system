@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const notificationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true, immutable: true },
   eventKey: { type: String, required: true, immutable: true, trim: true, maxlength: 200 },
-  category: { type: String, required: true, enum: ['order', 'support', 'account', 'system'], immutable: true },
+  category: { type: String, required: true, enum: ['order', 'support', 'account', 'system', 'promotion'], immutable: true },
   title: { type: String, required: true, trim: true, maxlength: 160, immutable: true },
   body: { type: String, required: true, trim: true, maxlength: 500, immutable: true },
   href: { type: String, required: true, trim: true, maxlength: 500, immutable: true },

@@ -28,7 +28,11 @@ const publicUser = (user) => ({
   ...(user.emailVerifiedAt ? { emailVerifiedAt: new Date(user.emailVerifiedAt).toISOString() } : {}),
   version: user.version,
 });
-
+const profileUser = (user) => ({
+  ...publicUser(user),
+  ...(user.birthDate ? { birthDate: user.birthDate } : {}),
+  ...(user.gender ? { gender: user.gender } : {}),
+});
 function safeDate(value) {
   return value ? new Date(value).toISOString() : undefined;
 }
@@ -63,6 +67,8 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
   const verifyTtlMs = duration('verifyTtlMs', 24 * 60 * 60 * 1000);
   const inviteTtlMs = duration('inviteTtlMs', 24 * 60 * 60 * 1000);
   const appealChallengeTtlMs = duration('appealChallengeTtlMs', 10 * 60 * 1000);
+  const emailChangeTtlMs = duration('emailChangeTtlMs', 10 * 60 * 1000);
+  const adminPasswordResetCooldownMs = duration('adminPasswordResetCooldownMs', 15 * 60 * 1000);
   const maxChallengeAttempts = 5;
 
   function requireOutbox() {
@@ -197,7 +203,7 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
       const issued = await issueSession(updated, session);
       return { user: updated, session: issued };
     });
-    return { user: publicUser(result.user), sessionToken: result.session.token, sessionExpiresAt: result.session.expiresAt };
+    return { user: profileUser(result.user), sessionToken: result.session.token, sessionExpiresAt: result.session.expiresAt };
   }
 
   async function verifyEmail(token) {
@@ -255,7 +261,7 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
       return { blocked: true, appealToken: proof.token, appealExpiresAt: proof.expiresAt };
     }
     const session = await repository.transaction((mongoSession) => issueSession(user, mongoSession));
-    return { user: publicUser(user), sessionToken: session.token, sessionExpiresAt: session.expiresAt };
+    return { user: profileUser(user), sessionToken: session.token, sessionExpiresAt: session.expiresAt };
   }
 
   async function authenticateSession(token) {
@@ -323,6 +329,35 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     return { accepted: true };
   }
 
+  async function requestAdminPasswordReset(actor, id, input, context = {}) {
+    requireOutbox();
+    const currentTime = now();
+    return repository.transaction(async (session) => {
+      await assertAdminActor(actor, session);
+      const user = await repository.findUserById(id, { session });
+      if (!user || !user.emailVerifiedAt) throw new ServiceError(404, 'NOT_FOUND', 'Không tìm thấy tài khoản phù hợp');
+      if (typeof repository.claimAdminPasswordReset !== 'function') {
+        throw new ServiceError(503, 'DATABASE_UNAVAILABLE', 'Giới hạn yêu cầu đặt lại chưa sẵn sàng');
+      }
+      const claimed = await repository.claimAdminPasswordReset(id, currentTime, adminPasswordResetCooldownMs, { session });
+      if (!claimed) throw new ServiceError(429, 'RATE_LIMITED', 'Yêu cầu đặt lại đã được gửi gần đây. Vui lòng thử lại sau');
+
+      await repository.consumePendingChallenges(id, 'reset_password', currentTime, { session });
+      const { expiresAt } = await createTokenChallenge({
+        purpose: 'reset_password', user, ttlMs: resetTtlMs, template: 'reset-password',
+        templateVariables: { path: '/dat-lai-mat-khau', name: user.name },
+      }, session);
+      await appendAudit({
+        actorId: actor.id, actorRole: actor.role, requestId: context.requestId,
+        action: 'identity.user.password-reset.request', targetType: 'user', targetId: asId(user), outcome: 'success',
+        reasonCode: 'ADMIN_PASSWORD_RESET_REQUESTED',
+        changesRedacted: { reason: redactReason(input.reason), expiresAt: expiresAt.toISOString() },
+        createdAt: currentTime,
+      }, session);
+      return { accepted: true, queued: true };
+    });
+  }
+
   async function resetPassword(input) {
     const tokenHash = hashToken(input.token);
     const passwordHash = await hashPassword(input.password);
@@ -341,6 +376,126 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
       await repository.revokeRestrictedProofs(user._id ?? user.id, 'appeal_access', currentTime, { session });
       return { reset: true };
     });
+  }
+
+  async function changePassword(actor, input) {
+    const current = await repository.findUserById(actor.id, { includePassword: true });
+    if (!current || current.status !== 'active' || current.authVersion !== actor.authVersion) {
+      throw new ServiceError(401, 'SESSION_EXPIRED', 'Phiên đăng nhập không còn hiệu lực');
+    }
+    if (!await verifyPassword(current.passwordHash, input.currentPassword)) {
+      throw new ServiceError(401, 'CURRENT_PASSWORD_INVALID', 'Mật khẩu hiện tại chưa chính xác');
+    }
+    if (await verifyPassword(current.passwordHash, input.newPassword)) {
+      throw new ServiceError(400, 'PASSWORD_UNCHANGED', 'Mật khẩu mới cần khác mật khẩu hiện tại');
+    }
+    const passwordHash = await hashPassword(input.newPassword);
+    const currentTime = now();
+    return repository.transaction(async (session) => {
+      const latest = await repository.findUserById(actor.id, { session, includePassword: true });
+      if (!latest || latest.version !== current.version || latest.passwordHash !== current.passwordHash) {
+        throw new ServiceError(409, 'VERSION_CONFLICT', 'Tài khoản đã thay đổi. Hãy tải lại rồi thử lại');
+      }
+      const updated = await repository.updateUserPassword(actor.id, passwordHash, { expectedVersion: latest.version, session });
+      if (!updated) throw new ServiceError(409, 'VERSION_CONFLICT', 'Tài khoản đã thay đổi. Hãy tải lại rồi thử lại');
+      await repository.revokeSessions(actor.id, currentTime, { session });
+      await repository.revokeRestrictedProofs(actor.id, 'appeal_access', currentTime, { session });
+      return { changed: true };
+    });
+  }
+
+  async function requestEmailChange(actor, input) {
+    requireOutbox();
+    const targetEmail = emailNormalized(input.email);
+    const current = await repository.findUserById(actor.id, { includePassword: true });
+    if (!current || current.status !== 'active' || current.authVersion !== actor.authVersion) {
+      throw new ServiceError(401, 'SESSION_EXPIRED', 'Phiên đăng nhập không còn hiệu lực');
+    }
+    if (!await verifyPassword(current.passwordHash, input.currentPassword)) {
+      throw new ServiceError(401, 'CURRENT_PASSWORD_INVALID', 'Mật khẩu hiện tại chưa chính xác');
+    }
+    if (targetEmail === current.emailNormalized) {
+      throw new ServiceError(400, 'EMAIL_UNCHANGED', 'Địa chỉ email mới trùng với email hiện tại');
+    }
+    if (await repository.findUserByEmail(targetEmail)) {
+      throw new ServiceError(409, 'EMAIL_IN_USE', 'Email này đã được sử dụng');
+    }
+    const challengeSecret = config.challengeSecret || config.csrfSecret;
+    if (typeof challengeSecret !== 'string' || challengeSecret.length < 32) {
+      throw new ServiceError(503, 'MAIL_UNAVAILABLE', 'Email xác minh chưa được cấu hình');
+    }
+    const challengeId = shortChallengeId();
+    const createdAt = now();
+    const expiresAt = new Date(createdAt.getTime() + emailChangeTtlMs);
+    const code = challengeCode(challengeId, challengeSecret);
+    await repository.transaction(async (session) => {
+      const latest = await repository.findUserById(actor.id, { session });
+      if (!latest || latest.version !== current.version || latest.authVersion !== actor.authVersion) {
+        throw new ServiceError(409, 'VERSION_CONFLICT', 'Tài khoản đã thay đổi. Hãy tải lại rồi thử lại');
+      }
+      if (await repository.findUserByEmail(targetEmail, { session })) {
+        throw new ServiceError(409, 'EMAIL_IN_USE', 'Email này đã được sử dụng');
+      }
+      await repository.consumePendingChallenges(actor.id, 'change_email', createdAt, { session });
+      await repository.createChallenge({
+        purpose: 'change_email',
+        userId: actor.id,
+        targetEmail,
+        tokenHash: hashToken(challengeId),
+        expiresAt,
+        attempts: 0,
+      }, { session });
+      await queueMail('change_email', targetEmail, {
+        name: current.name,
+        verificationCode: code,
+        expiresAt: expiresAt.toISOString(),
+      }, session);
+    });
+    return { accepted: true, challengeId, expiresAt: expiresAt.toISOString() };
+  }
+
+  async function verifyEmailChange(actor, input) {
+    const tokenHash = hashToken(input.challengeId);
+    const result = await repository.transaction(async (session) => {
+      const challenge = await repository.findChallenge(tokenHash, { session });
+      const currentTime = now();
+      if (!challenge || challenge.purpose !== 'change_email' || challenge.consumedAt
+        || new Date(challenge.expiresAt) <= currentTime || challenge.attempts >= maxChallengeAttempts
+        || !challenge.targetEmail || asId(challenge.userId) !== actor.id) {
+        throw new ServiceError(410, 'LINK_EXPIRED', 'Mã xác minh email đã hết hạn hoặc đã được sử dụng');
+      }
+      const expectedCode = challengeCode(input.challengeId, config.challengeSecret || config.csrfSecret);
+      if (!constantTimeEqual(expectedCode, input.verificationCode)) {
+        await repository.incrementChallengeAttempts(challenge._id ?? challenge.id, { session });
+        return { invalid: true };
+      }
+      const user = await repository.findUserById(challenge.userId, { session });
+      if (!user || user.status !== 'active' || user.authVersion !== actor.authVersion) {
+        throw new ServiceError(410, 'LINK_EXPIRED', 'Mã xác minh email đã hết hạn hoặc đã được sử dụng');
+      }
+      const existing = await repository.findUserByEmail(challenge.targetEmail, { session });
+      if (existing && asId(existing) !== asId(user)) {
+        throw new ServiceError(409, 'EMAIL_IN_USE', 'Email này đã được sử dụng');
+      }
+      if (!await repository.consumeChallenge(challenge._id ?? challenge.id, currentTime, { session })) {
+        throw new ServiceError(410, 'LINK_EXPIRED', 'Mã xác minh email đã hết hạn hoặc đã được sử dụng');
+      }
+      const updated = await repository.updateUser(user._id ?? user.id, user.version, {
+        emailNormalized: challenge.targetEmail,
+        emailVerifiedAt: currentTime,
+        authVersion: user.authVersion + 1,
+      }, { session });
+      if (!updated) throw new ServiceError(409, 'VERSION_CONFLICT', 'Tài khoản đã thay đổi. Hãy tải lại rồi thử lại');
+      await repository.revokeSessions(user._id ?? user.id, currentTime, { session });
+      await repository.revokeRestrictedProofs(user._id ?? user.id, 'appeal_access', currentTime, { session });
+      await repository.consumePendingChallenges(user._id ?? user.id, 'change_email', currentTime, { session });
+      return { invalid: false, changed: true, email: updated.emailNormalized };
+    }).catch((error) => {
+      if (error?.code === 11000) throw new ServiceError(409, 'EMAIL_IN_USE', 'Email này đã được sử dụng');
+      throw error;
+    });
+    if (result.invalid) throw new ServiceError(403, 'VERIFICATION_INVALID', 'Mã xác minh không chính xác');
+    return { changed: result.changed, email: result.email };
   }
 
   async function requestAppealChallenge(input) {
@@ -421,9 +576,11 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     const changes = {};
     if (Object.hasOwn(input, 'name')) changes.name = input.name.trim();
     if (Object.hasOwn(input, 'phone')) changes.phone = input.phone?.trim() || undefined;
+    if (Object.hasOwn(input, 'birthDate')) changes.birthDate = input.birthDate || undefined;
+    if (Object.hasOwn(input, 'gender')) changes.gender = input.gender || undefined;
     const user = await repository.updateUser(actor.id, actor.user.version, changes);
     if (!user) throw new ServiceError(409, 'VERSION_CONFLICT', 'Thông tin tài khoản đã thay đổi. Tải lại rồi thử lại');
-    return publicUser(user);
+    return profileUser(user);
   }
 
   async function listUsers(query) {
@@ -689,6 +846,9 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     authenticateAppealProof,
     requestPasswordReset,
     resetPassword,
+    changePassword,
+    requestEmailChange,
+    verifyEmailChange,
     requestAppealChallenge,
     exchangeAppealAccess,
     logout,
@@ -696,6 +856,7 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
     listUsers,
     getUser,
     inviteUser,
+    requestAdminPasswordReset,
     updateAdminUser,
     changeAdminUser,
     listAppeals,

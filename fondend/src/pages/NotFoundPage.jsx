@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import HttpErrorPage from './HttpErrorPage.jsx';
+
 export default function NotFoundPage() {
-  return <section><h1>Không tìm thấy trang</h1><Link to="/">Về trang chủ</Link></section>;
+  return <HttpErrorPage status={404} embedded />;
 }

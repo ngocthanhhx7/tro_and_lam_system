@@ -12,18 +12,19 @@ const secret = 'route-tests-csrf-secret-more-than-thirty-two-characters';
 function createFixture() {
   const repository = new FakeIdentityRepository();
   const mail = [];
+  const audits = [];
   const app = createApp({
     corsOrigin: origin,
     domainRouters: [{ router: createIdentityRouter({
       ports: {
         repository,
         outbox: { async enqueueMail(template, to, variables) { mail.push({ template, to, variables }); return { queued: true }; } },
-        audit: { async appendAudit(event) { return event; } },
+        audit: { async appendAudit(event) { audits.push(event); return event; } },
       },
       config: { csrfSecret: secret, publicWebUrl: origin, allowedOrigins: [origin], secureCookies: false },
     }) }],
   });
-  return { app, repository, mail };
+  return { app, repository, mail, audits };
 }
 
 async function tokenFor(agent) {
@@ -31,6 +32,51 @@ async function tokenFor(agent) {
   assert.ok(response.body.data.csrfToken);
   return response.body.data.csrfToken;
 }
+
+test('admin reset route enforces auth, CSRF and strict reason-only body without leaking reset capability', async () => {
+  const { app, repository, mail, audits } = createFixture();
+  const admin = await repository.createUser({
+    name: 'Admin', emailNormalized: 'admin@example.test', passwordHash: await hashPassword('Correct Horse Battery Staple 42!'),
+    role: 'admin', status: 'active', emailVerifiedAt: new Date(), authVersion: 0, version: 0,
+  });
+  const target = await repository.createUser({
+    name: 'Bình', emailNormalized: 'binh@example.test', passwordHash: await hashPassword('Correct Horse Battery Staple 42!'),
+    role: 'customer', status: 'active', emailVerifiedAt: new Date(), authVersion: 0, version: 0,
+  });
+  const staff = await repository.createUser({
+    name: 'Staff', emailNormalized: 'staff@example.test', passwordHash: await hashPassword('Correct Horse Battery Staple 42!'),
+    role: 'staff', status: 'active', emailVerifiedAt: new Date(), authVersion: 0, version: 0,
+  });
+  const browser = request.agent(app);
+  let csrf = await tokenFor(browser);
+  await browser.post('/api/v1/auth/login').set('Origin', origin).set('X-CSRF-Token', csrf).send({ email: staff.emailNormalized, password: 'Correct Horse Battery Staple 42!' }).expect(200);
+  await browser.post(`/api/v1/admin/users/${target._id}/password-reset`).set('Origin', origin).set('X-CSRF-Token', csrf).send({ reason: 'Hỗ trợ.' }).expect(403);
+  await browser.post('/api/v1/auth/logout').set('Origin', origin).set('X-CSRF-Token', csrf).send({}).expect(204);
+
+  const adminBrowser = request.agent(app);
+  csrf = await tokenFor(adminBrowser);
+  await adminBrowser.post('/api/v1/auth/login').set('Origin', origin).set('X-CSRF-Token', csrf).send({ email: admin.emailNormalized, password: 'Correct Horse Battery Staple 42!' }).expect(200);
+  await adminBrowser.post(`/api/v1/admin/users/${target._id}/password-reset`).set('Origin', origin).send({ reason: 'Hỗ trợ.' }).expect(403);
+  await adminBrowser.post(`/api/v1/admin/users/${target._id}/password-reset`).set('Origin', origin).set('X-CSRF-Token', csrf).send({ reason: 'Hỗ trợ.', token: 'attacker-supplied-token-long-enough' }).expect(400);
+  const response = await adminBrowser.post(`/api/v1/admin/users/${target._id}/password-reset`).set('Origin', origin).set('X-CSRF-Token', csrf).send({ reason: 'Khách hàng yêu cầu hỗ trợ.' }).expect(202);
+  assert.deepEqual(response.body.data, { accepted: true, queued: true });
+  const token = new URLSearchParams(new URL(mail[0].variables.link).hash.slice(1)).get('token');
+  assert.ok(token);
+  assert.equal(JSON.stringify(response.body).includes(token), false);
+  assert.equal(JSON.stringify(audits).includes(token), false);
+  assert.equal(mail[0].to, target.emailNormalized);
+  await adminBrowser.post(`/api/v1/admin/users/${target._id}/password-reset`).set('Origin', origin).set('X-CSRF-Token', csrf).send({ reason: 'Thử lại quá sớm.' }).expect(429);
+  await adminBrowser.post('/api/v1/auth/logout').set('Origin', origin).set('X-CSRF-Token', csrf).send({}).expect(204);
+
+  const unverified = await repository.createUser({
+    name: 'Chưa xác minh', emailNormalized: 'pending@example.test', passwordHash: await hashPassword('Correct Horse Battery Staple 42!'),
+    role: 'customer', status: 'active', authVersion: 0, version: 0,
+  });
+  const adminAgain = request.agent(app);
+  csrf = await tokenFor(adminAgain);
+  await adminAgain.post('/api/v1/auth/login').set('Origin', origin).set('X-CSRF-Token', csrf).send({ email: admin.emailNormalized, password: 'Correct Horse Battery Staple 42!' }).expect(200);
+  await adminAgain.post(`/api/v1/admin/users/${unverified._id}/password-reset`).set('Origin', origin).set('X-CSRF-Token', csrf).send({ reason: 'Hỗ trợ.' }).expect(404);
+});
 
 test('identity routes require CSRF, set opaque HttpOnly sessions, and keep blocked access restricted', async () => {
   const { app, repository, mail } = createFixture();

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import { addCartQuantity, formatVnd } from '../../services/catalog/catalogApi.js';
-import { getProductImageSource } from '../../utils/productMedia.js';
 
 export default function ProductCard({ product, headingLevel = 'h2' }) {
   const [cartStatus, setCartStatus] = useState({ state: 'idle', message: '' });
@@ -12,7 +11,6 @@ export default function ProductCard({ product, headingLevel = 'h2' }) {
     && product.availableForPurchase === true
     && Number.isSafeInteger(product.priceVnd)
     && product.priceVnd > 0;
-  const imageSource = getProductImageSource(image);
 
   async function addToCart() {
     if (!canAddToCart || cartStatus.state === 'loading') return;
@@ -31,7 +29,6 @@ export default function ProductCard({ product, headingLevel = 'h2' }) {
         ? <img src={image.url} alt={image.alt || product.name} width="640" height="520" loading="lazy" />
         : <span className="product-card__image-empty">Ảnh sản phẩm đang chờ cập nhật</span>}
       {quoteOnly && <span className="product-card__tag">Tư vấn theo yêu cầu</span>}
-      {imageSource && <span className={`product-card__tag product-card__tag--${imageSource.kind}`}>{imageSource.badge}</span>}
     </Link>
     <div className="product-card__body">
       <p className="eyebrow">{product.line === 'lifestyle' ? 'Lifestyle Line' : 'Diplomacy Line'}</p>

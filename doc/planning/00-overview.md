@@ -41,7 +41,7 @@ Giá chốt tại checkout do server tính; chưa biết giá không cho mua b�
 Mỗi SKU có `saleMode` buy/quote/both; không mặc định cả Diplomacy chỉ quote.
 NFC chứa URL story công khai có định danh random; không chứng minh hàng thật chỉ từ URL có thể sao chép.
 Guest mua không cần đăng ký; tra cứu đầy đủ cần quyền hợp lệ bên cạnh mã đơn dễ đọc.
-Admin kế thừa staff ở server; UI ẩn nút không phải biện pháp phân quyền.
+Theo yêu cầu owner ngày 08/10/2026, customer không vào workspace quản trị; admin và staff dùng workspace/API riêng, không kế thừa quyền của nhau. UI guard phục vụ UX; server capability là lớp quyết định quyền.
 Tài khoản khóa có màn kháng nghị và phiên restricted, không được lấy session đầy đủ.
 
 ## Tiến trình

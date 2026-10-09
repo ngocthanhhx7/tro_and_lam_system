@@ -64,7 +64,14 @@ export class IdentityRepository {
     ).select(publicUserFilter()).exec();
   }
 
-  async updateUserPassword(id, passwordHash, { session } = {}) {
+  async updateUserPassword(id, passwordHash, { expectedVersion, session } = {}) {
+    if (Number.isSafeInteger(expectedVersion)) {
+      return this.models.User.findOneAndUpdate(
+        { _id: id, version: expectedVersion },
+        { $set: { passwordHash }, $inc: { authVersion: 1, version: 1 } },
+        { returnDocument: 'after', runValidators: true, session },
+      ).select(publicUserFilter()).exec();
+    }
     const user = await this.models.User.findById(id).select('+passwordHash').session(session || null).exec();
     if (!user) return null;
     user.passwordHash = passwordHash;
@@ -107,6 +114,14 @@ export class IdentityRepository {
       { session },
     ).exec();
     return result.modifiedCount === 1;
+  }
+
+  async consumePendingChallenges(userId, purpose, now, { session } = {}) {
+    return this.models.AuthChallenge.updateMany(
+      { userId, purpose, consumedAt: null },
+      { $set: { consumedAt: now } },
+      { session },
+    ).exec();
   }
 
   async incrementChallengeAttempts(id, { session } = {}) {
@@ -200,6 +215,23 @@ export class IdentityRepository {
     return this.models.IdentityGuard.findOneAndUpdate(
       { key: 'active-admins' },
       { $inc: { version: 1 } },
+      { returnDocument: 'after', session },
+    ).exec();
+  }
+
+  async claimAdminPasswordReset(targetId, now, cooldownMs, { session } = {}) {
+    const key = `password-reset:${targetId}`;
+    try {
+      await this.models.IdentityGuard.updateOne(
+        { key }, { $setOnInsert: { version: 0 } }, { upsert: true },
+      ).exec();
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+    }
+    const cooldownStart = new Date(now.getTime() - cooldownMs);
+    return this.models.IdentityGuard.findOneAndUpdate(
+      { key, $or: [{ lastActionAt: { $exists: false } }, { lastActionAt: { $lte: cooldownStart } }] },
+      { $set: { lastActionAt: now }, $inc: { version: 1 } },
       { returnDocument: 'after', session },
     ).exec();
   }

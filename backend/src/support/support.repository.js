@@ -194,13 +194,13 @@ export class SupportRepository {
   }
 
   async hasActiveStaffUser(id, { session } = {}) {
-    const query = this.models.User.exists({ _id: id, status: 'active', role: { $in: ['staff', 'admin'] } });
+    const query = this.models.User.exists({ _id: id, status: 'active', role: 'staff' });
     const result = await withSession(query, session).exec();
     return Boolean(result);
   }
 
   async listActiveStaffIds({ session } = {}) {
-    const rows = await withSession(this.models.User.find({ status: 'active', role: { $in: ['staff', 'admin'] } }).select('_id'), session).lean().exec();
+    const rows = await withSession(this.models.User.find({ status: 'active', role: 'staff' }).select('_id'), session).lean().exec();
     return rows.map((row) => asId(row._id));
   }
 

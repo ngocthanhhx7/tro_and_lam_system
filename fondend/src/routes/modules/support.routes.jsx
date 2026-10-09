@@ -23,8 +23,9 @@ export const supportRoutes = [
   { path: '/tai-khoan/ho-tro', element: <IdentityRouteGuard roles={['customer', 'staff', 'admin']}><CustomerSupportPage /></IdentityRouteGuard> },
   { path: '/tai-khoan/ho-tro/:id', element: <IdentityRouteGuard roles={['customer', 'staff', 'admin']}><CustomerSupportPage /></IdentityRouteGuard> },
   { path: '/tai-khoan/danh-gia', element: <IdentityRouteGuard roles={['customer', 'staff', 'admin']}><CustomerReviewsPage /></IdentityRouteGuard> },
-  { path: '/staff/support', element: <IdentityRouteGuard roles={['staff', 'admin']}><StaffSupportPage /></IdentityRouteGuard> },
-  { path: '/staff/support/:id', element: <IdentityRouteGuard roles={['staff', 'admin']}><StaffSupportPage /></IdentityRouteGuard> },
-  { path: '/staff/contacts', element: <IdentityRouteGuard roles={['staff', 'admin']}><StaffContactsPage /></IdentityRouteGuard> },
+  { path: '/staff/support', element: <IdentityRouteGuard roles={['staff']}><StaffSupportPage /></IdentityRouteGuard> },
+  { path: '/staff/returns', element: <IdentityRouteGuard roles={['staff']}><StaffSupportPage key="returns" returnsOnly /></IdentityRouteGuard> },
+  { path: '/staff/support/:id', element: <IdentityRouteGuard roles={['staff']}><StaffSupportPage /></IdentityRouteGuard> },
+  { path: '/staff/contacts', element: <IdentityRouteGuard roles={['staff']}><StaffContactsPage /></IdentityRouteGuard> },
   { path: '/admin/reviews', element: <IdentityRouteGuard roles={['admin']}><AdminReviewsPage /></IdentityRouteGuard> },
 ];

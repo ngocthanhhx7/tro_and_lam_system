@@ -29,6 +29,47 @@
   margin-bottom: 24px;
 }
 
+.operations-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.operations-form {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 32px;
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.operations-form h2 { margin: 0; }
+.operations-form label { display: grid; gap: 6px; color: var(--text-primary); font-size: .9rem; font-weight: 600; }
+.operations-form input,
+.operations-form select { min-height: 44px; padding: 8px 10px; border: 1px solid var(--border-subtle); border-radius: 8px; background: white; color: var(--text-primary); }
+.operations-form__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.operations-note { margin: 0; color: var(--text-secondary); font-size: .88rem; }
+
+.notification-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.notification-category-tabs button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: white;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.notification-category-tabs button.is-active { border-color: var(--brand-blue); background: #eaf0ed; color: var(--brand-blue); font-weight: 700; }
+
 .operations-page__heading p,
 .operations-metric small,
 .operations-notifications time,
@@ -442,6 +483,125 @@
   margin-top: 24px;
 }
 
+.admin-overview__filters {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(140px, 1fr)) auto;
+  align-items: end;
+  justify-content: stretch;
+  margin-bottom: 8px;
+}
+
+.admin-overview__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-overview__preset {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-overview__preset:hover { background: #f1f4f2; }
+.admin-overview__preset.is-active { border-color: var(--brand-blue); background: #eaf0ed; color: var(--brand-deep-blue); }
+.admin-overview__range-note { margin: 0 0 20px; color: var(--text-secondary); font-size: .88rem; }
+.admin-overview__financial { transition: opacity .16s ease; }
+.admin-overview__financial.is-refreshing,
+.admin-overview__operations.is-refreshing { opacity: .58; }
+.admin-overview__financial > h2 { margin-top: 28px; }
+
+.admin-chart {
+  --chart-surface: #ffffff;
+  --chart-ink: #1d2930;
+  --chart-secondary: #52626b;
+  --chart-muted: #66757b;
+  --chart-grid: #d8dfe1;
+  --chart-baseline: #a9b5b9;
+  --chart-current: #2a78d6;
+  --chart-previous: #eb6834;
+  --chart-area-top: rgb(18 63 86 / 18%);
+  --chart-area-bottom: rgb(18 63 86 / 0%);
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: clamp(16px, 3vw, 26px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--chart-surface);
+  box-shadow: 0 8px 30px rgb(9 43 59 / 5%);
+}
+
+.admin-chart__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.admin-chart__heading h2 { margin: 0 0 6px; color: var(--chart-ink); font-size: 1.25rem; }
+.admin-chart__heading p { max-width: 700px; margin: 0; color: var(--chart-secondary); font-size: .9rem; }
+.admin-chart__legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: var(--chart-secondary); font-size: .85rem; }
+.admin-chart__legend span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.admin-chart__legend-mark { width: 18px; height: 3px; border-radius: 2px; background: var(--chart-current); }
+.admin-chart__legend-mark--previous { height: 0; border-top: 2px dashed var(--chart-previous); background: transparent; }
+.admin-chart__plot-wrap { width: 100%; min-width: 0; }
+.admin-chart__plot { display: block; width: 100%; min-width: 0; overflow: visible; touch-action: pan-y; }
+.admin-chart__gridline { stroke: var(--chart-grid); stroke-width: 1; }
+.admin-chart__axis-label { fill: var(--chart-muted); font-family: var(--font-body); font-size: 12px; font-variant-numeric: tabular-nums; }
+.admin-chart__line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.admin-chart__line--current { stroke: var(--chart-current); stroke-width: 3; }
+.admin-chart__line--previous { stroke: var(--chart-previous); stroke-width: 2.5; stroke-dasharray: 7 6; }
+.admin-chart__area { pointer-events: none; }
+.admin-chart__area-stop--top { stop-color: var(--chart-area-top); }
+.admin-chart__area-stop--bottom { stop-color: var(--chart-area-bottom); }
+.admin-chart__crosshair { stroke: var(--chart-baseline); stroke-width: 1; }
+.admin-chart__marker { fill: var(--chart-current); stroke: var(--chart-surface); stroke-width: 2; }
+.admin-chart__marker--previous { fill: var(--chart-previous); }
+.admin-chart__readout { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; }
+.admin-chart__readout-date { color: var(--chart-secondary); font-size: .92rem; }
+.admin-chart__readout strong { color: var(--chart-ink); font-size: clamp(1.2rem, 3vw, 1.65rem); }
+.admin-chart__readout-previous { color: var(--chart-secondary); font-size: .88rem; }
+.admin-chart__scrubber { display: grid; gap: 6px; color: var(--chart-secondary); font-size: .84rem; }
+.admin-chart__scrubber input { width: 100%; min-height: 28px; accent-color: var(--chart-current); cursor: pointer; }
+.admin-chart__table-toggle { justify-self: start; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--chart-surface); color: var(--brand-blue); font-weight: 650; cursor: pointer; }
+.admin-chart__table-wrap { max-height: 360px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: 8px; }
+.admin-chart__table { width: 100%; border-collapse: collapse; text-align: left; }
+.admin-chart__table caption { padding: 10px; color: var(--chart-secondary); text-align: left; }
+.admin-chart__table th, .admin-chart__table td { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); font-variant-numeric: tabular-nums; }
+.admin-chart__table thead { position: sticky; top: 0; background: var(--brand-ivory); }
+.admin-chart__table td { text-align: right; }
+.admin-chart-empty { display: grid; min-height: 220px; place-items: center; padding: 24px; border: 1px solid var(--border-subtle); border-radius: 12px; color: var(--text-secondary); text-align: center; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .admin-chart {
+    color-scheme: dark;
+    --chart-surface: #1d2930;
+    --chart-ink: #ffffff;
+    --chart-secondary: #d0d9dc;
+    --chart-muted: #c1cccf;
+    --chart-grid: #40525a;
+    --chart-baseline: #85969d;
+    --chart-current: #3987e5;
+    --chart-previous: #d95926;
+    --chart-area-top: rgb(117 186 214 / 23%);
+    --chart-area-bottom: rgb(117 186 214 / 0%);
+  }
+}
+
+:root[data-theme="dark"] .admin-chart {
+  color-scheme: dark;
+  --chart-surface: #1d2930;
+  --chart-ink: #ffffff;
+  --chart-secondary: #d0d9dc;
+  --chart-muted: #c1cccf;
+  --chart-grid: #40525a;
+  --chart-baseline: #85969d;
+  --chart-current: #3987e5;
+  --chart-previous: #d95926;
+  --chart-area-top: rgb(117 186 214 / 23%);
+  --chart-area-bottom: rgb(117 186 214 / 0%);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -458,6 +618,12 @@
     align-items: stretch;
     flex-direction: column;
   }
+
+  .admin-overview__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-overview__presets { grid-column: 1 / -1; }
+  .admin-overview__filters .operations-button { grid-column: 1 / -1; }
+  .admin-chart__heading { flex-direction: column; }
+  .admin-chart__legend { justify-content: flex-start; }
 
   .operations-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -495,4 +661,14 @@
   .operations-toolbar {
     padding: 12px;
   }
+
+  .admin-overview__filters { grid-template-columns: minmax(0, 1fr); }
+  .admin-overview__presets { grid-column: auto; }
+  .admin-overview__filters .operations-button { grid-column: auto; }
+  .admin-chart { padding: 14px 10px; }
+  .admin-chart__axis-label { font-size: 10px; }
+  .admin-chart__table th, .admin-chart__table td { padding: 8px; font-size: .78rem; }
+
+  .operations-form { padding: 14px; }
+  .operations-form__row { grid-template-columns: minmax(0, 1fr); }
 }

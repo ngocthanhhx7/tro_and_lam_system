@@ -507,7 +507,7 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
   }
 
   async function createRefundRequest(actor, orderId, input, requestKey, context = {}) {
-    if (!actor?.id || !['staff', 'admin'].includes(actor.role)) fail(403, 'FORBIDDEN', 'Chỉ nhân viên được yêu cầu hoàn tiền');
+    if (!actor?.id || actor.role !== 'staff') fail(403, 'FORBIDDEN', 'Chỉ nhân viên được yêu cầu hoàn tiền');
     if (typeof orderId !== 'string' || !/^[a-f0-9]{24}$/iu.test(orderId)) fail(404, 'NOT_FOUND', 'Không tìm thấy đơn hàng');
     if (!input || !Number.isSafeInteger(input.amountVnd) || input.amountVnd < 1
       || typeof input.reason !== 'string' || !input.reason.trim() || input.reason.length > 1000

@@ -9,7 +9,7 @@ test('server composition mounts domain routes and keeps unconfigured payment pro
   const env = validateEnv({ MONGODB_URI: 'mongodb://localhost:27017/tro_lam' });
   const composition = await createDomainComposition(env);
 
-  assert.deepEqual(composition.domainRouters.map(({ prefix }) => prefix), Array(9).fill(''));
+  assert.deepEqual(composition.domainRouters.map(({ prefix }) => prefix), Array(10).fill(''));
   assert.ok(composition.domainRouters.every(({ router }) => typeof router === 'function'));
   assert.equal(composition.services.paymentsService.isConfigured(), false);
   assert.equal(env.smtpConfigured, false);

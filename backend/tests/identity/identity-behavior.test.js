@@ -74,6 +74,67 @@ test('a consumed verification token cannot verify an account that is still unver
   assert.equal(repository.users[0].emailVerifiedAt, undefined);
 });
 
+test('admin password reset queues only to verified email, expires prior link, audits safely, and changes no account credentials', async () => {
+  const { service, repository, outboxEvents, auditEvents } = makeHarness();
+  const admin = await seedUser(repository, { name: 'Admin', email: 'admin@example.test', role: 'admin' });
+  const target = await seedUser(repository, { name: 'Bình', email: 'binh@example.test' });
+  const oldSession = await service.login({ email: target.emailNormalized, password: 'Correct Horse Battery Staple 42!' });
+  const adminSession = await service.login({ email: admin.emailNormalized, password: 'Correct Horse Battery Staple 42!' });
+  const actor = await service.requireActor(adminSession.sessionToken);
+  const original = { passwordHash: repository.users.find((item) => item._id === target._id).passwordHash, authVersion: target.authVersion, version: target.version };
+  await service.requestPasswordReset({ email: target.emailNormalized });
+  const oldToken = tokenFromLink(outboxEvents.at(-1).variables.link);
+
+  assert.deepEqual(await service.requestAdminPasswordReset(actor, target._id, { reason: 'Khách hàng yêu cầu hỗ trợ.' }, { requestId: 'request-reset-1' }), { accepted: true, queued: true });
+  assert.equal(outboxEvents.at(-1).template, 'reset-password');
+  assert.equal(outboxEvents.at(-1).to, target.emailNormalized);
+  const newToken = tokenFromLink(outboxEvents.at(-1).variables.link);
+  assert.ok(newToken);
+  assert.notEqual(repository.challenges.at(-1).tokenHash, newToken);
+  assert.ok(repository.challenges.find((item) => item.tokenHash === hashToken(oldToken)).consumedAt);
+  assert.equal(repository.users.find((item) => item._id === target._id).passwordHash, original.passwordHash);
+  assert.equal(repository.users.find((item) => item._id === target._id).authVersion, original.authVersion);
+  assert.equal(repository.users.find((item) => item._id === target._id).version, original.version);
+  assert.equal(repository.sessions.find((item) => item.tokenHash === hashToken(oldSession.sessionToken)).revokedAt, undefined);
+  assert.equal(JSON.stringify(auditEvents).includes(newToken), false);
+  assert.equal(auditEvents.at(-1).changesRedacted.reason, 'Khách hàng yêu cầu hỗ trợ.');
+  await assert.rejects(service.resetPassword({ token: oldToken, password: 'A Different Secure Password 99!' }), { status: 410, code: 'LINK_EXPIRED' });
+  assert.deepEqual(await service.resetPassword({ token: newToken, password: 'A Different Secure Password 99!' }), { reset: true });
+});
+
+test('admin reset requires active admin and verified account, and applies a persistent cooldown', async () => {
+  const { service, repository, outboxEvents } = makeHarness();
+  const admin = await seedUser(repository, { name: 'Admin', email: 'admin@example.test', role: 'admin' });
+  const target = await seedUser(repository, { name: 'Bình', email: 'binh@example.test' });
+  const unverified = await seedUser(repository, { name: 'Chưa xác minh', email: 'pending@example.test', verified: false });
+  const staff = await seedUser(repository, { name: 'Staff', email: 'staff@example.test', role: 'staff' });
+  const adminActor = await service.requireActor((await service.login({ email: admin.emailNormalized, password: 'Correct Horse Battery Staple 42!' })).sessionToken);
+  const staffActor = await service.requireActor((await service.login({ email: staff.emailNormalized, password: 'Correct Horse Battery Staple 42!' })).sessionToken);
+
+  await assert.rejects(service.requestAdminPasswordReset(staffActor, target._id, { reason: 'Hỗ trợ.' }, { requestId: 'request-reset-2' }), { status: 403, code: 'FORBIDDEN' });
+  await assert.rejects(service.requestAdminPasswordReset(adminActor, unverified._id, { reason: 'Hỗ trợ.' }, { requestId: 'request-reset-3' }), { status: 404, code: 'NOT_FOUND' });
+  assert.equal(outboxEvents.length, 0);
+  await service.requestAdminPasswordReset(adminActor, target._id, { reason: 'Hỗ trợ.' }, { requestId: 'request-reset-4' });
+  await assert.rejects(service.requestAdminPasswordReset(adminActor, target._id, { reason: 'Hỗ trợ lại.' }, { requestId: 'request-reset-5' }), { status: 429, code: 'RATE_LIMITED' });
+  assert.equal(outboxEvents.length, 1);
+});
+
+test('admin reset rolls back challenge when outbox or audit persistence fails', async () => {
+  const repository = new FakeIdentityRepository();
+  const admin = await seedUser(repository, { name: 'Admin', email: 'admin@example.test', role: 'admin' });
+  const target = await seedUser(repository, { name: 'Bình', email: 'binh@example.test' });
+  const adminSession = await createIdentityService({ ports: { repository, outbox: { async enqueueMail() {} }, audit: { async appendAudit() {} } }, config: TEST_CONFIG });
+  const adminActor = await adminSession.requireActor((await adminSession.login({ email: admin.emailNormalized, password: 'Correct Horse Battery Staple 42!' })).sessionToken);
+  const before = repository.challenges.length;
+  const mailFailure = createIdentityService({ ports: { repository, outbox: { async enqueueMail() { throw new Error('outbox failure'); } }, audit: { async appendAudit() {} } }, config: TEST_CONFIG });
+  await assert.rejects(mailFailure.requestAdminPasswordReset(adminActor, target._id, { reason: 'Hỗ trợ.' }, { requestId: 'request-reset-6' }), /outbox failure/u);
+  assert.equal(repository.challenges.length, before);
+  const auditFailure = createIdentityService({ ports: { repository, outbox: { async enqueueMail() { return { queued: true }; } }, audit: { async appendAudit() { throw new Error('audit failure'); } } }, config: TEST_CONFIG });
+  await assert.rejects(auditFailure.requestAdminPasswordReset(adminActor, target._id, { reason: 'Hỗ trợ.' }, { requestId: 'request-reset-7' }), /audit failure/u);
+  assert.equal(repository.challenges.length, before);
+  assert.equal(repository.adminPasswordResetClaims.length, 0);
+});
+
 test('password reset is single use, invalidates old sessions, and does not reveal account existence', async () => {
   const { service, repository, outboxEvents } = makeHarness();
   const user = await seedUser(repository, { name: 'Bình', email: 'binh@example.test' });
@@ -192,6 +253,64 @@ test('two admins changing each other cannot remove the last active admin', async
   const loser = results.find((result) => result.status === 'rejected');
   assert.ok(['FORBIDDEN', 'VERSION_CONFLICT'].includes(loser.reason.code));
   await assert.rejects(service.requireActor(secondSession.sessionToken), { code: 'SESSION_EXPIRED' });
+});
+
+test('customer profile, verified email change, and password change keep fields private and revoke old sessions', async () => {
+  const { service, repository, outboxEvents } = makeHarness();
+  const user = await seedUser(repository, { name: 'Bình Nguyễn', email: 'binh@example.test' });
+  const existing = await seedUser(repository, { name: 'An Trần', email: 'an@example.test' });
+  const firstLogin = await service.login({ email: user.emailNormalized, password: 'Correct Horse Battery Staple 42!' });
+  const actor = await service.requireActor(firstLogin.sessionToken);
+
+  const profile = await service.updateProfile(actor, {
+    name: 'Bình Nguyễn', phone: '0900000000', birthDate: '1992-04-20', gender: 'prefer_not_to_say',
+  });
+  assert.equal(profile.birthDate, '1992-04-20');
+  assert.equal(profile.gender, 'prefer_not_to_say');
+  assert.equal(Object.hasOwn(profile, 'passwordHash'), false);
+
+  await assert.rejects(service.requestEmailChange(actor, {
+    email: existing.emailNormalized, currentPassword: 'Correct Horse Battery Staple 42!',
+  }), { status: 409, code: 'EMAIL_IN_USE' });
+  assert.equal(outboxEvents.length, 0, 'duplicate email is rejected before an email is queued');
+
+  const request = await service.requestEmailChange(actor, {
+    email: '  Binh.New@Example.test  ', currentPassword: 'Correct Horse Battery Staple 42!',
+  });
+  const email = outboxEvents.at(-1);
+  assert.equal(email.template, 'change_email');
+  assert.equal(email.to, 'binh.new@example.test');
+  assert.equal(email.variables.verificationCode, challengeCode(request.challengeId, TEST_SECRET));
+  assert.notEqual(repository.challenges.at(-1).tokenHash, request.challengeId);
+
+  const otherSession = await service.login({ email: existing.emailNormalized, password: 'Correct Horse Battery Staple 42!' });
+  const otherActor = await service.requireActor(otherSession.sessionToken);
+  await assert.rejects(service.verifyEmailChange(otherActor, {
+    challengeId: request.challengeId, verificationCode: email.variables.verificationCode,
+  }), { status: 410, code: 'LINK_EXPIRED' });
+
+  const wrongCode = email.variables.verificationCode === '000000' ? '000001' : '000000';
+  await assert.rejects(service.verifyEmailChange(actor, {
+    challengeId: request.challengeId, verificationCode: wrongCode,
+  }), { status: 403, code: 'VERIFICATION_INVALID' });
+  assert.equal(repository.challenges.at(-1).attempts, 1);
+
+  const changedEmail = await service.verifyEmailChange(actor, {
+    challengeId: request.challengeId, verificationCode: email.variables.verificationCode,
+  });
+  assert.deepEqual(changedEmail, { changed: true, email: 'binh.new@example.test' });
+  assert.equal(repository.users.find((item) => item._id === user._id).emailNormalized, 'binh.new@example.test');
+  await assert.rejects(service.requireActor(firstLogin.sessionToken), { status: 401, code: 'SESSION_EXPIRED' });
+
+  const secondLogin = await service.login({ email: 'binh.new@example.test', password: 'Correct Horse Battery Staple 42!' });
+  const secondActor = await service.requireActor(secondLogin.sessionToken);
+  assert.deepEqual(await service.changePassword(secondActor, {
+    currentPassword: 'Correct Horse Battery Staple 42!', newPassword: 'A Different Secure Password 99!',
+  }), { changed: true });
+  await assert.rejects(service.requireActor(secondLogin.sessionToken), { status: 401, code: 'SESSION_EXPIRED' });
+  await assert.rejects(service.login({ email: 'binh.new@example.test', password: 'Correct Horse Battery Staple 42!' }), { status: 401, code: 'AUTH_REQUIRED' });
+  const finalLogin = await service.login({ email: 'binh.new@example.test', password: 'A Different Secure Password 99!' });
+  assert.equal(finalLogin.user.email, 'binh.new@example.test');
 });
 
 test('the CSRF value is origin-independent only when signed and its body cannot be changed', () => {

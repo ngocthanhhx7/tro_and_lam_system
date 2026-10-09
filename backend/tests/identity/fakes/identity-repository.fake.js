@@ -8,6 +8,7 @@ export class FakeIdentityRepository {
     this.challenges = [];
     this.proofs = [];
     this.appeals = [];
+    this.adminPasswordResetClaims = [];
     this.sequence = 1;
     this.tail = Promise.resolve();
   }
@@ -19,7 +20,7 @@ export class FakeIdentityRepository {
     const prior = this.tail;
     this.tail = new Promise((resolve) => { release = resolve; });
     await prior;
-    const snapshot = copy({ users: this.users, sessions: this.sessions, challenges: this.challenges, proofs: this.proofs, appeals: this.appeals, sequence: this.sequence });
+    const snapshot = copy({ users: this.users, sessions: this.sessions, challenges: this.challenges, proofs: this.proofs, appeals: this.appeals, adminPasswordResetClaims: this.adminPasswordResetClaims, sequence: this.sequence });
     try {
       return await callback({ fakeSession: true });
     } catch (error) {
@@ -60,13 +61,32 @@ export class FakeIdentityRepository {
     return copy(user);
   }
 
-  async updateUserPassword(id, passwordHash) {
+  async updateUserPassword(id, passwordHash, { expectedVersion } = {}) {
     const user = this.users.find((item) => keyOf(item) === keyOf(id));
-    if (!user) return null;
+    if (!user || (Number.isSafeInteger(expectedVersion) && user.version !== expectedVersion)) return null;
     user.passwordHash = passwordHash;
     user.authVersion += 1;
     user.version += 1;
     return copy(user);
+  }
+
+  async claimAdminPasswordReset(targetId, now, cooldownMs) {
+    const claim = this.adminPasswordResetClaims.find((item) => item.targetId === keyOf(targetId));
+    if (claim && claim.lastActionAt.getTime() > now.getTime() - cooldownMs) return null;
+    if (claim) claim.lastActionAt = copy(now);
+    else this.adminPasswordResetClaims.push({ targetId: keyOf(targetId), lastActionAt: copy(now) });
+    return { claimed: true };
+  }
+
+  async consumePendingChallenges(userId, purpose, now) {
+    let modifiedCount = 0;
+    for (const challenge of this.challenges) {
+      if (keyOf(challenge.userId) === keyOf(userId) && challenge.purpose === purpose && !challenge.consumedAt) {
+        challenge.consumedAt = copy(now);
+        modifiedCount += 1;
+      }
+    }
+    return { modifiedCount };
   }
 
   async createSession(data) {

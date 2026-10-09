@@ -81,6 +81,7 @@ async function seedSyntheticFixture() {
   const userByEmail = new Map(users.map((user) => [user.emailNormalized, user]));
   const customer = userByEmail.get(USERS.customer.email);
   const otherCustomer = userByEmail.get(USERS.otherCustomer.email);
+  const adminResetCustomer = userByEmail.get(USERS.adminResetCustomer.email);
 
   const category = await CatalogCategory.create({
     slug: 'p11-fixture-category',
@@ -307,6 +308,15 @@ async function seedSyntheticFixture() {
       readAt: null,
     },
     {
+      userId: customer._id,
+      eventKey: 'p11-notification-customer-promotion',
+      category: 'promotion',
+      title: 'P11 Customer Promotion Notice',
+      body: 'Synthetic promotion notification for category filtering.',
+      href: '/tai-khoan/voucher',
+      readAt: null,
+    },
+    {
       userId: otherCustomer._id,
       eventKey: 'p11-notification-other-owner',
       category: 'order',
@@ -315,6 +325,15 @@ async function seedSyntheticFixture() {
       href: '/tai-khoan/don-hang',
       readAt: null,
     },
+    ...['admin', 'staff'].flatMap((role) => [1, 2].map((index) => ({
+      userId: userByEmail.get(USERS[role].email)._id,
+      eventKey: `p11-workspace-${role}-${index}`,
+      category: 'system',
+      title: `P11 ${role} Workspace Notice ${index}`,
+      body: 'Synthetic workspace notification for sidebar read-state regression tests.',
+      href: `/${role}/orders`,
+      readAt: null,
+    }))),
   ]);
 
   return {
@@ -322,12 +341,13 @@ async function seedSyntheticFixture() {
     draftProductId: String(draft._id),
     demoReferenceProductId: String(demoReference._id),
     otherCustomerAddressId: String((await Address.findOne({ userId: otherCustomer._id }).exec())._id),
+    adminResetCustomerId: String(adminResetCustomer._id),
     staffOrderId: String(orderRecords.find(({ order }) => order.code === STAFF_ORDER_CODE).order._id),
     paymentOrderId: String(orderRecords.find(({ order }) => order.code === PAYMENT_ORDER_CODE).order._id),
     guestOrderId: String(orderRecords.find(({ order }) => order.code === GUEST_ORDER_CODE).order._id),
     reviewOrderId: String(orderRecords.find(({ order }) => order.code === REVIEW_ORDER_CODE).order._id),
-    customerNotificationIds: notifications.slice(0, 2).map((notification) => String(notification._id)),
-    otherCustomerNotificationId: String(notifications[2]._id),
+    customerNotificationIds: notifications.slice(0, 3).map((notification) => String(notification._id)),
+    otherCustomerNotificationId: String(notifications[3]._id),
     seededOrderCount: orderRecords.length,
     expectedAdditionalOrderCount: 2,
   };
@@ -387,7 +407,13 @@ export async function startRuntime() {
     await connectDatabase(uri);
     const fixture = await seedSyntheticFixture();
     // Browser tests share one loopback IP; backend route tests cover the production login limits.
-    const testConfig = { ...env, loginRateLimit: 10_000, identityLoginRateLimit: 10_000 };
+    const testConfig = {
+      ...env,
+      loginRateLimit: 10_000,
+      identityLoginRateLimit: 10_000,
+      challengeRateLimit: 10_000,
+      identityChallengeRateLimit: 10_000,
+    };
     runtime.composition = await createDomainComposition(testConfig);
     const app = createApp({
       corsOrigin: env.corsOrigin,

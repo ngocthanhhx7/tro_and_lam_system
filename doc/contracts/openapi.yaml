@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.3.0
+  version: 1.5.0
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -204,6 +204,27 @@ paths:
       x-actors: [guest]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token, password], properties: { token: { type: string }, password: { type: string, minLength: 12, maxLength: 128 } }, additionalProperties: false } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '410': { $ref: '#/components/responses/Error' } }
+  /account/password:
+    post:
+      operationId: changeOwnPassword
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePassword' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/email-change:
+    post:
+      operationId: requestOwnEmailChange
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmailChange' } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '401': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /account/email-change/verify:
+    post:
+      operationId: verifyOwnEmailChange
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmailChangeVerify' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' } }
   /auth/me:
     get:
       operationId: getCurrentUser
@@ -244,6 +265,12 @@ paths:
       x-actors: [customer, staff, admin]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProfileWrite' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /account/vouchers:
+    get:
+      operationId: listOwnVouchers
+      tags: [account]
+      x-actors: [customer, staff, admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
   /account/addresses:
     get:
       operationId: listOwnAddresses
@@ -474,7 +501,7 @@ paths:
       operationId: listOwnNotifications
       tags: [account]
       x-actors: [customer, staff, admin]
-      parameters: [{ in: query, name: unreadOnly, schema: { type: boolean } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      parameters: [{ in: query, name: unreadOnly, schema: { type: boolean } }, { in: query, name: category, schema: { $ref: '#/components/schemas/CustomerNotificationGroup' } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
   /notifications/unread-count:
     get:
@@ -534,7 +561,8 @@ paths:
     get:
       operationId: getStaffDashboard
       tags: [staff]
-      x-actors: [staff, admin]
+      x-actors: [staff]
+      description: Staff workboard counters for the requested creation-date range. inventoryAlerts contains up to 10 published buy/both products with current available inventory at or below 5, independent of the date range. A missing inventory source is represented as null.
       parameters: [{ in: query, name: from, schema: { type: string, format: date-time } }, { in: query, name: to, schema: { type: string, format: date-time } }]
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /staff/orders:
@@ -542,7 +570,8 @@ paths:
       operationId: listStaffOrders
       tags: [staff]
       x-actors: [staff, admin]
-      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/OrderStatus' } }, { in: query, name: paymentStatus, schema: { $ref: '#/components/schemas/PaymentStatus' } }, { in: query, name: queue, schema: { type: string } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      description: Operational order summaries include recipient name/phone and first-item name/image. Admin and staff use their own workspace routes to consume this API.
+      parameters: [{ in: query, name: status, schema: { $ref: '#/components/schemas/OrderStatus' } }, { in: query, name: paymentStatus, schema: { $ref: '#/components/schemas/PaymentStatus' } }, { in: query, name: queue, schema: { type: string } }, { in: query, name: q, schema: { type: string, maxLength: 120 } }, { in: query, name: from, schema: { type: string, format: date-time } }, { in: query, name: to, schema: { type: string, format: date-time } }, { in: query, name: sort, schema: { type: string, enum: [oldest, newest], default: oldest } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /staff/orders/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
@@ -763,6 +792,15 @@ paths:
       x-actors: [admin]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserRoleWrite' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/users/{id}/password-reset:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: requestAdminPasswordReset
+      tags: [admin]
+      x-actors: [admin]
+      description: Requires active admin capability users.manage and CSRF protection. Sends a one-time reset link only to the target account's verified email. The raw token is never returned. This request does not change the password or revoke sessions; the existing reset completion endpoint performs that transition. Persistent per-target cooldown applies.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminPasswordResetRequest' } } } }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
   /admin/appeals:
     get:
       operationId: listAdminAppeals
@@ -798,8 +836,24 @@ paths:
       operationId: getAdminStatistics
       tags: [admin]
       x-actors: [admin]
-      parameters: [{ in: query, name: from, required: true, schema: { type: string, format: date-time } }, { in: query, name: to, required: true, schema: { type: string, format: date-time } }]
-      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+      parameters:
+        - { in: query, name: from, required: true, schema: { type: string, format: date-time } }
+        - { in: query, name: to, required: true, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Thống kê vận hành và tiền đã thu từ ledger; khoảng inclusive tối đa 367 ngày lịch Việt Nam.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/SuccessEnvelope' }
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminStatistics'
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
   /admin/refunds:
     get:
       operationId: listAdminRefunds
@@ -850,6 +904,25 @@ paths:
       x-actors: [admin]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BusinessSettingsWrite' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/vouchers:
+    get:
+      operationId: listAdminVouchers
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    post:
+      operationId: issueCustomerVoucher
+      tags: [admin]
+      x-actors: [admin]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AdminVoucherWrite' } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '400': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' }, '409': { $ref: '#/components/responses/Error' } }
+  /admin/vouchers/{id}/revoke:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      operationId: revokeCustomerVoucher
+      tags: [admin]
+      x-actors: [admin]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
   /admin/stories:
     get:
       operationId: listAdminStories
@@ -947,10 +1020,16 @@ components:
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
   schemas:
     SuccessEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/successEnvelope' }
+    AdminStatistics: { $ref: './schemas/dtos.schema.json#/$defs/adminStatistics' }
     ErrorEnvelope: { $ref: './schemas/dtos.schema.json#/$defs/errorEnvelope' }
     AddressWrite: { $ref: './schemas/dtos.schema.json#/$defs/addressWrite' }
     AddressPatch: { $ref: './schemas/dtos.schema.json#/$defs/addressPatch' }
     ProfileWrite: { $ref: './schemas/dtos.schema.json#/$defs/profileWrite' }
+    ChangePassword: { $ref: './schemas/dtos.schema.json#/$defs/changePassword' }
+    EmailChange: { $ref: './schemas/dtos.schema.json#/$defs/emailChange' }
+    EmailChangeVerify: { $ref: './schemas/dtos.schema.json#/$defs/emailChangeVerify' }
+    AdminVoucherWrite: { $ref: './schemas/dtos.schema.json#/$defs/adminVoucherWrite' }
+    CustomerNotificationGroup: { $ref: './schemas/enums.schema.json#/$defs/customerNotificationGroup' }
     CartItemWrite: { $ref: './schemas/dtos.schema.json#/$defs/cartItemWrite' }
     CartMerge: { $ref: './schemas/dtos.schema.json#/$defs/cartMerge' }
     CheckoutCreate: { $ref: './schemas/dtos.schema.json#/$defs/checkoutCreate' }
@@ -1018,6 +1097,7 @@ components:
     AdminUserWrite: { $ref: './schemas/dtos.schema.json#/$defs/adminUserWrite' }
     UserStatusWrite: { $ref: './schemas/dtos.schema.json#/$defs/userStatusWrite' }
     UserRoleWrite: { $ref: './schemas/dtos.schema.json#/$defs/userRoleWrite' }
+    AdminPasswordResetRequest: { $ref: './schemas/dtos.schema.json#/$defs/adminPasswordResetRequest' }
     AppealDecision: { $ref: './schemas/dtos.schema.json#/$defs/appealDecision' }
     RefundDecision: { $ref: './schemas/dtos.schema.json#/$defs/refundDecision' }
     RefundComplete: { $ref: './schemas/dtos.schema.json#/$defs/refundComplete' }

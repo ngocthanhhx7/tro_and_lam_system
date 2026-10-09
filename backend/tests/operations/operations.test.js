@@ -9,7 +9,7 @@ import { createSmtpProvider, renderMailTemplate } from '../../src/services/integ
 import { createOperationsRouter } from '../../src/routes/operations.routes.js';
 import { createOutboxPayloadCipher } from '../../src/services/operations/outbox-payload-cipher.js';
 import { createDashboardService } from '../../src/services/operations/dashboard.service.js';
-import { validateBusinessSettingsWrite, validateOutboxEvent } from '../../src/validators/operations.validator.js';
+import { parseAdminStatisticsRange, validateBusinessSettingsWrite, validateOutboxEvent } from '../../src/validators/operations.validator.js';
 import { createBusinessSettingsService } from '../../src/services/operations/business-settings.service.js';
 import { sanitizeBusinessSettingsValues } from '../../src/validators/operations.validator.js';
 import { createOperationsPorts } from '../../src/services/operations/index.js';
@@ -41,7 +41,13 @@ class MemoryNotifications {
   }
 
   static find(filter) {
-    const rows = this.rows.filter((row) => row.userId === filter.userId && (!Object.hasOwn(filter, 'readAt') || row.readAt === filter.readAt));
+    const rows = this.rows.filter((row) => {
+      const categoryMatches = !filter.category
+        || (Array.isArray(filter.category.$in) ? filter.category.$in.includes(row.category) : row.category === filter.category);
+      return row.userId === filter.userId
+        && (!Object.hasOwn(filter, 'readAt') || row.readAt === filter.readAt)
+        && categoryMatches;
+    });
     return query(rows);
   }
 
@@ -97,6 +103,28 @@ test('notifications deduplicate by recipient/event and read operations stay owne
   await assert.rejects(() => service.markRead('user-b', '1'), { code: 'NOT_FOUND' });
   assert.equal((await service.markRead('user-a', '1')).readAt.toISOString(), '2026-10-06T00:00:00.000Z');
   assert.equal((await service.unreadCount('user-a')).count, 0);
+});
+
+test('customer notification filters group legacy account/support notices under system and keep promotions separate', async () => {
+  MemoryNotifications.rows = [];
+  const service = createNotificationService({ Notification: MemoryNotifications });
+  for (const [eventKey, category] of [
+    ['group-order', 'order'],
+    ['group-promotion', 'promotion'],
+    ['group-system', 'system'],
+    ['group-support', 'support'],
+    ['group-account', 'account'],
+  ]) {
+    await service.consume({
+      eventKey, recipients: ['group-owner'], category, title: `Notice ${category}`, body: 'Synthetic notice.', href: '/tai-khoan',
+    });
+  }
+
+  const all = (await service.list('group-owner')).items;
+  assert.deepEqual(all.map((item) => item.category).sort(), ['order', 'promotion', 'system', 'system', 'system']);
+  assert.deepEqual((await service.list('group-owner', { category: 'promotion' })).items.map((item) => item.eventKey), ['group-promotion']);
+  assert.deepEqual((await service.list('group-owner', { category: 'system' })).items.map((item) => item.eventKey).sort(), ['group-account', 'group-support', 'group-system']);
+  assert.deepEqual((await service.list('group-owner', { category: 'order' })).items.map((item) => item.eventKey), ['group-order']);
 });
 
 test('notification hrefs reject external or protocol-relative destinations', async () => {
@@ -426,13 +454,32 @@ test('dashboard reports persisted queues and finance from their owning ledger po
   const Ticket = { countDocuments: async (query) => query.assignedTo ? 4 : 5 };
   const Contact = { countDocuments: async () => 6 };
   const NotificationModel = { countDocuments: async () => 7 };
+  const ledgerCalls = [];
   const dashboard = createDashboardService({
     Order,
     Ticket,
     Contact,
     Notification: NotificationModel,
     orderMetrics: { getStaffQueueMetrics: async () => ({ deliveryFailed: 1, assignedToMe: 2 }) },
-    financeLedger: { getStatistics: async () => ({ grossCollectedVnd: 900_000, refundedVnd: 200_000 }) },
+    financeLedger: { getStatistics: async (range) => {
+      ledgerCalls.push(range);
+      if (range.from.toISOString() === '2026-09-27T17:00:00.000Z') {
+        return {
+          grossCollectedVnd: 600_000, refundedVnd: 100_000,
+          daily: [
+            { date: '2026-09-28', grossCollectedVnd: 200_000 },
+            { date: '2026-09-30', grossCollectedVnd: 400_000 },
+          ],
+        };
+      }
+      return {
+        grossCollectedVnd: 900_000, refundedVnd: 200_000,
+        daily: [
+          { date: '2026-10-01', grossCollectedVnd: 400_000 },
+          { date: '2026-10-03', grossCollectedVnd: 500_000 },
+        ],
+      };
+    } },
   });
 
   const staff = await dashboard.getStaffDashboard({ actorId: 'staff-1' });
@@ -440,12 +487,46 @@ test('dashboard reports persisted queues and finance from their owning ledger po
   assert.equal(staff.orderQueues.deliveryFailed, 1);
   assert.equal(staff.ticketQueues.assignedToMe, 4);
   assert.equal(staff.lowStock, null);
-  const admin = await dashboard.getAdminStatistics({ from: '2026-10-01T00:00:00Z', to: '2026-10-06T23:59:59Z' });
+  const admin = await dashboard.getAdminStatistics({
+    from: '2026-10-01T00:00:00+07:00', to: '2026-10-03T23:59:59.999+07:00',
+  });
   assert.equal(admin.grossCollectedVnd, 900_000);
   assert.equal(admin.refundedVnd, 200_000);
   assert.equal(admin.netCollectedVnd, 700_000);
   assert.equal(admin.orderCounts.pending, 2);
   assert.equal(admin.topProducts[0].quantity, 3);
+  assert.deepEqual(admin.comparison, {
+    from: '2026-09-27T17:00:00.000Z',
+    to: '2026-09-30T16:59:59.999Z',
+    grossCollectedVnd: 600_000,
+    deltaVnd: 300_000,
+    changePercent: 50,
+  });
+  assert.deepEqual(admin.revenueTrend.daily, [
+    { date: '2026-10-01', grossCollectedVnd: 400_000 },
+    { date: '2026-10-02', grossCollectedVnd: 0 },
+    { date: '2026-10-03', grossCollectedVnd: 500_000 },
+  ]);
+  assert.deepEqual(admin.revenueTrend.comparisonDaily, [
+    { date: '2026-10-01', comparisonDate: '2026-09-28', grossCollectedVnd: 200_000 },
+    { date: '2026-10-02', comparisonDate: '2026-09-29', grossCollectedVnd: 0 },
+    { date: '2026-10-03', comparisonDate: '2026-09-30', grossCollectedVnd: 400_000 },
+  ]);
+  assert.equal(ledgerCalls.length, 2);
+  assert.ok(ledgerCalls.every(({ timezone }) => timezone === 'Asia/Ho_Chi_Minh'));
+});
+
+test('admin statistics accept up to 367 Vietnam calendar days and reject broader ranges', async () => {
+  assert.throws(() => parseAdminStatisticsRange({}), { code: 'VALIDATION_ERROR' });
+  assert.doesNotThrow(() => parseAdminStatisticsRange({
+    from: '2025-01-01T00:00:00+07:00', to: '2026-01-02T23:59:59.999+07:00',
+  }));
+  assert.throws(() => parseAdminStatisticsRange({
+    from: '2025-01-01T00:00:00+07:00', to: '2026-01-03T00:00:00+07:00',
+  }), { code: 'VALIDATION_ERROR' });
+  assert.throws(() => parseAdminStatisticsRange({
+    from: '2025-01-01T00:00:00Z', to: '2026-01-04T00:00:00Z',
+  }), { code: 'VALIDATION_ERROR' });
 });
 
 test('outbox contract rejects plain mail data before it can be persisted', () => {

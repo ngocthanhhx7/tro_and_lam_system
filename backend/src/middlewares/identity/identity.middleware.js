@@ -10,16 +10,15 @@ import {
 } from '../../services/identity/identity.security.js';
 
 export const roleCapabilities = Object.freeze({
-  customer: new Set(['self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications']),
+  customer: new Set(['self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications', 'self.vouchers']),
   staff: new Set([
-    'self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications',
+    'self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications', 'self.vouchers',
     'orders.operate', 'support.operate', 'contacts.operate', 'dashboard.operations', 'refunds.request',
   ]),
   admin: new Set([
-    'self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications',
-    'orders.operate', 'support.operate', 'contacts.operate', 'dashboard.operations', 'refunds.request',
+    'self.profile', 'self.addresses', 'self.orders', 'self.reviews', 'self.tickets', 'self.notifications', 'self.vouchers',
     'catalog.manage', 'content.manage', 'users.manage', 'appeals.review', 'refunds.approve', 'refunds.complete',
-    'audit.read', 'statistics.read', 'settings.manage',
+    'audit.read', 'statistics.read', 'settings.manage', 'vouchers.manage', 'orders.operate',
   ]),
 });
 

@@ -106,6 +106,7 @@ function publicOrder(order) {
     subtotalVnd: record.subtotalVnd,
     shippingFeeVnd: record.shippingFeeVnd,
     discountVnd: record.discountVnd,
+    ...(record.voucherSnapshot ? { voucher: record.voucherSnapshot } : {}),
     totalVnd: record.totalVnd,
     paidAmountVnd: record.paidAmountVnd,
     refundedAmountVnd: record.refundedAmountVnd,
@@ -194,7 +195,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     return items.map((item) => safeProductSnapshot(byId.get(item.productId), item.quantity));
   }
 
-  async function quoteAmounts({ recipient, items, paymentMethod, actor, session }) {
+  async function quoteAmounts({ recipient, items, paymentMethod, actor, session, voucherId }) {
     const itemSnapshots = await getProductSnapshots(items, { session });
     const subtotalVnd = itemSnapshots.reduce((total, item) => total + item.unitPriceVnd * item.quantity, 0);
     if (!Number.isSafeInteger(subtotalVnd) || subtotalVnd < 1) fail(422, 'CHECKOUT_NOT_ALLOWED', 'Tổng tiền vượt giới hạn cho phép');
@@ -232,9 +233,16 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     if (paymentMethod === 'cod' && policy.codEnabled !== true) {
       fail(422, 'CHECKOUT_NOT_ALLOWED', 'Thanh toán khi nhận hàng hiện chưa khả dụng');
     }
-    const totalVnd = subtotalVnd + shippingFeeVnd;
+    let voucher;
+    if (voucherId) {
+      if (!actor?.id || actor.role !== 'customer') fail(403, 'FORBIDDEN', 'Chỉ customer mới có thể sử dụng voucher');
+      if (typeof ports.vouchers?.quote !== 'function') fail(503, 'DATABASE_UNAVAILABLE', 'Kho voucher chưa sẵn sàng');
+      voucher = await ports.vouchers.quote(actor.id, voucherId, subtotalVnd, { session });
+    }
+    const discountVnd = voucher?.discountVnd || 0;
+    const totalVnd = subtotalVnd - discountVnd + shippingFeeVnd;
     if (!Number.isSafeInteger(totalVnd) || totalVnd < 1) fail(422, 'CHECKOUT_NOT_ALLOWED', 'Tổng tiền vượt giới hạn cho phép');
-    return { itemSnapshots, subtotalVnd, shippingFeeVnd, totalVnd, policy };
+    return { itemSnapshots, subtotalVnd, shippingFeeVnd, discountVnd, totalVnd, policy, voucher };
   }
 
   async function quoteCheckout(actor, input) {
@@ -242,7 +250,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     assertValidPaymentMethod(input.paymentMethod);
     const items = normalizeItems(input.items);
     const recipient = await resolveRecipient(actor, input);
-    const totals = await quoteAmounts({ recipient, items, paymentMethod: input.paymentMethod, actor });
+    const totals = await quoteAmounts({ recipient, items, paymentMethod: input.paymentMethod, actor, voucherId: input.voucherId });
     const availabilityRows = await repository.getAvailability(items.map(({ productId }) => productId));
     const availability = new Map(availabilityRows.map((item) => [item.productId, item.available]));
     const warnings = items.filter((item) => (availability.get(item.productId) || 0) < item.quantity)
@@ -251,6 +259,8 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       items: totals.itemSnapshots.map((item) => ({ ...item, available: availability.get(item.productId) || 0 })),
       subtotalVnd: totals.subtotalVnd,
       shippingFeeVnd: totals.shippingFeeVnd,
+      discountVnd: totals.discountVnd,
+      ...(totals.voucher ? { voucher: totals.voucher } : {}),
       totalVnd: totals.totalVnd,
       quoteExpiresAt: (totals.policy.quoteExpiresAt ? new Date(totals.policy.quoteExpiresAt) : new Date(now().getTime() + 5 * 60 * 1000)).toISOString(),
       warnings,
@@ -325,6 +335,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       paymentMethod: input.paymentMethod,
       ...(input.addressId ? { addressId: String(input.addressId) } : { recipient: input.recipient }),
       ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+      ...(input.voucherId ? { voucherId: String(input.voucherId) } : {}),
       consent: input.consent,
     };
     const payloadHash = jsonHash(payload);
@@ -350,7 +361,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           expiresAt: new Date(clockNow.getTime() + idempotencyRetentionMs),
         }, { session });
         const recipient = await resolveRecipient(actor, input, session);
-        const totals = await quoteAmounts({ recipient, items, paymentMethod: input.paymentMethod, actor, session });
+        const totals = await quoteAmounts({ recipient, items, paymentMethod: input.paymentMethod, actor, session, voucherId: input.voucherId });
         if (input.paymentMethod === 'cod') {
           const activeCodOrders = await repository.countPendingCodOrders(actor, recipient.email, { session });
           if (activeCodOrders >= totals.policy.maxPendingCodOrders) {
@@ -363,6 +374,9 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
         const reservation = await repository.reserve(
           items.map(({ productId, quantity }) => ({ productId, quantity })), orderId, { session, expiresAt },
         );
+        const voucherSnapshot = input.voucherId
+          ? await ports.vouchers.redeem(actor.id, input.voucherId, orderId, totals.subtotalVnd, { session })
+          : undefined;
         const order = await repository.createOrder({
           _id: orderId,
           code: orderCode,
@@ -371,7 +385,14 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           itemsSnapshot: totals.itemSnapshots,
           subtotalVnd: totals.subtotalVnd,
           shippingFeeVnd: totals.shippingFeeVnd,
-          discountVnd: 0,
+          discountVnd: totals.discountVnd,
+          ...(voucherSnapshot ? { voucherSnapshot: {
+            voucherId: input.voucherId,
+            code: voucherSnapshot.code,
+            title: voucherSnapshot.title,
+            discountType: voucherSnapshot.discountType,
+            discountVnd: voucherSnapshot.discountVnd,
+          } } : {}),
           totalVnd: totals.totalVnd,
           status: 'pending',
           paymentMethod: input.paymentMethod,
@@ -478,7 +499,13 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
   async function listStaffOrders(filters = {}) {
     const { page = 1, limit = 20, ...rest } = filters;
     const { items, total } = await repository.listStaffOrders({ ...rest, page, limit });
-    return { items: items.map(orderSummary), total };
+    return { items: items.map((order) => {
+      const record = order.toObject ? order.toObject() : order;
+      return { ...orderSummary(record),
+        recipient: { recipientName: record.recipientSnapshot?.recipientName, phone: record.recipientSnapshot?.phone },
+        firstItem: record.itemsSnapshot[0] ? { name: record.itemsSnapshot[0].name, imageUrl: record.itemsSnapshot[0].imageUrl } : null,
+      };
+    }), total };
   }
 
   async function getOperationalOrder(id, { session } = {}) {
@@ -553,6 +580,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       }, { session });
       if (!cancelled) fail(409, 'VERSION_CONFLICT', 'Đơn hàng đã thay đổi');
       await repository.release(order._id ?? order.id, { session, reason: 'cancelled' });
+      await ports.vouchers?.releaseForOrder?.(order._id ?? order.id, { session });
       await ports.outbox.appendOutbox({
         eventKey: `order.cancelled:${id}:${cancelled.version}`, type: 'order.cancelled',
         aggregateType: 'order', aggregateId: String(id), aggregateVersion: cancelled.version,
@@ -618,7 +646,10 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
         };
         await repository.commitShipment(order._id ?? order.id, { session, actorId: actor.id });
       }
-      if (input.toStatus === 'cancelled') await repository.release(order._id ?? order.id, { session, reason: 'cancelled' });
+      if (input.toStatus === 'cancelled') {
+        await repository.release(order._id ?? order.id, { session, reason: 'cancelled' });
+        await ports.vouchers?.releaseForOrder?.(order._id ?? order.id, { session });
+      }
       const updated = await repository.updateOrder(id, input.expectedVersion, changes, { session });
       if (!updated) fail(409, 'VERSION_CONFLICT', 'Đơn hàng đã thay đổi');
       await ports.outbox.appendOutbox({

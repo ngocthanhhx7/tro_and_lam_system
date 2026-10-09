@@ -9,7 +9,7 @@ import { forbidden, ServiceError } from '../utils/serviceError.js';
 
 const CAPABILITY_ROLES = Object.freeze({
   'self.notifications': ['customer', 'staff', 'admin'],
-  'dashboard.operations': ['staff', 'admin'],
+  'dashboard.operations': ['staff'],
   'audit.read': ['admin'],
   'statistics.read': ['admin'],
   'settings.manage': ['admin'],
@@ -56,6 +56,8 @@ export function createOperationsRouter({
   auditService = createAuditService({ AuditLog: models.AuditLog }),
   dashboardService = createDashboardService({
     Order: models.Order,
+    User: models.User,
+    Inventory: models.Inventory,
     Ticket: models.Ticket,
     Contact: models.Contact,
     Notification: models.Notification,

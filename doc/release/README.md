@@ -19,6 +19,8 @@ Các lần chạy được ghi ngày 2026-10-06, trên Node 24.21.0.
 
 E2E xác minh public catalog không lộ draft, khách guest thêm sản phẩm vào giỏ và đọc giỏ qua API, checkout trả đúng trạng thái cấu hình R06 chưa sẵn sàng với nút đặt hàng bị khóa, customer bị từ chối staff/admin API, staff bị từ chối admin API, admin đọc được thống kê/catalog, và truy cập staff ẩn danh bị từ chối. Smoke layout chỉ kiểm tra trang catalog ở viewport 390px.
 
+Yêu cầu role-exclusive workspace được triển khai sau lần E2E trên: admin chỉ dùng `/admin`, staff chỉ dùng `/staff`, customer không vào hai khu; server capabilities cũng tách role. Chưa có acceptance run sau thay đổi này nên ma trận mới còn Partial.
+
 Checkout E2E cố ý dừng ở lỗi `DATABASE_UNAVAILABLE` từ quote do vùng giao hàng/phí/chính sách checkout chưa được cấu hình. Test không tạo order thành công và không giả lập PayOS thành công. Harness dùng fixture tổng hợp `example.test`, không gửi mail, không gọi provider, và teardown xóa đúng database P11. Sau khi teardown, kiểm tra local MongoDB không còn database tên theo prefix `tro_lam_p11_e2e_test_`.
 
 Lần chạy tích hợp cuối trên `be70e7b` xác nhận lại `npm ci`, `npm run check` và `npm run test:e2e`; sau E2E, truy vấn read-only trên MongoDB cho kết quả `[]` với strict prefix P11. Playwright tạo `test-results/.last-run.json`, đã xóa sau khi xác minh đường dẫn bên trong checkout QA. E2E có hai cảnh báo Mongoose không làm fail test: index trùng `AccountAppeal.userId` và dùng tùy chọn `new` đã deprecated cho `findOneAndUpdate()`/`findOneAndReplace()`.
@@ -336,3 +338,62 @@ Read-only requests to the running local API returned HTTP 200 / `ok` for `/api/v
 ## Narrow viewport accessibility recheck (2026-10-08)
 
 The axe browser check now covers nine public routes at 320, 390, 1024 and 1280 CSS pixels and asserts no horizontal overflow at each width. The new 320px pass surfaced an invalid ARIA label on the catalog loading skeleton; it now exposes its label through `role="status"`. The focused flow passed **1/1**, and the full P11 suite passed **41/41**. `npm run check` also passed contracts, lint, backend **210/210 with 0 skipped**, and the 144-module build. A read-only P02/P05/P06/P09/P11 test-database audit returned empty. 200% browser zoom, full keyboard review and screen-reader UAT remain open.
+
+
+## Customer account and voucher acceptance (2026-10-08)
+
+The customer workspace now covers the account dropdown and links to notifications, profile, addresses, purchased orders, password change and voucher wallet. Profile acceptance edits name, birth date and gender; a duplicate email receives HTTP 409 with EMAIL_IN_USE, a new email is verified through the encrypted test outbox, and the email change revokes old sessions. Password change also rejects the old credential and revokes existing sessions. Notification acceptance covers order updates, promotions and system updates, owner-scoped reads, filtering and persisted read state. Voucher issuance is admin-controlled; the customer selects an issued voucher during checkout.
+
+On Node 24.21.0, npm run check passed contract validation (108 paths, 128 operations, 66 DTO schemas, 25 frozen enums, 28 fixtures), lint, backend **215/215 with 0 skipped**, and the 154-module production build. npm run test:e2e passed **42/42** using a fresh strict-name tro_lam_p11_e2e_test_<12 hex> database on the local MongoDB replica set. Teardown removed the P11 database; a read-only P02/P05/P06/P09/P11 prefix audit returned []. The voucher browser flow checks UI and quote/order payloads while stubbing checkout quote/order responses; real server pricing, transactional redemption, cancellation restoration and competing single-use redemption are covered by the P05 voucher replica-set test.
+
+No live email, PayOS, Gemini or geocoder provider, production database or deployment was used. Owner approval/UAT, provider staging, GitHub Actions on this working source, Atlas restore rehearsal, full accessibility review and real R06 checkout policy remain release gates.
+
+## Finance dashboard acceptance follow-up (2026-10-08)
+
+Added a loopback replica-set integration check for persisted finance events. It creates and then removes a fresh strict-name P09 test database, verifies PayOS rows count only when applied at `verifiedAt`, COD rows count at `recordedAt`, completed refunds stay separate, Vietnam-local day buckets reconcile to headline totals, inactive days are filled by the dashboard service, and the immediately preceding equal-duration period is compared. The persisted results are also queried through the real `GET /admin/statistics` router. The browser acceptance selects 2026-10-01 through 2026-10-03, verifies the encoded UTC bounds, keyboard and pointer selection, pointer-leave reset, and tabular comparison. That browser test stubs `GET /admin/statistics`; the replica-set test supplies the persisted-ledger evidence separately.
+
+On Node 24.21.0, `npm run check` passed contract validation (108 paths, 128 operations, 66 DTO schemas, 25 frozen enums, 28 fixtures), lint, backend **216/216 with 0 skipped** using dedicated loopback P02/P05/P06/P09 replica-set URIs, and the 154-module production build. The targeted finance browser flow passed **1/1** and full `npm run test:e2e` passed **43/43** on a fresh strict-name loopback P11 database. Teardown completed; a read-only P02/P05/P06/P09/P11 database-prefix audit returned `[]`. Local API live/ready and frontend probes returned HTTP 200. No live provider, production database, customer data or deployment was used.
+
+Finance owner UAT, GitHub Actions on this working source, provider staging, full accessibility review, Atlas restore/rollback and the remaining R01–R12 owner inputs remain open. See [A-FIN-01](acceptance-coverage.md) for the evidence boundary.
+
+## Customer dropdown logout browser follow-up (2026-10-08)
+
+The integrated customer account flow now verifies that the avatar dropdown exposes **Đăng xuất**, then uses that control and checks HTTP 204, navigation to login, and `401 AUTH_REQUIRED` from `/auth/me`. The same flow covers DEC-29's selected voucher policy: an admin issues a voucher, the customer sees its promotion notification and wallet entry, then applies it during checkout.
+
+The focused customer account browser flow passed **1/1** and the full P11 suite passed **43/43** on fresh, dedicated loopback replica-set databases. `npm run check` passed contract validation (108 paths, 128 operations, 66 DTO schemas, 25 frozen enums and 28 fixtures), lint, backend **216/216 with 0 skipped** using P02/P05/P06/P09 loopback URIs, and the 154-module frontend build. A read-only audit after teardown found no P02/P05/P06/P09/P11 test databases. The checkout quote/order responses in this browser flow are stubbed; persisted voucher pricing, transactional redemption and single-use races are verified separately by the P05 replica-set test.
+
+Read-only probes to the current local API live/readiness endpoints and Vite root each returned HTTP 200. No live provider, production database, customer data or deployment was used. Owner UAT, provider staging, GitHub Actions on this working source, Atlas restore/rollback and full accessibility review remain open.
+
+## Runtime storefront and assistant verification boundary (2026-10-08)
+
+Read-only probes to the currently running API on port 5000 returned HTTP 200 for live/readiness and the public product list; the Vite page on port 5173 also returned 200. The catalog returned eight products. `Hũ trà` was listed at 590,000 VND with `availableForPurchase: false` and the stock label `Chưa xác nhận khả năng cung ứng`; this is a development reference price, not owner approval or purchase availability. The current `backend/.env` target is remote Atlas database `trolamtest`; the API probe used GET only and made no writes.
+
+A headless browser opened the current Vite homepage and assistant widget: HTTP 200, the local welcome message appeared, and there were no uncaught page errors. I did not submit a question to this runtime because the assistant endpoint persists conversation state in the configured Atlas database and may call Gemini. Separately, two P11 browser acceptance tests passed on a fresh loopback replica-set database: truthful no-context/human handoff and catalog-grounded fallback with Gemini disabled, a synthetic 345,000 VND product and its source link. These tests do not prove a Gemini live response or a successful product answer from the current Atlas-backed process.
+
+The configured Atlas catalog was read only; no record was modified. No Gemini/provider call was made. The handoff records the Gemini key as suspended, so a live assistant response remains unverified until the owner restores/replaces the key and provider staging is completed.
+
+## Customer portal accessibility follow-up (2026-10-08)
+
+Added a browser acceptance flow for the customer profile, address book, password, order, voucher and notification pages. At 320, 360, 390, 768 and 1280 CSS pixels, all six routes had no horizontal overflow and no violations in the selected axe-core WCAG 2.0/2.1 A/AA and WCAG 2.2 AA rules; the open avatar menu also passed at 320 and 390 px. Keyboard acceptance opens the menu with Enter, closes it with Escape and verifies focus returns to the trigger. Scans found 4.37:1 contrast on desktop account-navigation section labels and 4.4:1 on the mobile avatar greeting; changing both colors to `#626860` resolved the violations.
+
+The focused portal acceptance passed **1/1**; full `npm run test:e2e` passed **44/44** on a fresh P11 loopback replica-set database. `npm run check` also passed contracts, lint, backend tests and frontend build. Teardown completed and the local P02/P05/P06/P09/P11 database-prefix audit returned `[]`. Manual 200% zoom, keyboard/error-state review, screen-reader testing and owner UAT remain open; this is automated accessibility evidence only.
+
+## Current working-tree re-verification (2026-10-08)
+
+Re-ran verification on branch `feature/cart-ui-visible-20261008`, HEAD `1c99c90`, including the current uncommitted source. On Node 24.21.0, `npm run check` passed OpenAPI validation (108 paths, 128 operations, 66 DTO schemas, 25 frozen enums, 28 fixtures), lint, backend **216/216 with 0 skipped** using dedicated loopback P02/P05/P06/P09 replica-set URIs, and the 154-module frontend production build. The MongoDB test service reported replica set `rs0` as writable primary.
+
+`npm run test:e2e` passed **44/44** on a fresh strict-name P11 database, `tro_lam_p11_e2e_test_8f2c4e71a9b3`; a pre-run audit confirmed that database did not exist. P11 teardown completed, and a post-run read-only prefix audit returned no P02/P05/P06/P09/P11 test databases. The browser suite includes customer profile/email verification, address management, password/session revocation, notifications, admin-issued voucher checkout, responsive account pages, and avatar-menu keyboard focus behavior.
+
+After updating the customer landing-page assertions to target the account overview's level-one heading, the full suite passed again: **44/44** on `tro_lam_p11_e2e_test_d31a9c47be82`. A read-only pre-run check confirmed the database was absent; teardown completed, and the post-run P11 database-prefix audit returned `[]`. This rerun exercised the `/tai-khoan` overview and its account flows with synthetic fixtures on the local replica set; no live provider or production database was used.
+
+Read-only runtime probes returned HTTP 200 for API live/readiness, the Vite root on `[::1]:5173`, the Vite API proxy, and the served customer-menu module. The public API returned eight catalog products (3 Lifestyle and 5 Diplomacy); all eight remain `availableForPurchase: false`. Runtime checks used GET only. No provider request, production write, commit, push, or deployment occurred. `git diff --check` reported no whitespace errors; Git only warned that the two release Markdown files have CRLF-to-LF normalization pending.
+
+This is local integration evidence only. GitHub Actions on the current source, P06's owner decision for manual refund-failure recording, owner UAT, provider staging, Atlas restore/rollback, approved SKU/supply and R06 policy values, and manual accessibility review remain open.
+
+## Product image source badges and current verification (2026-10-08)
+
+Product cards no longer overlay owner-provided, AI-concept or derived-source badges on product photos. The quote-only availability tag remains; product detail still shows each image's source disclosure below the image, and its alt text retains the image description. Restoring the missing `formatVnd` import also fixes the runtime render error on priced catalog products without a preformatted `priceLabel`.
+
+On Node 24.21.0, current `npm run check` passed contract validation (108 paths, 128 operations, 66 DTO schemas, 25 frozen enums, 28 fixtures), lint, backend **216/216 with 0 skipped** using dedicated loopback P02/P05/P06/P09 replica-set URIs, and the 156-module production build. The focused browser check for media disclosures passed **1/1** on `tro_lam_p11_e2e_test_e2f17c47ad09` after removing the badges. The previous full P11 run on `tro_lam_p11_e2e_test_a8d53c93a0e1` passed **44/45**; the only failure was a 30-second timeout in `admin block, customer appeal and admin approval revoke old access and allow a fresh customer login`, before the media-badge change. The eight browser flows that had failed before restoring `formatVnd` passed **8/8** on `tro_lam_p11_e2e_test_c47d2b8e1a63`. Each database was fresh and loopback-only; the post-run P02/P05/P06/P09/P11 database audit returned `[]`.
+
+The full browser suite still needs a rerun against the final media update and the admin block/appeal timeout needs its owner to investigate. No source changes were made to the admin customer-management screens. GitHub Actions on current source, provider staging, Atlas restore/rollback, owner UAT, and manual accessibility review remain open.

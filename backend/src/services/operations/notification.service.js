@@ -1,5 +1,5 @@
 import { Notification as DefaultNotification } from '../../models/operations/notification.model.js';
-import { notFound } from '../../utils/serviceError.js';
+import { badRequest, notFound } from '../../utils/serviceError.js';
 import { parseBooleanQuery, parsePagination, validateNotificationDelivery } from '../../validators/operations.validator.js';
 
 function asPlain(row) {
@@ -7,7 +7,7 @@ function asPlain(row) {
   return {
     id: String(value._id),
     eventKey: value.eventKey,
-    category: value.category,
+    category: value.category === 'order' || value.category === 'promotion' ? value.category : 'system',
     title: value.title,
     body: value.body,
     href: value.href,
@@ -45,7 +45,17 @@ export function createNotificationService({ Notification = DefaultNotification, 
   async function list(userId, filters = {}) {
     const { page, limit } = parsePagination(filters);
     const unreadOnly = parseBooleanQuery(filters.unreadOnly, 'unreadOnly');
-    const query = { userId, ...(unreadOnly ? { readAt: null } : {}) };
+    const category = filters.category;
+    if (category !== undefined && !['order', 'promotion', 'system'].includes(category)) {
+      throw badRequest('VALIDATION_ERROR', 'Dữ liệu chưa hợp lệ', [{ field: 'category', code: 'INVALID', message: 'Nhóm thông báo chưa hợp lệ' }]);
+    }
+    const query = {
+      userId,
+      ...(unreadOnly ? { readAt: null } : {}),
+      ...(category === 'order' ? { category: 'order' } : {}),
+      ...(category === 'promotion' ? { category: 'promotion' } : {}),
+      ...(category === 'system' ? { category: { $in: ['system', 'support', 'account'] } } : {}),
+    };
     const [rows, total] = await Promise.all([
       Notification.find(query).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       Notification.countDocuments(query),

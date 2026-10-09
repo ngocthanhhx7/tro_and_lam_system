@@ -75,7 +75,7 @@ export class CommerceRepository {
     return { items, total };
   }
 
-  async listStaffOrders({ status, paymentStatus, queue, from, to, q, page, limit }) {
+  async listStaffOrders({ status, paymentStatus, queue, from, to, q, page, limit, sort = 'oldest' }) {
     const queueStatus = queue || undefined;
     const conflictingStatus = status && queueStatus && status !== queueStatus;
     if (conflictingStatus) return { items: [], total: 0 };
@@ -89,7 +89,7 @@ export class CommerceRepository {
       ] } : {}),
     };
     const [items, total] = await Promise.all([
-      this.models.Order.find(filter).sort({ createdAt: 1, _id: 1 }).skip((page - 1) * limit).limit(limit).exec(),
+      this.models.Order.find(filter).sort({ createdAt: sort === 'newest' ? -1 : 1, _id: sort === 'newest' ? -1 : 1 }).skip((page - 1) * limit).limit(limit).exec(),
       this.models.Order.countDocuments(filter).exec(),
     ]);
     return { items, total };

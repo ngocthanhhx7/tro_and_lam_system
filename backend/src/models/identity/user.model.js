@@ -4,6 +4,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
   emailNormalized: { type: String, required: true, lowercase: true, trim: true, maxlength: 254 },
   phone: { type: String, trim: true, maxlength: 30 },
+  birthDate: { type: String, match: /^\d{4}-\d{2}-\d{2}$/u },
+  gender: { type: String, enum: ['female', 'male', 'other', 'prefer_not_to_say'] },
   passwordHash: { type: String, required: true, select: false },
   role: { type: String, enum: ['customer', 'staff', 'admin'], required: true, default: 'customer' },
   status: { type: String, enum: ['active', 'blocked'], required: true, default: 'active' },

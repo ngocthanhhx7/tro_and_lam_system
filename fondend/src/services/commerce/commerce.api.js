@@ -25,9 +25,10 @@ export const commerceApi = Object.freeze({
   claimGuestOrder: async (orderId, key) => json(await requestJson('/account/orders/claim', {
     method: 'POST', body: { orderId }, headers: idempotencyHeaders(key),
   })),
-  listStaffOrders: async ({ page = 1, limit = 20, queue } = {}) => {
+  listStaffOrders: async ({ page = 1, limit = 20, queue, q, paymentStatus, from, to, sort } = {}) => {
     const query = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (queue) query.set('queue', queue);
+    for (const [key, value] of Object.entries({ q, paymentStatus, from, to, sort })) if (value) query.set(key, value);
     return getJson(`/staff/orders?${query.toString()}`);
   },
   getOperationalOrder: async (id) => json(await getJson(`/staff/orders/${encodeURIComponent(id)}`)),

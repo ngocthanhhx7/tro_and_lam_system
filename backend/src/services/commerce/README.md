@@ -32,7 +32,7 @@ The service exports `createCommerceService`, `orderTransitions`, `public` order 
 
 ## Index rollout and worker
 
-`backend/src/models/commerce/indexes.js` exports `ensureCommerceIndexes()`. Run it as a controlled migration/release step after checking the target database for duplicate codes, order IDs, movement event keys, idempotency keys and COD captures. It only creates declared indexes; it does not drop data or repair duplicates. The rollback is to stop the commerce service/job and retain the collections/indexes; deleting order, stock or payment history is not a rollback.
+`backend/src/models/commerce/indexes.js` exports `ensureCommerceIndexes()`. Run `npm run migrate:indexes:commerce -w backend` as a controlled migration/release step after checking the target database for duplicate codes, order IDs, movement event keys, idempotency keys, COD captures, and voucher codes. It only creates declared indexes; it does not drop data or repair duplicates. The `vouchers` collection is additive; existing Orders and Users need no rewrite. The rollback is to stop the commerce service/job and retain the collections/indexes; deleting order, stock or payment history is not a rollback.
 
 `createReleaseExpiredReservationsJob` exposes one bounded batch. P11/root scheduler owns cadence and overlap policy. It is safe to run concurrently: reservations are conditionally changed inside a transaction, while provider status is queried before the transaction. MongoDB replica-set transactions are required. Do not run expiry without the P06 verified-status adapter or P09 outbox.
 

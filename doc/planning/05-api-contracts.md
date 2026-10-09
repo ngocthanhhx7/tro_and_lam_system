@@ -41,7 +41,7 @@ Page mặc định 1, limit 20 max100. q trim max120, enum sort allowlist; stabl
 - Staff có quyền queue order/support, operational dashboard, refund request và internal note; không role/user status/catalog/CMS/financial approval/system logs. Admin kế thừa S.
 - Guest cart opaque cookie, order code+secret proof; tra cứu full order không public. Email OTP recovery uniform 202 tránh enumeration, rate limit theo IP và hash identity; token single-use. Token không xuất URL/log, hỗ trợ Authorization scope guest riêng nếu cần nhưng không dùng bearer login.
 
-Capability baseline: C có `self.profile/self.addresses/self.orders/self.reviews/self.tickets/self.notifications`; S thêm `orders.operate/support.operate/contacts.operate/dashboard.operations/refunds.request`; A thêm `catalog.manage/content.manage/users.manage/appeals.review/refunds.approve/refunds.complete/audit.read/statistics.read`. A kế thừa S và self-service. Middleware module dùng capability đã map từ role server; không nhận capability do client gửi. Appeal proof chỉ `appeal.submit/appeal.read`, guest proof chỉ `guest.order.read/guest.order.cancel/guest.payment.create/guest.ticket.create/guest.return.request` trên đúng orderId. Operational UI route guards riêng khỏi self-service, vẫn dùng cùng Identity/AuthContext.
+Capability baseline: C có `self.profile/self.addresses/self.orders/self.reviews/self.tickets/self.notifications/self.vouchers`; S thêm `orders.operate/support.operate/contacts.operate/dashboard.operations/refunds.request`; A có `catalog.manage/content.manage/users.manage/appeals.review/refunds.approve/refunds.complete/audit.read/statistics.read/settings.manage/vouchers.manage`. A kế thừa S và self-service. Middleware module dùng capability đã map từ role server; không nhận capability do client gửi. Appeal proof chỉ `appeal.submit/appeal.read`, guest proof chỉ `guest.order.read/guest.order.cancel/guest.payment.create/guest.ticket.create/guest.return.request` trên đúng orderId. Operational UI route guards riêng khỏi self-service, vẫn dùng cùng Identity/AuthContext.
 
 AuthSession và restricted proof tách collection/credential resolver như 04. Không full auth middleware nào chấp nhận appeal/guest proof; O guard chỉ kiểm user-owned order hoặc `purpose=guest_order_access, orderId` và scopes hợp lệ. Appeal scope không mua hàng/quản lý địa chỉ; guest order scope không truy cập user/profile/system log. Mutation restricted vẫn cần CSRF. Server không nhận purpose/scopes/userId/orderId tùy ý từ client để phát proof.
 
@@ -75,7 +75,11 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 | POST /auth/appeal-challenges | G | {email} | 202 generic {accepted:true,challengeId}; SMTP challenge |
 | GET /account/appeals/current | B | appeal-proof cookie | {status,message?,reviewNote?,submittedAt?} |
 | POST /account/appeals | B | {message} | 201 AppealSelf; 409 pending tồn tại |
-| PATCH /account/profile | C | {name,phone?}; email đổi cần flow verify riêng | UserSelf |
+| PATCH /account/profile | C | {name?,phone?,birthDate?,gender?} | UserSelf |
+| POST /account/email-change | C | {email,currentPassword} | 202 {challengeId,expiresAt}; email phải chưa có tài khoản khác |
+| POST /account/email-change/verify | C + đúng challenge owner | {challengeId,verificationCode} | {changed:true,email}; revoke mọi session |
+| POST /account/password | C | {currentPassword,newPassword} | {changed:true}; revoke mọi session |
+| GET /account/vouchers | C | — | Voucher[] của user hiện tại, không có thao tác tự nhận voucher |
 | GET /cart | G/C | cookie | Cart priced server + availability warnings |
 | PUT /cart/items/:productId | G/C | {quantity:1..99,expectedVersion} | Cart |
 | DELETE /cart/items/:productId | G/C | expectedVersion query | Cart |
@@ -91,8 +95,8 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 
 | Method path | Quyền | Request/query | Response data |
 | --- | --- | --- | --- |
-| POST /checkout/quote | G/C | CheckoutQuote | {items,subtotalVnd,shippingFeeVnd,totalVnd,quoteExpiresAt,warnings} |
-| POST /orders | G/C | CheckoutCreate + Idempotency-Key header | 201 OrderCreated; retry cùng key 200 cùng order |
+| POST /checkout/quote | G/C | CheckoutQuote (+ customer voucherId tùy chọn) | {items,subtotalVnd,discountVnd,shippingFeeVnd,totalVnd,quoteExpiresAt,warnings} |
+| POST /orders | G/C | CheckoutCreate (+ customer voucherId tùy chọn) + Idempotency-Key header | 201 OrderCreated; voucher kiểm tra/đánh dấu dùng trong cùng transaction; retry cùng key 200 cùng order |
 | POST /order-access/challenges | G | {code,email} | 202 generic {accepted:true,challengeId} |
 | POST /order-access/verify | G | {challengeId,verificationCode} | {orderId,expiresAt}, đặt order-scoped proof cookie |
 | GET /orders/:id | O | guest proof cookie hoặc authenticated owner | OrderDetail đầy đủ người nhận nhưng không internal note |
@@ -112,10 +116,13 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 | GET /tickets/:id | owner C hoặc guest order proof match ticket.orderId | — | TicketDetail sans internal |
 | GET /tickets/:id/messages | owner C/guest proof hoặc S | cursor,limit | TicketMessage[] với visibility filter |
 | POST /tickets/:id/messages | owner C/guest proof hoặc S | {body,attachmentIds?,visibility:'customer'|'internal'} | 201 TicketMessage; internal chỉ S |
-| GET /notifications | C | unreadOnly,page,limit | Notification[] owned |
+| GET /notifications | C | category=order/promotion/system,unreadOnly,page,limit | Notification[] owned; support/account legacy được nhóm vào system |
 | GET /notifications/unread-count | C | — | {count} |
 | PATCH /notifications/:id/read | C owner | {} | Notification |
 | PATCH /notifications/read-all | C | {} | {updatedCount} |
+| GET /admin/vouchers | A | — | Voucher[] với customer email |
+| POST /admin/vouchers | A | AdminVoucherWrite | 201 voucher cấp riêng cho customer đã active; in-app promotion notification + audit |
+| POST /admin/vouchers/:id/revoke | A | {} | Voucher revoked nếu chưa redeemed |
 | POST /assistant/messages | G/C | {conversationId?,message,consent:true} | {conversationId,reply,sources,handoffSuggested}; không quyền thao tác order |
 | POST /assistant/handoffs | G/C/O | {conversationId,shareTranscript:boolean,contact?:{name,email,phone?},orderId?} | 202 {targetType:'ticket'|'contact',id,reference}; explicit consent và conversation ownership; customer hoặc guest order proof tạo ticket, guest chưa có order tạo contact lead |
 | POST /attachments/uploads | C/O/S | {purpose:'ticket'|'refund'|'review',orderId?,ticketId?,reviewId?,mimeType,bytes,visibility?} | 201 {id,uploadUrl,expiresAt}; private storage, JPEG/PNG/WebP <=5MB, tối đa5 file/resource; refund/internal chỉ S |
@@ -156,10 +163,11 @@ Request schema tên viết hoa được định nghĩa ở mục 4; `{}` body r�
 | PATCH /admin/users/:id | A | {name?,phone?,expectedVersion} | UserAdmin |
 | POST /admin/users/:id/status | A | {status:'active'|'blocked',reason,expectedVersion} | UserAdmin + revoke session |
 | POST /admin/users/:id/role | A | {role,reason,expectedVersion} | UserAdmin + revoke session |
+| POST /admin/users/:id/password-reset | A | {reason}; CSRF; `users.manage` | 202 {accepted:true,queued:true}; sends a one-time link only to the target’s verified email, with a persistent per-target cooldown; raw token is never returned or audited; request does not change password or revoke sessions |
 | GET /admin/appeals | A | status,page,limit | Appeal[] |
 | POST /admin/appeals/:id/decision | A | {decision:'approved'|'rejected',reviewNote,expectedVersion} | Appeal; approved unlock transaction |
 | GET /admin/audit-logs | A | action,actorId,targetType,targetId,from,to,cursor,limit | AuditLog[] redacted |
-| GET /admin/statistics | A | from,to | {grossCollectedVnd,refundedVnd,netCollectedVnd,orderCounts,topProducts}; không đồng nghĩa lợi nhuận |
+| GET /admin/statistics | A | from,to (required; inclusive; max 367 Asia/Ho_Chi_Minh calendar dates) | {grossCollectedVnd,refundedVnd,netCollectedVnd,comparison:{from,to,grossCollectedVnd,deltaVnd,changePercent},revenueTrend:{timezone,daily:[{date,grossCollectedVnd}],comparisonDaily:[{date,comparisonDate,grossCollectedVnd}]},orderCounts,topProducts}; gross thu từ PayOS applied + COD recorded, refunds riêng; không đồng nghĩa lợi nhuận; ledger lỗi/mất cân bằng trả lỗi, không giả 0 |
 | GET /admin/refunds | A | status,page,limit | Refund[] |
 | POST /admin/refunds/:id/decision | A | {decision:'approved'|'rejected',reason,expectedVersion} | Refund approved/rejected (rejected lưu reason, request state terminal) |
 | POST /admin/refunds/:id/complete | A | {externalReference,evidenceReference,expectedVersion} | Refund completed; chỉ manual adapter khi chưa có provider refund API xác minh |
@@ -220,7 +228,7 @@ OrderTransition theo machine trong 04; `reason` tối đa 1000 ký tự và bắ
 
 ProductWrite: `{name,slug,sku,line,categoryId,description,material,dimensions?,careInstructions?,images:[{url,alt,sortOrder}],saleMode,priceVnd?,storyId?,status,featured}`; slug/sku unique, buy/both priceVnd>0 safe integer, quote price không bị UI coi 0đ. Stock cập nhật endpoint riêng P05, không field stock trên ProductWrite. ProductSummary expose availableForPurchase và stockLabel; không lộ reserved ledger.
 
-`saleMode` enum `buy|quote|both`: quote-only dùng POST /contacts kind quote, staff/admin quản lý GET/PATCH /staff/contacts kind=quote. Không convert báo giá thành đơn tự động trong baseline; nếu cần agent lập contract phase sau với expiry/acceptance/price snapshot.
+`saleMode` enum `buy|quote|both`: quote-only dùng POST /contacts kind quote; staff quản lý GET/PATCH /staff/contacts kind=quote. Không convert báo giá thành đơn tự động trong baseline; nếu cần agent lập contract phase sau với expiry/acceptance/price snapshot.
 
 Full-only baseline: POST return-requests phải gửi toàn item quantity eligible; refund-request amount bằng toàn refundable balance. Partial bị từ chối 422 `PARTIAL_OPERATION_DISABLED` khi flags false. Refund failed trả status failed ở Refund và Order.paymentStatus trở về paid/partially_refunded theo ledger, không ghi refunded hoặc treo refund_pending vô hạn. API schema có items/amountVnd/refundedAmountVnd để phase partial không phá DTO, nhưng UI không hiện chức năng partial lúc baseline. Staff ticket status phải theo transitions ở 04; return case enum requested/approved/rejected/received/closed, inspection lưu fact rồi closed khi hoàn tất xử lý case; refund lifecycle độc lập.
 
@@ -259,4 +267,4 @@ Internal fact không có public endpoint nhận từ browser. P06 webhook contro
 - Gemini optional, read-only published catalog/story/policy + contextual order chỉ khi owner được chứng minh qua service riêng. Không tool chỉnh role/stock/refund/order. Timeout/budget/rate limit, user-requested handoff tạo ticket thường; AI không tự email/hoàn tiền. Prompt injection từ story/user không nâng quyền.
 - Geocoder optional backend proxy allowlisted provider; browser xin consent+HTTPS geolocation, no background tracking; network timeout+fallback nhập tay. Không khẳng định tọa độ xác định địa chỉ chính xác.
 - P01 tạo `doc/contracts/openapi.yaml` OpenAPI 3.1 và JSON schema DTO theo file này; freeze commit được ghi ở manifest. P01 contract tests giữ health compatibility+error envelope; mỗi package có positive/negative RBAC và ownership test. UI dùng mock cùng schema, không viết JSON ad-hoc.
-- Webhook integration fixture phải có valid signature, invalid signature, duplicate, amount mismatch, unknown order, late paid, concurrent expiry. Payment audit không được in key/signature/raw PII. Mutation tới resource người khác trả 404; staff gọi admin routes trả 403; blocked cookie cũ trả ACCOUNT_BLOCKED.
+- Webhook integration fixture phải có valid signature, invalid signature, duplicate, amount mismatch, unknown order, late paid, concurrent expiry. Payment audit không được in key/signature/raw PII. Mutation tới resource người khác trả 404; staff gọi admin routes và admin gọi staff workspace routes trả 403; blocked cookie cũ trả ACCOUNT_BLOCKED.

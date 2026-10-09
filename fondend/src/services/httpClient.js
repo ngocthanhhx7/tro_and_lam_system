@@ -72,7 +72,7 @@ export async function requestJson(path, options = {}) {
     }
   }
 
-  const response = await fetch(apiUrl(path), {
+  const send = () => fetch(apiUrl(path), {
     ...rest,
     method,
     body,
@@ -80,7 +80,15 @@ export async function requestJson(path, options = {}) {
     headers,
     credentials: 'include',
   });
-  const result = await readResponse(response);
+  let response = await send();
+  let result = await readResponse(response);
+  // This rejection happens before the route handler, so replaying is safe.
+  if (unsafeMethods.has(method) && response.status === 403 && result?.error?.code === 'CSRF_INVALID') {
+    clearCsrfToken();
+    headers.set('X-CSRF-Token', await loadCsrfToken(signal));
+    response = await send();
+    result = await readResponse(response);
+  }
   if (!response.ok) {
     throw new ApiError({
       status: response.status,

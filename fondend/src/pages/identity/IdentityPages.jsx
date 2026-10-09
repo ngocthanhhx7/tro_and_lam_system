@@ -19,6 +19,13 @@ function Field({ label, name, type = 'text', value, onChange, autoComplete, requ
   return <label className="identity-field" htmlFor={`identity-${name}`}><span>{label}</span><input id={`identity-${name}`} name={name} type={type} value={value} onChange={onChange} autoComplete={autoComplete} required={required} minLength={minLength} maxLength={maxLength} /></label>;
 }
 
+function workspaceHome(role) {
+  if (role === 'customer') return '/tai-khoan';
+  if (role === 'staff') return '/staff';
+  if (role === 'admin') return '/admin';
+  return '/dang-nhap';
+}
+
 export function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const { setUser } = useAuth();
@@ -26,13 +33,14 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { pending, error, run } = useIdentityRequest();
   const emailVerified = new URLSearchParams(location.search).get('verified') === '1';
+  const infoMessage = location.state?.message;
   const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   async function submit(event) {
     event.preventDefault();
     try {
       const response = await run(() => identityApi.login(form));
       setUser(response.data.user);
-      navigate(response.data.user.role === 'customer' ? '/tai-khoan' : '/staff', { replace: true });
+      navigate(workspaceHome(response.data.user.role), { replace: true });
     } catch (requestError) {
       if (requestError.code === 'ACCOUNT_BLOCKED') {
         setUser(null);
@@ -45,6 +53,7 @@ export function LoginPage() {
       <Field label="Email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" maxLength={254} />
       <Field label="Mật khẩu" name="password" type="password" value={form.password} onChange={update} autoComplete="current-password" maxLength={128} />
       <Feedback error={error} />
+      <Feedback success={infoMessage} />
       <button className="identity-primary" type="submit" disabled={pending}>{pending ? 'Đang xác minh…' : 'Đăng nhập'}</button>
     </form>
     <nav className="identity-links" aria-label="Liên kết tài khoản"><Link to="/quen-mat-khau">Quên mật khẩu?</Link><Link to="/dang-ky">Tạo tài khoản</Link></nav>
@@ -216,7 +225,7 @@ export function AcceptInvitationPage() {
     try {
       const response = await run(() => identityApi.acceptInvitation({ token, name: form.name, password: form.password }));
       setUser(response.data.user);
-      navigate(response.data.user.role === 'customer' ? '/tai-khoan' : '/staff', { replace: true });
+      navigate(workspaceHome(response.data.user.role), { replace: true });
     } catch { /* The request hook retains the error for the form. */ }
   }
   return <Frame title="Kích hoạt lời mời" description="Tạo mật khẩu cho tài khoản được mời. Vai trò do quản trị viên quyết định.">

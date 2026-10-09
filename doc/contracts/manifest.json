@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.3.0",
+  "contractVersion": "1.5.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,7 +13,7 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30"],
   "amendments": [
     {
       "id": "DEC-17",
@@ -137,6 +137,55 @@
       ],
       "consumers": ["P05", "P09"],
       "migration": "None; owners must review and enter actual zones and VND fees before shipping quotes or checkout become available."
+    },
+    {
+      "id": "DEC-29",
+      "date": "2026-10-08",
+      "reason": "The owner requested complete customer account management and selected admin-issued vouchers for customer checkout use; the prior contract had no voucher data or customer notification group taxonomy.",
+      "changes": [
+        "Profile updates add optional birthDate and gender; email replacement requires current-password step-up, unique address, a one-time code bound to the requesting account, and session revocation. Password replacement revokes sessions.",
+        "Customer notification filters expose order, promotion, and system groups; existing support/account storage values are presented under system.",
+        "Admins issue and revoke one-use customer vouchers with a configured fixed VND or percentage amount, optional cap/minimum, and expiry. Checkout prices and redeems server-side in the order transaction; a canceled pre-shipment order restores a still-valid voucher.",
+        "Orders retain a voucher discount snapshot; voucher issue adds an in-app promotion notification and an audit record."
+      ],
+      "consumers": ["P02", "P05", "P09", "customer/admin frontend"],
+      "migration": "Create the additive vouchers collection and indexes. Existing users and orders require no rewrite."
+    },
+    {
+      "id": "DEC-30",
+      "date": "2026-10-08",
+      "reason": "The admin dashboard requires a date-scoped revenue trend based on persisted receipts rather than order totals or reference values.",
+      "changes": [
+        "GET /admin/statistics documents gross collected VND and daily totals from applied PayOS payment events and recorded COD collections, grouped by Asia/Ho_Chi_Minh date.",
+        "The response includes the equal-duration immediately preceding comparison period and aligned daily series; refunds remain separate from gross collected amounts.",
+        "Required inclusive from/to bounds are limited to 367 Vietnam calendar dates; zero-activity days are explicit and unavailable or inconsistent ledger data is an API error."
+      ],
+      "consumers": ["P09", "admin dashboard API clients"],
+      "migration": "None; the response is additive and uses existing payment-event and COD-collection ledgers."
+    },
+    {
+      "id": "DEC-31",
+      "date": "2026-10-08",
+      "reason": "Admin login and invitation acceptance must enter the role's own workspace, and admin routes need consistent navigation without weakening existing authorization guards.",
+      "changes": [
+        "Customer, staff, and admin authentication land at /tai-khoan, /staff, and /admin respectively.",
+        "A shared responsive admin shell wraps existing admin route fragments; role and capability authorization remain enforced by their existing guards.",
+        "The shell navigation points only to existing admin destinations; it does not define new routes or substitute mock metrics or business data."
+      ],
+      "consumers": ["admin frontend", "identity frontend"],
+      "migration": "None; this is a client-side route composition and navigation change."
+    },
+    {
+      "id": "DEC-32",
+      "date": "2026-10-08",
+      "reason": "An administrator needs a secure way to request a password reset without learning or setting a user's password or raw reset token.",
+      "changes": [
+        "POST /admin/users/{id}/password-reset accepts only a reason, requires CSRF and users.manage, and sends a single-use link only to the target's verified email.",
+        "The opaque token is stored as a hash and delivered through the existing encrypted mail outbox; the response does not contain it and the audit reason is redacted.",
+        "A persistent per-target cooldown applies. The request consumes prior pending reset links but does not change credentials, status, auth version, or sessions; the normal reset completion flow remains authoritative."
+      ],
+      "consumers": ["P02", "admin identity frontend", "admin API clients"],
+      "migration": "None; the cooldown timestamp uses the existing identity guard collection and reset challenges use the existing auth challenge collection."
     }
   ],
   "validation": {
@@ -144,11 +193,11 @@
     "runtime": "Node 24.21.0",
     "result": {
       "openapiVersion": "3.1.0",
-      "paths": 102,
-      "operations": 121,
-      "dtoSchemas": 60,
-      "enums": 22,
-      "dtoFixtures": 26
+      "paths": 109,
+      "operations": 129,
+      "dtoSchemas": 67,
+      "enums": 25,
+      "dtoFixtures": 30
     }
   }
 }

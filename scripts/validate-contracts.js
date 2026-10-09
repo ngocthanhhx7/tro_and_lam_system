@@ -81,6 +81,8 @@ const dtoFixtures = [
   ['orderTransition', { toStatus: 'cancelled', expectedVersion: 3, reason: 'Khách yêu cầu hủy' }, true],
   ['orderTransition', { toStatus: 'cancelled', expectedVersion: 3 }, false],
   ['orderTransition', { toStatus: 'processing', expectedVersion: 3 }, true],
+  ['adminPasswordResetRequest', { reason: 'Khách yêu cầu hỗ trợ.' }, true],
+  ['adminPasswordResetRequest', { reason: 'Khách yêu cầu hỗ trợ.', password: 'Không được nhận' }, false],
   ['businessSettingsWrite', { values: { codEnabled: false }, expectedVersion: 2, reason: 'Cập nhật cài đặt' }, true],
   ['businessSettingsWrite', { values: { shippingZones: [{ id: 'mien-bac', provinceNames: ['Hà Nội', 'Hải Phòng'], feeVnd: 30000 }] }, expectedVersion: 2, reason: 'Cấu hình vùng giao hàng' }, true],
   ['businessSettingsWrite', { values: { shippingZones: [{ id: 'mien-bac', provinceNames: ['Hà Nội'], feeVnd: -1 }] }, expectedVersion: 2, reason: 'Cấu hình vùng giao hàng' }, false],
@@ -93,6 +95,23 @@ const dtoFixtures = [
   ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [{ type: 'link', text: 'Liên kết', url: 'javascript:alert(1)' }], status: 'draft' }, false],
   ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [{ type: 'image', url: 'https://user:pass@example.com/anh.jpg', alt: 'Ảnh fixture' }], status: 'draft' }, false],
   ['pageWrite', { slug: 'noi-dung-fixture', title: 'Trang thử nghiệm', locale: 'vi', blocks: [], status: 'published' }, false],
+  ['adminStatistics', {
+    grossCollectedVnd: 120000, refundedVnd: 20000, netCollectedVnd: 100000,
+    comparison: { from: '2026-09-28T17:00:00.000Z', to: '2026-10-01T16:59:59.999Z', grossCollectedVnd: 90000, deltaVnd: 30000, changePercent: 33.3 },
+    revenueTrend: {
+      timezone: 'Asia/Ho_Chi_Minh',
+      daily: [{ date: '2026-10-02', grossCollectedVnd: 120000 }],
+      comparisonDaily: [{ date: '2026-10-02', comparisonDate: '2026-09-29', grossCollectedVnd: 90000 }],
+    },
+    orderCounts: { pending: 1 },
+    topProducts: [{ productId: 'product-id', sku: 'fixture-sku', name: 'Sản phẩm fixture', quantity: 1, orderCount: 1 }],
+  }, true],
+  ['adminStatistics', {
+    grossCollectedVnd: -1, refundedVnd: 0, netCollectedVnd: -1,
+    comparison: { from: '2026-09-28T17:00:00.000Z', to: '2026-10-01T16:59:59.999Z', grossCollectedVnd: 0, deltaVnd: -1, changePercent: null },
+    revenueTrend: { timezone: 'Asia/Ho_Chi_Minh', daily: [], comparisonDaily: [] },
+    orderCounts: {}, topProducts: [],
+  }, false],
 ];
 for (const [name, value, expected] of dtoFixtures) {
   assert.equal(compiledDtos.get(name)(value), expected, `${name} fixture must be ${expected ? 'accepted' : 'rejected'}`);

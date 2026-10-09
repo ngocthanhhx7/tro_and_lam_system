@@ -5,6 +5,7 @@ const ROLES = new Set(['customer', 'staff', 'admin']);
 const INVITE_ROLES = new Set(['customer', 'staff']);
 const STATUSES = new Set(['active', 'blocked']);
 const APPEAL_DECISIONS = new Set(['approved', 'rejected']);
+const GENDERS = new Set(['female', 'male', 'other', 'prefer_not_to_say']);
 
 function validationError(details) {
   throw new ServiceError(400, 'VALIDATION_ERROR', 'Dữ liệu chưa hợp lệ', details);
@@ -47,6 +48,20 @@ function token(body, field = 'token') {
   string(body, field, { min: 20, max: 256, pattern: /^[A-Za-z0-9_-]+$/u });
 }
 
+function dateOnly(body, field, { optional = false } = {}) {
+  const value = body[field];
+  if (value === undefined && optional) return;
+  if (value === null) return;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    validationError([{ field, code: 'INVALID', message: 'Ngày chưa đúng định dạng YYYY-MM-DD' }]);
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value
+    || value < '1900-01-01' || value > new Date().toISOString().slice(0, 10)) {
+    validationError([{ field, code: 'INVALID', message: 'Ngày sinh phải là ngày hợp lệ trong quá khứ' }]);
+  }
+}
+
 export function validateIdentityBody(schema) {
   return (req, _res, next) => {
     try {
@@ -58,13 +73,17 @@ export function validateIdentityBody(schema) {
         email: { allowed: ['email'], required: ['email'] },
         login: { allowed: ['email', 'password'], required: ['email', 'password'] },
         reset: { allowed: ['token', 'password'], required: ['token', 'password'] },
+        changeEmail: { allowed: ['email', 'currentPassword'], required: ['email', 'currentPassword'] },
+        verifyEmailChange: { allowed: ['challengeId', 'verificationCode'], required: ['challengeId', 'verificationCode'] },
+        changePassword: { allowed: ['currentPassword', 'newPassword'], required: ['currentPassword', 'newPassword'] },
         appealAccess: { allowed: ['email', 'verificationCode', 'challengeId'], required: ['email', 'verificationCode', 'challengeId'] },
         appealSubmit: { allowed: ['message'], required: ['message'] },
-        profile: { allowed: ['name', 'phone'], required: [] },
+        profile: { allowed: ['name', 'phone', 'birthDate', 'gender'], required: [] },
         invite: { allowed: ['name', 'email', 'role'], required: ['name', 'email', 'role'] },
         adminUser: { allowed: ['name', 'phone', 'expectedVersion'], required: ['expectedVersion'] },
         status: { allowed: ['status', 'reason', 'expectedVersion'], required: ['status', 'reason', 'expectedVersion'] },
         role: { allowed: ['role', 'reason', 'expectedVersion'], required: ['role', 'reason', 'expectedVersion'] },
+        adminPasswordReset: { allowed: ['reason'], required: ['reason'] },
         appealDecision: { allowed: ['decision', 'reviewNote', 'expectedVersion'], required: ['decision', 'reviewNote', 'expectedVersion'] },
       }[schema];
       if (!spec) throw new TypeError(`Unknown identity body schema: ${schema}`);
@@ -81,6 +100,15 @@ export function validateIdentityBody(schema) {
         case 'email': email(body); break;
         case 'login': email(body); string(body, 'password', { min: 1, max: 128 }); break;
         case 'reset': token(body); string(body, 'password', { min: 12, max: 128 }); break;
+        case 'changeEmail': email(body); string(body, 'currentPassword', { min: 1, max: 128 }); break;
+        case 'verifyEmailChange':
+          string(body, 'challengeId', { min: 20, max: 64, pattern: /^[A-Za-z0-9_-]+$/u });
+          string(body, 'verificationCode', { min: 6, max: 6, pattern: /^\d{6}$/u });
+          break;
+        case 'changePassword':
+          string(body, 'currentPassword', { min: 1, max: 128 });
+          string(body, 'newPassword', { min: 12, max: 128 });
+          break;
         case 'appealAccess':
           email(body); string(body, 'verificationCode', { min: 6, max: 6, pattern: /^\d{6}$/u }); string(body, 'challengeId', { min: 20, max: 64, pattern: /^[A-Za-z0-9_-]+$/u });
           break;
@@ -88,6 +116,8 @@ export function validateIdentityBody(schema) {
         case 'profile':
           if (!Object.keys(body).length) validationError([{ field: 'body', code: 'EMPTY', message: 'Cần ít nhất một trường để cập nhật' }]);
           string(body, 'name', { min: 1, max: 120, optional: true }); string(body, 'phone', { max: 30, optional: true });
+          dateOnly(body, 'birthDate', { optional: true });
+          if (body.gender !== undefined && body.gender !== null && !GENDERS.has(body.gender)) validationError([{ field: 'gender', code: 'INVALID', message: 'Giá trị giới tính không hợp lệ' }]);
           break;
         case 'invite':
           string(body, 'name', { min: 1, max: 120 }); email(body); if (!INVITE_ROLES.has(body.role)) validationError([{ field: 'role', code: 'INVALID', message: 'Vai trò lời mời không hợp lệ' }]);
@@ -102,6 +132,9 @@ export function validateIdentityBody(schema) {
         case 'role':
           if (!ROLES.has(body.role)) validationError([{ field: 'role', code: 'INVALID', message: 'Vai trò không hợp lệ' }]);
           string(body, 'reason', { min: 1, max: 1000 }); integer(body, 'expectedVersion');
+          break;
+        case 'adminPasswordReset':
+          string(body, 'reason', { min: 1, max: 1000 });
           break;
         case 'appealDecision':
           if (!APPEAL_DECISIONS.has(body.decision)) validationError([{ field: 'decision', code: 'INVALID', message: 'Quyết định không hợp lệ' }]);

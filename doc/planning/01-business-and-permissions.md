@@ -18,22 +18,24 @@ Ba actor được cấp tài khoản là `customer`, `staff`, `admin`. Guest là
 
 ## 2. Ma trận quyền bắt buộc
 
-“Của mình” là ownership kiểm tra tại server, không phải chỉ ẩn nút frontend. Admin bao gồm quyền vận hành staff. Các quyền mua cá nhân nếu mở cho staff/admin vẫn tuân ownership như customer; không có quyền sửa đơn cá nhân qua giao diện vận hành để tự bỏ qua chính sách.
+“Của mình” là ownership kiểm tra tại server, không phải chỉ ẩn nút frontend. Customer không vào workspace quản trị; staff dùng workspace vận hành; admin dùng workspace quản trị. Hai role không kế thừa quyền workspace của nhau. Theo yêu cầu ngày 09/10/2026, admin được cấp riêng quyền `orders.operate` để quản lý đơn trong `/admin/orders` qua API vận hành đơn dùng chung. Các API dashboard, ticket và contact của staff vẫn không mở cho admin. Hồ sơ, mật khẩu và thông báo tự phục vụ nằm trong workspace riêng; admin/staff đang đăng nhập bị chặn toàn bộ giao diện guest/customer bằng màn 403.
 
 | Nghiệp vụ | Guest | Customer | Staff | Admin |
 |---|---|---|---|---|
 | Xem/search/filter catalog, nội dung đã publish, NFC công khai | Có | Có | Có | Có |
 | Giỏ hàng, checkout sản phẩm bán trực tiếp | Có | Có, giỏ đồng bộ tài khoản | Có thể mua cá nhân | Có thể mua cá nhân |
-| Tra cứu đơn đầy đủ | Token riêng hoặc OTP xác minh | Đơn có `userId` của mình | Đơn phục vụ vận hành | Kế thừa staff |
-| Hủy đơn theo chính sách | Sau xác minh quyền đơn | Đơn mình | Thực hiện với lý do, đúng trạng thái | Kế thừa staff |
+| Tra cứu đơn đầy đủ | Token riêng hoặc OTP xác minh | Đơn có `userId` của mình | Đơn phục vụ vận hành | Quản lý đơn qua quyền `orders.operate`, báo cáo và hoàn tiền |
+| Hủy đơn theo chính sách | Sau xác minh quyền đơn | Đơn mình | Thực hiện với lý do, đúng trạng thái | Thực hiện trong màn quản trị đơn với lý do, version và audit; hoàn tiền qua quyền riêng |
 | Sổ địa chỉ/trang quản lý riêng, định vị | Form checkout tạm, không sổ tài khoản | CRUD của mình | Sổ cá nhân nếu mua | Sổ cá nhân nếu mua |
 | Đánh giá sản phẩm | Chuyển đăng nhập và claim đơn trước | Đơn mình đã giao; một review/order/product | Như customer với đơn cá nhân | Như customer, cộng kiểm duyệt |
-| Liên hệ, tư vấn, lead quà tặng | Có, chống spam | Có | Xử lý lead được phân công | Xem toàn bộ/quản lý phân công |
-| Ticket/khiếu nại/đổi trả | Contact hoặc ticket với token đơn được xác minh | Ticket của mình; có hoặc không gắn đơn | Tiếp nhận, phân công, phản hồi, xử lý | Kế thừa staff, quyết định hoàn tiền |
-| Dashboard đơn/ticket/công việc | Không | Tóm tắt tài khoản mình | Dashboard riêng cho vận hành | Dashboard vận hành và quản trị |
+| Liên hệ, tư vấn, lead quà tặng | Có, chống spam | Có | Xử lý lead theo quyền staff | Không vào hàng đợi staff |
+| Ticket/khiếu nại/đổi trả | Contact hoặc ticket với token đơn được xác minh | Ticket của mình; có hoặc không gắn đơn | Tiếp nhận, phân công, phản hồi, xử lý | Ticket của mình; không vào hàng đợi staff |
+| Dashboard đơn/ticket/công việc | Không | Tóm tắt tài khoản mình | Dashboard riêng cho vận hành | Dashboard riêng qua quyền admin; không gọi API staff |
 | Sản phẩm xem/thêm/sửa/xóa | Public only | Public only | Không sửa catalog | CRUD, xuất bản, lưu trữ |
 | Tồn kho | Chỉ trạng thái khả dụng public | Như guest | Xem, thao tác cấp phát theo đơn | Điều chỉnh tồn kèm lý do/audit |
 | User xem/thêm/sửa/khóa/mở/đổi role | Không | Hồ sơ mình; không role/status | Không quản lý users | Có, áp dụng bảo vệ admin cuối |
+| Hồ sơ/email/mật khẩu customer | Không | Xem/sửa tên, phone, ngày sinh, giới tính; đổi email qua xác minh và kiểm tra unique; đổi mật khẩu thu hồi phiên | Tự phục vụ theo ownership | Tự phục vụ theo ownership; quản lý user vẫn ở màn admin riêng |
+| Voucher | Không | Xem voucher được admin cấp, chọn khi checkout | Không cấp | Cấp/thu hồi voucher và xem danh sách |
 | Kháng nghị tài khoản khóa | Chỉ với appeal session sau xác minh | Tài khoản khóa có màn riêng | Không quyết định | Xem, duyệt/từ chối kèm lý do |
 | Thông báo | Xác nhận đơn/email được phép; không inbox tài khoản | Inbox mình/read/read-all | Inbox mình và sự kiện công việc | Inbox mình và sự kiện quản trị |
 | Nội dung CMS/NFC, cấu hình công bố | Public only | Public only | Read-only nghiệp vụ | CRUD/publish |
@@ -50,13 +52,13 @@ Ba actor được cấp tài khoản là `customer`, `staff`, `admin`. Guest là
 | `carts` với items nhúng | User cart bằng session; guest cart bằng định danh guest opaque | Client giá chỉ hiển thị; server định giá lại; ownership không lấy từ body |
 | `products` | Admin quản lý; public chỉ publish và các trường an toàn | Bản đầu một SKU/product, SKU unique; lựa chọn mẫu/kích thước là product ID khác, chưa có product_variants; archive khi đã có đơn; snapshot đơn giữ tên/giá/ảnh tại thời điểm mua |
 | `inventory`, `stock_reservations`, `inventory_movements` | Admin điều chỉnh; staff thao tác trong workflow đơn | `available=onHand-reserved`; không âm; transaction/conditional write chống oversell |
-| `orders` với statusHistory nhúng | Customer sở hữu qua userId; guest qua token/OTP; staff/admin quyền vận hành | Code không phải bí mật; snapshot người nhận; tiền VND số nguyên; trạng thái có version |
+| `orders` với statusHistory nhúng | Customer sở hữu qua userId; guest qua token/OTP; staff vận hành; admin dùng report/refund APIs được cấp riêng | Code không phải bí mật; snapshot người nhận; tiền VND số nguyên; trạng thái có version |
 | `payment_attempts`, `payment_events`, `refunds` | Nội bộ server; customer/guest chỉ trạng thái/link an toàn của đơn mình | Không lưu credentials payOS; webhook signature + amount + order mapping + idempotency |
 | `reviews` | User mua hàng sở hữu; public chỉ review đã được phép công bố | Unique `(userId,orderId,productId)`; không sửa sao/nội dung để tạo đánh giá tốt giả |
-| `tickets`, `ticket_messages`, `attachments` | Customer hoặc guest đã xác minh, staff/admin vận hành | Tin nội bộ staff không trả cho customer; file không public đoán được URL |
+| `tickets`, `ticket_messages`, `attachments` | Customer/admin self-service theo ownership; staff vận hành qua quyền staff | Tin nội bộ chỉ trả cho staff; file không public đoán được URL |
 | `account_appeals` | Chỉ chủ tài khoản qua appeal scope và admin | Một pending/user; không dùng appeal token đăng nhập hoạt động thông thường |
 | `notifications` | `recipientUserId` riêng từng người | Unique recipient/event/channel; read không thay trạng thái đơn |
-| `contacts` | Guest/customer gửi; staff/admin tiếp nhận | Consent mục đích liên hệ; chống spam; email gửi khác với lead đã lưu |
+| `contacts` | Guest/customer gửi; staff tiếp nhận và xử lý lead | Consent mục đích liên hệ; chống spam; email gửi khác với lead đã lưu |
 | `pages`, `stories`, `nfc_tags` | Public chỉ publish; admin CRUD | NFC story không tự chứng minh hàng chính hãng; tag active/revoked, thay tag bằng record mới khi cần |
 | `sessions`, `auth_challenges` | Server-owned | Token chỉ lưu hash; expiry kiểm tra trong app, không chỉ dựa TTL cleanup |
 | `audit_logs`, `outbox_events` | Server ghi; admin đọc bản đã che dữ liệu | Không ghi password/OTP/session/URI DB/token đơn; sự kiện không bị mất khi email lỗi |
@@ -107,7 +109,9 @@ Không hardcode chính sách hoàn tiền, tuyên bố pháp lý hoặc điều 
 | AC-PAY-02 | Thanh toán đến muộn sau hủy/hết reservation vào exception; không tự ship khi chưa có tồn |
 | AC-REVIEW-01 | Đơn chưa giao/không thuộc mình/sản phẩm không trong đơn không review; unique/retry an toàn |
 | AC-TICKET-01 | Có support/complaint/return; owner xem thread; staff reply; internal note không lộ; attachment có auth |
-| AC-STAFF-01 | Dashboard riêng hiển thị pending/ticket assigned; API product/user/log/refund-admin trả 403 cho staff |
+| AC-STAFF-01 | Dashboard riêng hiển thị pending/ticket assigned; admin pages/APIs trả 403 cho staff |
+| AC-ACL-01 | Staff chỉ mở `/staff`; admin chỉ mở `/admin`; customer bị chặn cả hai; admin/staff bị chặn giao diện guest/customer; API áp dụng capability tại server, chỉ API vận hành đơn được cấp rõ cho cả hai |
+| AC-ERROR-01 | Trang lỗi 400/403/404/500 có thông tin dễ hiểu, đường về phù hợp, keyboard focus và accessible heading |
 | AC-ADMIN-01 | Admin CRUD product và user; không tự khóa/hạ role; không xóa admin hoạt động cuối, kể cả race |
 | AC-APPEAL-01 | Tài khoản khóa bị thu hồi phiên và thấy màn riêng sau xác minh; appeal không mở quyền mua/admin |
 | AC-APPEAL-02 | Một pending/user; admin approve unlock và audit atomically; reject có lý do, notification |

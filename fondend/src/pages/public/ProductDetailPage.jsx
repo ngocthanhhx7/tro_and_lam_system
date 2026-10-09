@@ -2,7 +2,6 @@ import { lazy, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogStates.jsx';
 import Icon from '../../components/catalog/Icon.jsx';
-import ProductEditorialStory from '../../components/catalog/ProductEditorialStory.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { getListingProductBySlug } from '../catalog/productListingData.js';
 import { addCartQuantity, formatVnd, getPublishedProduct, searchPublishedProducts, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
@@ -12,28 +11,6 @@ import './product-detail.css';
 
 const PublicProductReviews = lazy(() => import('../support/CustomerReviewsPage.jsx')
   .then((module) => ({ default: module.PublicProductReviews })));
-function curatedImage(image, product, index) {
-  return {
-    url: image,
-    alt: `${product.name}${index ? ` – ảnh ${index + 1}` : ''}`,
-    sortOrder: index,
-  };
-}
-
-function mergeCuratedProduct(curated, apiProduct) {
-  if (!apiProduct) return null;
-  if (!curated) return apiProduct;
-  return {
-    ...curated,
-    ...apiProduct,
-    curated: true,
-    images: curated.images?.length
-      ? curated.images.map((image, index) => curatedImage(image, curated, index))
-      : (apiProduct.images || []),
-    priceLabel: formatVnd(apiProduct.priceVnd),
-  };
-}
-
 function QuoteForm({ product }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -119,11 +96,9 @@ export default function ProductDetailPage() {
       setPageIndexability(false);
       return;
     }
-    const metadataProduct = mergeCuratedProduct(curatedProduct, state.product);
-    if (!metadataProduct) return;
     setPageIndexability(true);
-    const title = `${metadataProduct.name} | TRO & LAM`;
-    const description = String(metadataProduct.description || 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.')
+    const title = `${state.product.name} | TRO & LAM`;
+    const description = String(state.product.description || 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.')
       .replace(/\s+/gu, ' ')
       .trim()
       .slice(0, 160);
@@ -146,7 +121,7 @@ export default function ProductDetailPage() {
 
   if (state.slug !== slug || state.status === 'loading') return <div className="section-wrap"><CatalogLoading count={1} /></div>;
   if (state.status === 'error' || !state.product) return <div className="section-wrap"><CatalogError message={state.error || 'Không tìm thấy sản phẩm đã công bố.'} onRetry={() => setRetry((value) => value + 1)} /></div>;
-  const product = mergeCuratedProduct(curatedProduct, state.product);
+  const product = state.product;
   const cartProductId = product.id;
   const relatedProducts = curatedProduct
     ? (relatedProductsState.slug === slug ? relatedProductsState.products : [])
@@ -210,11 +185,7 @@ export default function ProductDetailPage() {
         </dl>
         <section className="product-story" aria-labelledby="product-story-title">
           <p className="eyebrow">GÓC CÂU CHUYỆN</p>
-          {product.storyText ? <>
-            <h2 id="product-story-title">Câu chuyện phía sau {product.name}</h2>
-            <p>{product.description}</p>
-            <a className="text-link" href="#product-story">Đọc câu chuyện sản phẩm <span aria-hidden="true">→</span></a>
-          </> : product.story ? <>
+          {product.story ? <>
             <h2 id="product-story-title">{product.story.title}</h2>
             <p>{product.story.summary || product.story.origin}</p>
             {product.story.slug && <Link className="text-link" to={`/cau-chuyen/${encodeURIComponent(product.story.slug)}`}>Đọc câu chuyện <span aria-hidden="true">→</span></Link>}
@@ -227,7 +198,6 @@ export default function ProductDetailPage() {
       </section>
     </div>
     {['quote', 'both'].includes(product.saleMode) && <div id="quote-form" className="product-detail__quote"><QuoteForm product={product} /></div>}
-    {product.storyText && <ProductEditorialStory product={product} />}
     <PublicProductReviews productId={cartProductId} />
     {relatedProducts.length > 0 && <section className="related-products"><div className="section-heading section-heading--split"><div><p className="eyebrow">KHÁM PHÁ THÊM</p><h2>Cùng dòng sản phẩm</h2></div><Link className="text-link" to="/san-pham">Xem tất cả <span aria-hidden="true">→</span></Link></div><div className="product-grid">{relatedProducts.map((item) => <ProductCard key={item.id} product={item} headingLevel="h3" />)}</div></section>}
   </div>;

@@ -22,6 +22,10 @@
   "contactStatus": ["new", "assigned", "contacted", "closed"],
   "appealStatus": ["pending", "approved", "rejected"],
   "reviewStatus": ["pending", "published", "hidden"],
+  "notificationCategory": ["order", "support", "account", "system", "promotion"],
+  "customerNotificationGroup": ["order", "promotion", "system"],
+  "voucherStatus": ["available", "redeemed", "revoked", "expired"],
+  "voucherDiscountType": ["fixed", "percent"],
   "nfcStatus": ["active", "revoked"],
   "webPaths": { "nfc": "/nfc/:publicId", "story": "/cau-chuyen/:slug" },
   "releaseDefaults": { "partialReturnsEnabled": false, "partialRefundsEnabled": false, "smtpRetryMaximum": 5, "codAutoExpiryEnabled": false }

@@ -1,0 +1,14 @@
+.voucher-wallet-list { display: grid; gap: 12px; margin-top: 18px; }
+.voucher-wallet-card { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px dashed #c7b98f; border-radius: 10px; background: #fcfaf4; }
+.voucher-wallet-card h2 { margin: 6px 0; color: var(--brand-deep-blue); font-size: 1.2rem; }
+.voucher-wallet-card p { margin: 5px 0; color: var(--text-secondary); }
+.voucher-wallet-card__code { display: grid; flex: 0 0 auto; justify-items: end; gap: 8px; }
+.voucher-wallet-card__code code { padding: 7px 10px; border-radius: 6px; background: #eaf0ed; color: var(--brand-blue); font-size: 1rem; font-weight: 800; letter-spacing: .08em; }
+.voucher-wallet-card--redeemed,
+.voucher-wallet-card--expired,
+.voucher-wallet-card--revoked { opacity: .68; }
+
+@media (max-width: 560px) {
+  .voucher-wallet-card { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .voucher-wallet-card__code { justify-items: start; }
+}

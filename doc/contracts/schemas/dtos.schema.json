@@ -94,6 +94,76 @@
       },
       "additionalProperties": false
     },
+    "adminStatistics": {
+      "type": "object",
+      "required": ["grossCollectedVnd", "refundedVnd", "netCollectedVnd", "comparison", "revenueTrend", "orderCounts", "topProducts"],
+      "properties": {
+        "grossCollectedVnd": { "type": "integer", "minimum": 0 },
+        "refundedVnd": { "type": "integer", "minimum": 0 },
+        "netCollectedVnd": { "type": "integer" },
+        "customerCount": { "type": ["integer", "null"], "minimum": 0, "description": "Customer accounts created in the selected date range; excludes staff and admin." },
+        "comparison": {
+          "type": "object",
+          "required": ["from", "to", "grossCollectedVnd", "deltaVnd", "changePercent"],
+          "properties": {
+            "from": { "type": "string", "format": "date-time" },
+            "to": { "type": "string", "format": "date-time" },
+            "grossCollectedVnd": { "type": "integer", "minimum": 0 },
+            "deltaVnd": { "type": "integer" },
+            "changePercent": { "type": ["number", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "revenueTrend": {
+          "type": "object",
+          "required": ["timezone", "daily", "comparisonDaily"],
+          "properties": {
+            "timezone": { "const": "Asia/Ho_Chi_Minh" },
+            "daily": { "type": "array", "maxItems": 367, "items": { "$ref": "#/$defs/adminRevenueDay" } },
+            "comparisonDaily": {
+              "type": "array", "maxItems": 367,
+              "items": {
+                "type": "object",
+                "required": ["date", "comparisonDate", "grossCollectedVnd"],
+                "properties": {
+                  "date": { "type": "string", "format": "date" },
+                  "comparisonDate": { "type": "string", "format": "date" },
+                  "grossCollectedVnd": { "type": "integer", "minimum": 0 }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "orderCounts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "topProducts": {
+          "type": "array", "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["productId", "sku", "name", "quantity", "orderCount"],
+            "properties": {
+              "productId": { "type": "string" },
+              "sku": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "integer", "minimum": 0 },
+              "orderCount": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "adminRevenueDay": {
+      "type": "object",
+      "required": ["date", "grossCollectedVnd"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "grossCollectedVnd": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
     "successEnvelope": {
       "type": "object",
       "required": ["data", "meta"],
@@ -280,7 +350,8 @@
         "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/checkoutItem" } },
         "recipient": { "$ref": "#/$defs/checkoutRecipient" },
         "addressId": { "type": "string" },
-        "paymentMethod": { "$ref": "enums.schema.json#/$defs/paymentMethod" }
+        "paymentMethod": { "$ref": "enums.schema.json#/$defs/paymentMethod" },
+        "voucherId": { "type": "string", "pattern": "^[A-Fa-f0-9]{24}$" }
       },
       "not": { "required": ["addressId", "recipient"] },
       "additionalProperties": false
@@ -293,6 +364,7 @@
         "recipient": { "$ref": "#/$defs/checkoutRecipient" },
         "addressId": { "type": "string" },
         "paymentMethod": { "$ref": "enums.schema.json#/$defs/paymentMethod" },
+        "voucherId": { "type": "string", "pattern": "^[A-Fa-f0-9]{24}$" },
         "note": { "type": "string", "maxLength": 1000 },
         "consent": { "type": "boolean", "const": true }
       },
@@ -403,8 +475,46 @@
     },
     "profileWrite": {
       "type": "object",
-      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "phone": { "type": "string", "maxLength": 30 } },
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "birthDate": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+        "gender": { "anyOf": [{ "type": "string", "enum": ["female", "male", "other", "prefer_not_to_say"] }, { "type": "null" }] }
+      },
       "minProperties": 1,
+      "additionalProperties": false
+    },
+    "changePassword": {
+      "type": "object", "required": ["currentPassword", "newPassword"],
+      "properties": { "currentPassword": { "type": "string", "minLength": 1, "maxLength": 128 }, "newPassword": { "type": "string", "minLength": 12, "maxLength": 128 } },
+      "additionalProperties": false
+    },
+    "emailChange": {
+      "type": "object", "required": ["email", "currentPassword"],
+      "properties": { "email": { "type": "string", "format": "email", "maxLength": 254 }, "currentPassword": { "type": "string", "minLength": 1, "maxLength": 128 } },
+      "additionalProperties": false
+    },
+    "emailChangeVerify": {
+      "type": "object", "required": ["challengeId", "verificationCode"],
+      "properties": { "challengeId": { "type": "string", "minLength": 20, "maxLength": 64, "pattern": "^[A-Za-z0-9_-]+$" }, "verificationCode": { "type": "string", "pattern": "^[0-9]{6}$" } },
+      "additionalProperties": false
+    },
+    "adminVoucherWrite": {
+      "type": "object", "required": ["email", "code", "title", "discountType", "discountValue", "expiresAt"],
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "code": { "type": "string", "minLength": 3, "maxLength": 40, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,39}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "discountType": { "$ref": "enums.schema.json#/$defs/voucherDiscountType" },
+        "discountValue": { "type": "integer", "minimum": 1 },
+        "maxDiscountVnd": { "type": "integer", "minimum": 1 },
+        "minSubtotalVnd": { "type": "integer", "minimum": 0 },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "allOf": [
+        { "if": { "properties": { "discountType": { "const": "percent" } }, "required": ["discountType"] }, "then": { "properties": { "discountValue": { "maximum": 100 } } } },
+        { "if": { "properties": { "discountType": { "const": "fixed" } }, "required": ["discountType"] }, "then": { "not": { "required": ["maxDiscountVnd"] } } }
+      ],
       "additionalProperties": false
     },
     "locationReverse": {
@@ -558,6 +668,12 @@
       "type": "object",
       "required": ["role", "reason", "expectedVersion"],
       "properties": { "role": { "$ref": "enums.schema.json#/$defs/role" }, "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }, "expectedVersion": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "adminPasswordResetRequest": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": { "reason": { "type": "string", "minLength": 1, "maxLength": 1000 } },
       "additionalProperties": false
     },
     "appealDecision": {

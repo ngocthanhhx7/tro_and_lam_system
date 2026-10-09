@@ -49,7 +49,7 @@ function ticketParticipant(identity, guestScopes = ['guest.order.read']) {
     if (!sessionToken) return identity.requireGuestOrderProof(guestScopes)(req, res, next);
     return identity.requireActor(req, res, (error) => {
       if (error) return next(error);
-      const capability = ['staff', 'admin'].includes(req.actor?.role) ? 'support.operate' : 'self.tickets';
+      const capability = req.actor?.role === 'staff' ? 'support.operate' : 'self.tickets';
       return identity.requireCapability(capability)(req, res, next);
     });
   };

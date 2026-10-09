@@ -7,6 +7,7 @@ import {
   retryableCheckoutKey,
 } from '../../services/commerce/commerce.api.js';
 import PaymentPanel from '../../components/payment/PaymentPanel.jsx';
+import { voucherApi } from '../../services/commerce/voucher.api.js';
 import { formatMoney } from '../commerce/commerce.format.js';
 import '../commerce/commerce.css';
 
@@ -26,6 +27,9 @@ export default function CheckoutPage() {
   const { user, loading: authLoading, errorCode: authErrorCode } = useAuth();
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
+  const [voucherLoadError, setVoucherLoadError] = useState('');
+  const [voucherId, setVoucherId] = useState('');
   const [addressChoice, setAddressChoice] = useState('manual');
   const [recipient, setRecipient] = useState(() => blankRecipient(user));
   const [paymentMethod, setPaymentMethod] = useState('cod');
@@ -66,10 +70,28 @@ export default function CheckoutPage() {
           setAddressError(requestError);
         }
         setRecipient((current) => ({ ...current, ...blankRecipient(user) }));
+        if (user.role === 'customer') {
+          setVoucherId('');
+          try {
+            const savedVouchers = await voucherApi.listMine();
+            setVouchers(Array.isArray(savedVouchers.data) ? savedVouchers.data : []);
+            setVoucherLoadError('');
+          } catch (requestError) {
+            setVouchers([]);
+            setVoucherLoadError(requestError.message || 'Chưa thể tải voucher của bạn.');
+          }
+        } else {
+          setVouchers([]);
+          setVoucherId('');
+          setVoucherLoadError('');
+        }
       } else {
         setAddresses([]);
         setAddressChoice('manual');
         setRecipient(blankRecipient(null));
+        setVouchers([]);
+        setVoucherId('');
+        setVoucherLoadError('');
       }
     } catch (requestError) {
       setError(requestError);
@@ -96,8 +118,9 @@ export default function CheckoutPage() {
         ...(recipient.province.trim() ? {} : { province: undefined }),
       },
     }),
+    ...(voucherId ? { voucherId } : {}),
     paymentMethod,
-  }), [items, selectedAddressId, recipient, user?.email, paymentMethod]);
+  }), [items, selectedAddressId, recipient, user?.email, paymentMethod, voucherId]);
 
   function updateRecipient(event) {
     const { name, value } = event.target;
@@ -227,6 +250,14 @@ export default function CheckoutPage() {
             <option value="payos">Thanh toán trực tuyến qua PayOS (nếu đang được cấu hình)</option>
           </select>
         </label>
+        {user?.role === 'customer' && <label className="commerce-field" htmlFor="checkout-voucher"><span>Voucher</span>
+          <select id="checkout-voucher" value={voucherId} onChange={(event) => { setVoucherId(event.target.value); setQuote(null); }}>
+            <option value="">Không dùng voucher</option>
+            {vouchers.filter((voucher) => voucher.status === 'available').map((voucher) => <option key={voucher.id} value={voucher.id}>{voucher.code} · {voucher.title}</option>)}
+          </select>
+          {voucherLoadError && <small>{voucherLoadError}</small>}
+          <small>Voucher còn hiệu lực và điều kiện tối thiểu sẽ được kiểm tra lại khi tính phí.</small>
+        </label>}
         <label className="commerce-field" htmlFor="checkout-note"><span>Ghi chú <small>(không bắt buộc)</small></span><textarea id="checkout-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} rows={3} /></label>
         <label className="commerce-check"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span>Tôi xác nhận thông tin nhận hàng và yêu cầu xử lý đơn hàng này.</span></label>
         {error && <p className="commerce-error" role="alert">{messageFor(error, 'Không thể hoàn tất thao tác.')}{error.requestId && <small>Mã yêu cầu: {error.requestId}</small>}</p>}
@@ -253,6 +284,7 @@ export default function CheckoutPage() {
         {quote?.warnings?.length > 0 && <div className="commerce-error" role="alert"><strong>Chưa đủ tồn kho</strong><p>Giỏ hàng cần được cập nhật trước khi đặt.</p></div>}
         <dl className="commerce-totals">
           <div><dt>Tạm tính</dt><dd>{quote ? formatMoney(quote.subtotalVnd) : '—'}</dd></div>
+          <div><dt>Giảm giá voucher</dt><dd>{quote ? `−${formatMoney(quote.discountVnd || 0)}` : '—'}</dd></div>
           <div><dt>Phí giao hàng</dt><dd>{quote ? formatMoney(quote.shippingFeeVnd) : 'Chưa xác định'}</dd></div>
           <div className="commerce-total"><dt>Tổng cộng</dt><dd>{quote ? formatMoney(quote.totalVnd) : '—'}</dd></div>
         </dl>

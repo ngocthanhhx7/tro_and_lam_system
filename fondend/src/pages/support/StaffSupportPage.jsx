@@ -168,9 +168,9 @@ function TicketQueue() {
   </section>;
 }
 
-export default function StaffSupportPage() {
+export default function StaffSupportPage({ returnsOnly = false }) {
   const { id } = useParams();
-  const [tab, setTab] = useState('tickets');
+  const [tab, setTab] = useState(returnsOnly ? 'returns' : 'tickets');
   if (id) return <section className="support-page"><StaffThread ticketId={id} /></section>;
   return <section className="support-page"><header className="support-intro support-intro--split"><div><p className="support-eyebrow">TRO &amp; LAM · VẬN HÀNH</p><h1>Hỗ trợ khách hàng</h1><p>Tiếp nhận yêu cầu, trao đổi với khách và ghi chú nội bộ theo đúng quyền.</p></div><nav className="support-tabs" aria-label="Các hàng đợi"><button type="button" className={tab === 'tickets' ? 'is-active' : ''} onClick={() => setTab('tickets')}>Yêu cầu hỗ trợ</button><button type="button" className={tab === 'returns' ? 'is-active' : ''} onClick={() => setTab('returns')}>Đổi trả</button></nav></header>
     {tab === 'tickets' ? <TicketQueue /> : <ReturnsQueue />}</section>;

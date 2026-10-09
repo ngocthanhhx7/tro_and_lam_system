@@ -23,6 +23,9 @@
     "nfcStatus": { "type": "string", "enum": ["active", "revoked"] },
     "idempotencyState": { "type": "string", "enum": ["processing", "succeeded"] },
     "outboxState": { "type": "string", "enum": ["pending", "processing", "sent", "failed"] },
-    "notificationCategory": { "type": "string", "enum": ["order", "support", "account", "system"] }
+    "notificationCategory": { "type": "string", "enum": ["order", "support", "account", "system", "promotion"] },
+    "customerNotificationGroup": { "type": "string", "enum": ["order", "promotion", "system"] },
+    "voucherStatus": { "type": "string", "enum": ["available", "redeemed", "revoked", "expired"] },
+    "voucherDiscountType": { "type": "string", "enum": ["fixed", "percent"] }
   }
 }

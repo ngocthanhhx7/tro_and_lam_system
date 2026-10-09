@@ -6,6 +6,7 @@ import { createCatalogRouter } from './routes/catalog.routes.js';
 import { createCommerceRouter } from './routes/commerce/commerce.routes.js';
 import { createPaymentsRouter } from './routes/payments/payments.routes.js';
 import { createOperationsRouter } from './routes/operations.routes.js';
+import { createVoucherRouter } from './routes/voucher.routes.js';
 import { createContentRouter } from './content/content.routes.js';
 import { createSupportRouter } from './support/support.routes.js';
 import { createLocalPrivateSupportStorage } from './support/local-private-storage.js';
@@ -17,6 +18,7 @@ import { createCatalogService } from './services/catalog/catalog.service.js';
 import { createMongooseCatalogRepository } from './services/catalog/mongoose-catalog.repository.js';
 import { createLocalMediaProvider, createUnavailableMediaProvider } from './services/catalog/media-provider.js';
 import { createCommerceService } from './services/commerce/commerce.service.js';
+import { createVoucherService } from './services/commerce/voucher.service.js';
 import { createShippingZoneQuotePort } from './services/commerce/shipping-zones.js';
 import { createPaymentsService } from './services/payments/payments.service.js';
 import { createOperationsPorts, createOutboxPayloadCipher } from './services/operations/index.js';
@@ -33,6 +35,8 @@ import { createSmtpProvider } from './services/integrations/smtp/smtp.provider.j
 import { createNodemailerTransport } from './services/integrations/smtp/nodemailer.transport.js';
 import { User } from './models/identity/user.model.js';
 import { Order } from './models/commerce/order.model.js';
+import { Inventory } from './models/commerce/inventory.model.js';
+import { Voucher } from './models/commerce/voucher.model.js';
 import { CodCollection } from './models/commerce/cod-collection.model.js';
 import { PaymentEvent } from './models/payments/payment-event.model.js';
 import { Refund } from './models/payments/refund.model.js';
@@ -180,11 +184,14 @@ export async function createDomainComposition(env) {
   const businessSettingsService = createBusinessSettingsService({ BusinessSetting, auditService });
   const dashboardService = createDashboardService({
     Order,
+    User,
+    Inventory,
     Ticket,
     Contact,
     Notification,
     financeLedger: createFinanceLedgerPort({ PaymentEvent, CodCollection, Refund }),
   });
+  const voucherService = createVoucherService({ Voucher, User, auditPort: operationsPorts, notificationService });
   const outboxService = createOutboxService({ OutboxEvent, encryptMailPayload: outboxCipher.encrypt });
 
   const contentRouter = createContentRouter({
@@ -241,6 +248,7 @@ export async function createDomainComposition(env) {
       payment: paymentBridge,
       identity: commerceIdentity,
       refunds: cancellationRefundPort,
+      vouchers: voucherService,
     },
     config: commerceConfig,
   });
@@ -271,6 +279,7 @@ export async function createDomainComposition(env) {
   });
 
   const accountRouter = createAccountRouter({ ports: { accountService, identityMiddleware: identity }, config });
+  const voucherRouter = createVoucherRouter({ identity, service: voucherService });
   const commerceRouter = createCommerceRouter({
     ports: {
       commerceService,
@@ -360,6 +369,7 @@ export async function createDomainComposition(env) {
   const domainRouters = [
     { prefix: '', router: identityRouter },
     { prefix: '', router: accountRouter },
+    { prefix: '', router: voucherRouter },
     { prefix: '', router: catalogRouter },
     { prefix: '', router: contentRouter },
     { prefix: '', router: commerceRouter },

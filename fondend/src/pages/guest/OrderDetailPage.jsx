@@ -77,6 +77,7 @@ export default function OrderDetailPage() {
         <dl className="commerce-totals">
           <div><dt>Tạm tính</dt><dd>{formatMoney(order.subtotalVnd)}</dd></div>
           <div><dt>Phí giao hàng</dt><dd>{formatMoney(order.shippingFeeVnd)}</dd></div>
+          {order.voucher?.code && <div><dt>Voucher</dt><dd>{order.voucher.code}</dd></div>}
           <div><dt>Giảm giá</dt><dd>{formatMoney(order.discountVnd)}</dd></div>
           <div className="commerce-total"><dt>Tổng cộng</dt><dd>{formatMoney(order.totalVnd)}</dd></div>
         </dl>

@@ -67,13 +67,14 @@ function validateRecipient(recipient) {
 }
 
 function validateCheckout(body, { create = false } = {}) {
-  const allowed = ['items', 'recipient', 'addressId', 'paymentMethod', ...(create ? ['note', 'consent'] : [])];
+  const allowed = ['items', 'recipient', 'addressId', 'paymentMethod', 'voucherId', ...(create ? ['note', 'consent'] : [])];
   strict(body, allowed, 'body');
   required(body, ['items', 'paymentMethod', ...(create ? ['consent'] : [])], 'body');
   validateItems(body.items);
   if (!['cod', 'payos'].includes(body.paymentMethod)) invalid('paymentMethod');
   if ((body.addressId === undefined) === (body.recipient === undefined)) invalid('recipient', 'Gửi địa chỉ đã lưu hoặc thông tin người nhận');
   if (body.addressId !== undefined) boundedString(body.addressId, 'addressId', { min: 24, max: 24, pattern: OBJECT_ID });
+  if (body.voucherId !== undefined) boundedString(body.voucherId, 'voucherId', { min: 24, max: 24, pattern: OBJECT_ID });
   if (body.recipient !== undefined) validateRecipient(body.recipient);
   if (create) {
     if (body.consent !== true) invalid('consent', 'Cần xác nhận điều khoản đặt hàng');
@@ -154,6 +155,7 @@ function pagination(query) {
   if (query.status && !ORDER_STATUSES.has(query.status)) invalid('status');
   if (query.paymentStatus && !PAYMENT_STATUSES.has(query.paymentStatus)) invalid('paymentStatus');
   if (query.queue && !ORDER_STATUSES.has(query.queue)) invalid('queue');
+  if (query.sort && !['oldest', 'newest'].includes(query.sort)) invalid('sort');
   if (query.q !== undefined) boundedString(query.q, 'q', { max: 120 });
   for (const field of ['from', 'to']) {
     if (query[field] !== undefined && !Number.isFinite(Date.parse(query[field]))) invalid(field);
@@ -161,6 +163,7 @@ function pagination(query) {
   if (query.from && query.to && Date.parse(query.from) > Date.parse(query.to)) invalid('query', 'Khoảng thời gian chưa hợp lệ');
   return {
     page, limit,
+    ...(query.sort ? { sort: query.sort } : {}),
     ...(query.status ? { status: query.status } : {}),
     ...(query.paymentStatus ? { paymentStatus: query.paymentStatus } : {}),
     ...(query.queue ? { queue: query.queue } : {}),

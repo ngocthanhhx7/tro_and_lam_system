@@ -65,7 +65,7 @@ Logo hiện có là raster với nền và chữ chi tiết, không phải SVG t
 
 - `PublicLayout`: announcement tùy dữ liệu; header logo/nav (Bộ sưu tập, Câu chuyện, Quà tặng doanh nghiệp, Liên hệ), search, tài khoản, giỏ; footer thông tin đã xác minh/chính sách/tra cứu. Mobile menu drawer khóa focus, đóng Escape/overlay, trả focus nút mở.
 - `AccountLayout`: sidebar tài khoản hoặc tabs/mobile drawer; breadcrumb; vùng thông báo. Public header vẫn dùng được. Route auth không làm mất giỏ guest.
-- `StaffLayout`: sidebar dashboard/đơn hàng/hỗ trợ/báo giá/thông báo, header user; table/filter/pagination; admin chuyển được vào workspace staff.
+- `StaffLayout`: sidebar dashboard/đơn hàng/hỗ trợ/báo giá/thông báo, header user; table/filter/pagination; chỉ role staff mở được workspace này.
 - `AdminLayout`: thêm sản phẩm, users, nội dung, NFC, audit logs và cấu hình được phép. Chỉ hiển thị menu theo quyền nhưng server mới là nơi quyết định quyền thật.
 - Shared: Button, Input, Select, Checkbox, Textarea, Dialog, Drawer, Badge, Toast, Alert, Skeleton, EmptyState, Pagination, DataTable, ProductCard, Money, OrderTimeline, FileUpload, NotificationPanel.
 - Không dùng toast làm phản hồi duy nhất cho lỗi form. Field error đặt sát input; summary lỗi liên kết đến field; focus field lỗi đầu sau submit. `aria-live` cho kết quả gửi/đổi trạng thái.
@@ -125,11 +125,11 @@ Table desktop có sticky header, filter rõ và pagination server. Mobile chuy�
 
 ## 8. Admin workspace và appeal bị khóa
 
-Admin có toàn bộ nghiệp vụ staff qua quyền server. Không fork UI staff thành bản admin trùng code.
+Admin và staff có workspace riêng, được server capability kiểm tra độc lập. Không fork UI staff thành bản admin trùng code.
 
 | ID / route | Nội dung và thao tác | Trạng thái/điều kiện |
 | --- | --- | --- |
-| ADM-01 `/admin` | Overview đơn/doanh thu/catalog/ticket/appeal, liên kết staff | KPI theo ngày/timezone, dữ liệu server; phân biệt doanh thu nhận tiền và doanh số tạo đơn |
+| ADM-01 `/admin` | Overview quản trị, số liệu đơn/doanh thu và liên kết tới các màn admin | KPI theo ngày/timezone qua admin API; không gọi staff dashboard/queue API |
 | ADM-02 `/admin/products` + `/new` + `/:id/edit` | Xem/thêm/sửa/archive, categories/line, mỗi product một SKU/price/stock, media, care/story, buy/quote/both, draft/published | Validate unique SKU/slug; buy/both phải có giá hợp lệ; báo giá không để 0đ; soft-delete sản phẩm được đơn tham chiếu; preview nội dung và lỗi field |
 | ADM-03 `/admin/users` + `/:id` | Tìm/xem/thêm/sửa thông tin cho phép; role customer/staff/admin; khóa/mở khóa với reason; lịch sử | Không đọc password; không tự đặt password rõ/gửi mail password; invite/reset an toàn. Không hạ quyền/khóa admin cuối; thao tác role/status có confirm/re-auth theo policy, audit; refresh quyền ngay |
 | ADM-04 `/admin/appeals` + `/:id` | Queue pending, đọc lý do/tài liệu, request bổ sung, approve/reject reason, mở khóa qua quyết định explicit | Không approve tự động bởi Gemini; tránh xử lý lặp; notify quyết định; audit quyết định và thay đổi user tách rõ |
@@ -163,7 +163,7 @@ Tiêu chí nghiệm thu UI:
 
 1. Mọi route trong actor scope có page/loading/error/empty và guard đúng; link/CTA đi đến đích có thật.
 2. Product buy/quote/both không lẫn hành vi; guest checkout không bắt đăng ký; lookup có verification và sau xác minh hiển thị đầy đủ chi tiết đơn dành cho khách; payment lấy trạng thái server.
-3. Customer address/ticket/review/order chỉ lấy dữ liệu chủ sở hữu; staff/admin tuân scope server; blocked appeal truy cập được bằng flow giới hạn.
+3. Customer address/ticket/review/order chỉ lấy dữ liệu chủ sở hữu; staff thao tác theo quyền staff; admin chỉ xem/sửa dữ liệu thuộc workspace admin và self-service theo ownership; blocked appeal truy cập được bằng flow giới hạn.
 4. Component shared/token được dùng thống nhất; logo thật không sai tỷ lệ; không assets lấy trái phép từ website tham khảo.
 5. Có kiểm thử desktop/mobile, keyboard, 200% zoom và contrast; có ảnh nghiệm thu từ sản phẩm triển khai, không ghi nhận screenshot nguồn là screenshot sản phẩm.
 6. Gemini chỉ hỗ trợ soạn/tóm tắt theo dữ liệu được phép, UI gắn nhãn gợi ý; người xử lý duyệt nội dung và quyết định tài khoản/tài chính.

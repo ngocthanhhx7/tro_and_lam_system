@@ -5,7 +5,7 @@ All API paths below are mounted under `/api/v1` by the integrator.
 ## Routes
 
 - `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, and `PATCH /notifications/read-all` use the signed-in owner's inbox.
-- `GET /staff/dashboard` is available to staff and admin.
+- `GET /staff/dashboard` is available to staff only. The admin overview uses admin statistics and does not call staff queue endpoints.
 - `GET /admin/audit-logs`, `GET /admin/statistics`, `GET /admin/settings`, and `PATCH /admin/settings` are admin only.
 - The frontend route fragment provides `/tai-khoan/thong-bao`, `/staff`, `/admin`, `/admin/logs`, and `/admin/settings`; the shared router and layouts remain integrator owned.
 

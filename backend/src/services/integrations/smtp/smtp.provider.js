@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { ServiceError } from '../../../utils/serviceError.js';
 
 export const MAIL_TEMPLATE_KEYS = Object.freeze([
-  'verify_email', 'reset_password', 'order_access_code', 'order_confirmation',
+  'verify_email', 'reset_password', 'change_email', 'order_access_code', 'order_confirmation',
   'order_update', 'ticket_reply', 'appeal_access_code', 'appeal_update',
   'account_status_update', 'new_lead', 'user_invitation',
 ]);
@@ -10,6 +10,7 @@ export const MAIL_TEMPLATE_KEYS = Object.freeze([
 const TEMPLATE_COPY = Object.freeze({
   verify_email: { subject: 'Xác minh địa chỉ email', title: 'Xác minh email TRO & LAM', key: 'actionUrl' },
   reset_password: { subject: 'Yêu cầu đặt lại mật khẩu', title: 'Đặt lại mật khẩu', key: 'actionUrl' },
+  change_email: { subject: 'Xác minh email mới TRO & LAM', title: 'Xác minh email mới', key: 'verificationCode' },
   order_access_code: { subject: 'Mã xác minh tra cứu đơn hàng', title: 'Mã xác minh đơn hàng', key: 'code' },
   order_confirmation: { subject: 'TRO & LAM đã tiếp nhận đơn hàng', title: 'Đã tiếp nhận đơn hàng', key: 'orderCode' },
   order_update: { subject: 'Cập nhật đơn hàng TRO & LAM', title: 'Cập nhật đơn hàng', key: 'orderCode' },
@@ -127,6 +128,19 @@ export function renderMailTemplate(templateKey, variables = {}, { publicWebUrl }
       dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
     }).format(expiresAt);
     content = `${name}Mã xác minh kháng nghị của bạn: ${code}. Mã có hiệu lực đến ${formattedExpiry}.`;
+  } else if (templateKey === 'change_email') {
+    const name = variables.name === undefined ? '' : `Xin chào ${plainValue(variables.name, 'name', 120)}. `;
+    const code = plainValue(variables.verificationCode, 'verificationCode', 6);
+    const expiry = plainValue(variables.expiresAt, 'expiresAt', 40);
+    if (!/^\d{6}$/.test(code)) throw new ServiceError(400, 'VALIDATION_ERROR', 'Mã xác minh email không hợp lệ');
+    const expiresAt = new Date(expiry);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt.toISOString() !== expiry) {
+      throw new ServiceError(400, 'VALIDATION_ERROR', 'Thời hạn mã xác minh không hợp lệ');
+    }
+    const formattedExpiry = new Intl.DateTimeFormat('vi-VN', {
+      dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
+    }).format(expiresAt);
+    content = `${name}Mã xác minh email mới của bạn: ${code}. Mã có hiệu lực đến ${formattedExpiry}. Nếu bạn không yêu cầu, hãy bỏ qua thư này.`;
   } else if (templateKey === 'appeal_update') {
     const reviewNote = variables.reviewNote === undefined ? '' : ` Ghi chú: ${bodyValue(variables.reviewNote, 'reviewNote')}`;
     const appealStatus = plainValue(variables.appealStatus, 'appealStatus', 80);

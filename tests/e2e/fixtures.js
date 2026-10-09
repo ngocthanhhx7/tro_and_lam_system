@@ -14,6 +14,16 @@ export const USERS = Object.freeze({
     email: 'other.customer.p11@example.test',
     role: 'customer',
   }),
+  profileCustomer: Object.freeze({
+    name: 'P11 Profile Flow Customer',
+    email: 'profile.customer.p11@example.test',
+    role: 'customer',
+  }),
+  adminResetCustomer: Object.freeze({
+    name: 'P11 Admin Reset Customer',
+    email: 'admin.reset.customer.p11@example.test',
+    role: 'customer',
+  }),
   staff: Object.freeze({
     name: 'P11 Synthetic Staff',
     email: 'staff.p11@example.test',

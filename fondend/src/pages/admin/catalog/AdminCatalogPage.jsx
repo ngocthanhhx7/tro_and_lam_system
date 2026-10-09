@@ -11,6 +11,8 @@ import {
   uploadCatalogImage,
 } from '../../../services/catalog/catalogApi.js';
 import { CatalogError } from '../../../components/catalog/CatalogStates.jsx';
+import Icon from '../../../components/catalog/Icon.jsx';
+import { formatMoney } from '../../commerce/commerce.format.js';
 
 const emptyProduct = () => ({ name: '', slug: '', sku: '', line: 'lifestyle', categoryId: '', description: '', material: '', dimensions: '', careInstructions: '', images: [], saleMode: 'quote', status: 'draft', featured: false });
 const emptyCategory = () => ({ name: '', slug: '', description: '', sortOrder: 0, status: 'draft' });
@@ -41,6 +43,10 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
   const isCategories = initialTab === 'categories' || location.pathname === '/admin/categories';
   const isNewProduct = location.pathname.endsWith('/new');
   const [products, setProducts] = useState([]);
+  const [filters, setFilters] = useState({ q: '', line: '', status: '' });
+  const [submitted, setSubmitted] = useState(filters);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [categories, setCategories] = useState([]);
   const [catalogState, setCatalogState] = useState({ status: 'loading', error: '' });
   const [productDraft, setProductDraft] = useState(emptyProduct());
@@ -59,11 +65,12 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
     let live = true;
     const controller = new AbortController();
     Promise.all([
-      listAdminProducts({ page: 1, limit: 100 }, { signal: controller.signal }),
+      listAdminProducts({ page, limit: 20, ...submitted }, { signal: controller.signal }),
       listAdminCategories({ signal: controller.signal }),
     ]).then(([productResponse, categoryResponse]) => {
       if (!live) return;
       setProducts(productResponse.data || []);
+      setPagination(productResponse.meta?.pagination || null);
       setCategories(categoryResponse.data || []);
       setCatalogState({ status: 'ready', error: '' });
     }).catch((error) => {
@@ -71,7 +78,7 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
       setCatalogState({ status: 'error', error: messageFor(error) });
     });
     return () => { live = false; controller.abort(); };
-  }, [retry]);
+  }, [page, retry, submitted]);
 
   useEffect(() => {
     if (isCategories) return;
@@ -211,10 +218,15 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
 
   return <main className="admin-catalog section-wrap">
     <div className="admin-catalog__header">
-      <div><p className="eyebrow">KHU VỰC QUẢN TRỊ</p><h1>Danh mục sản phẩm</h1><p>Chỉ admin đã xác thực mới có thể thay đổi thông tin công khai.</p></div>
-      <Link className="button button--outline" to="/san-pham" target="_blank" rel="noreferrer">Xem danh mục công khai <span aria-hidden="true">↗</span></Link>
+      <div><p className="eyebrow">TRO &amp; LAM · QUẢN TRỊ</p><h1>{isCategories ? 'Quản lý danh mục' : 'Quản lý sản phẩm'}</h1><p>Quản lý tác phẩm, bộ sưu tập và nội dung sản phẩm.</p></div>
+      {!isCategories && <Link className="button button--primary" to="/admin/products/new"><Icon name="plus" size={17} /> Thêm sản phẩm</Link>}
     </div>
     <nav className="admin-tabs" aria-label="Quản lý danh mục"><Link className={!isCategories ? 'is-active' : ''} to="/admin/products">Sản phẩm</Link><Link className={isCategories ? 'is-active' : ''} to="/admin/categories">Danh mục</Link></nav>
+    {!isCategories && <form className="operations-toolbar" onSubmit={(event) => { event.preventDefault(); setPage(1); setSubmitted({ ...filters }); setCatalogState({ status: 'loading', error: '' }); }}>
+      <label>Tìm tác phẩm<input type="search" placeholder="Tên tác phẩm hoặc mã SKU" maxLength={120} value={filters.q} onChange={(event) => setFilters({ ...filters, q: event.target.value })} /></label>
+      <label>Bộ sưu tập<select value={filters.line} onChange={(event) => setFilters({ ...filters, line: event.target.value })}><option value="">Tất cả</option><option value="lifestyle">Lifestyle</option><option value="diplomacy">Diplomacy</option></select></label>
+      <label>Trạng thái<select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}><option value="">Tất cả</option><option value="published">Đã công bố</option><option value="draft">Bản nháp</option><option value="archived">Đã lưu trữ</option></select></label><button className="operations-button" type="submit">Lọc</button>
+    </form>}
     {catalogState.status === 'error' && <CatalogError message={catalogState.error} onRetry={() => { setCatalogState({ status: 'loading', error: '' }); setRetry((value) => value + 1); }} />}
     {catalogState.status === 'loading' && <p className="admin-loading" role="status">Đang tải danh mục quản trị…</p>}
     {catalogState.status === 'ready' && <div className="admin-catalog__layout">
@@ -240,11 +252,12 @@ export default function AdminCatalogPage({ initialTab = 'products' }) {
       </> : <>
         <section className="admin-list" aria-labelledby="admin-product-list-title">
           <div className="section-heading"><p className="eyebrow">PRODUCTS</p><h2 id="admin-product-list-title">Sản phẩm</h2></div>
-          <Link className="button button--primary" to="/admin/products/new">Thêm sản phẩm</Link>
-          <ul className="admin-record-list">{products.map((product) => <li key={product.id}>
-            <Link className="admin-record" to={`/admin/products/${product.id}/edit`}><span><strong>{product.name}</strong><small>{product.sku} · {product.status}</small></span><span aria-hidden="true">→</span></Link>
-            <button className="icon-button admin-record__archive" type="button" onClick={() => handleProductArchive(product)} disabled={product.status === 'archived'} aria-label={`Lưu trữ sản phẩm ${product.name}`}>⌫</button>
-          </li>)}</ul>
+          <div className="workspace-table-wrap"><table><thead><tr><th>Tác phẩm</th><th>Bộ sưu tập</th><th>Giá bán</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>{products.map((product) => <tr key={product.id}>
+            <td><Link className="admin-product-cell" to={`/admin/products/${product.id}/edit`}>{product.images[0]?.url ? <img src={product.images[0].url} alt="" /> : <Icon name="pottery" size={32} />}<span><strong>{product.name}</strong><small>{product.sku}</small></span></Link></td>
+            <td>{product.line === 'lifestyle' ? 'Lifestyle' : 'Diplomacy'}</td><td>{product.priceVnd ? formatMoney(product.priceVnd) : 'Theo báo giá'}</td><td><span className={`workspace-badge workspace-badge--${product.status === 'published' ? 'paid' : 'pending'}`}>{({ draft: 'Bản nháp', published: 'Đã công bố', archived: 'Đã lưu trữ' })[product.status]}</span></td>
+            <td><Link to={`/admin/products/${product.id}/edit`}>Chỉnh sửa</Link><button className="icon-button admin-record__archive" type="button" onClick={() => handleProductArchive(product)} disabled={product.status === 'archived'} aria-label={`Lưu trữ sản phẩm ${product.name}`}><Icon name="history" size={16} /></button></td>
+          </tr>)}</tbody></table></div>
+          {pagination && <nav className="operations-pagination" aria-label="Phân trang sản phẩm"><span>{pagination.total} tác phẩm · Trang {page} / {pagination.totalPages || 1}</span><div><button type="button" className="operations-button operations-button--quiet" disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</button><button type="button" className="operations-button operations-button--quiet" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>Sau</button></div></nav>}
           {!productEditorOpen && formError && <p className="form-feedback form-feedback--error" role="alert">{formError}</p>}
           {!productEditorOpen && formMessage && <p className="form-feedback form-feedback--success" role="status">{formMessage}</p>}
           {!products.length && <p>Chưa có sản phẩm. Tạo bản nháp sau khi được cung cấp mã SKU và nội dung đã xác nhận.</p>}

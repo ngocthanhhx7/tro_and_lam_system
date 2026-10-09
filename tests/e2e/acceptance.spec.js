@@ -16,6 +16,7 @@ import { Review } from '../../backend/src/reviews/review.models.js';
 import { AccountAppeal } from '../../backend/src/models/identity/account-appeal.model.js';
 import { AuthChallenge } from '../../backend/src/models/identity/auth-challenge.model.js';
 import { AuthSession } from '../../backend/src/models/identity/session.model.js';
+import { hashToken } from '../../backend/src/services/identity/identity.security.js';
 import { User } from '../../backend/src/models/identity/user.model.js';
 import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
 import { Contact, Ticket, TicketMessage } from '../../backend/src/support/support.models.js';
@@ -59,8 +60,16 @@ async function login(page, user) {
   await page.getByLabel('Email', { exact: true }).fill(user.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  const destination = user.role === 'customer' ? 'Hồ sơ của tôi' : 'Bảng công việc';
-  await expect(page.getByRole('heading', { name: destination, exact: true })).toBeVisible();
+  if (user.role === 'customer') {
+    await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+  } else if (user.role === 'staff') {
+    await expect(page.getByRole('heading', { name: 'Bảng công việc', level: 1, exact: true })).toBeVisible();
+  } else if (user.role === 'admin') {
+    await expect(page).toHaveURL(/\/admin$/u);
+    await expect(page.getByRole('heading', { name: 'Tổng quan vận hành', level: 1, exact: true })).toBeVisible();
+  } else {
+    throw new Error(`Unsupported E2E fixture role: ${user.role}`);
+  }
 }
 
 async function inspectP11Database(read) {
@@ -376,7 +385,7 @@ test('home tells the TRO & LAM story, introduces both lines and links to their p
   await expect(page.locator('.atelier-hero video')).toHaveJSProperty('paused', true);
 });
 
-test('product gallery labels each owner photo, derived crop and AI concept accurately', async ({ page }) => {
+test('product gallery keeps media disclosures outside the image', async ({ page }) => {
   const product = {
     id: '64f000000000000000000031',
     slug: 'media-source-fixture',
@@ -443,11 +452,55 @@ test('product gallery labels each owner photo, derived crop and AI concept accur
   await page.goto('/san-pham');
   const productCard = page.locator('.product-card');
   await expect(productCard).toHaveCount(1);
-  await expect(productCard.locator('.product-card__tag--provided')).toHaveText('Ảnh do chủ dự án cung cấp');
+  await expect(productCard.locator('.product-card__tag--provided, .product-card__tag--concept, .product-card__tag--derived')).toHaveCount(0);
+});
+
+test('product detail uses only catalog media and published story data', async ({ page }) => {
+  const product = {
+    id: '64f000000000000000000041',
+    slug: 'binh-thien-nga',
+    name: 'Bình Thiên Nga',
+    line: 'diplomacy',
+    categoryId: '64f000000000000000000042',
+    description: 'Mô tả thử nghiệm lấy từ catalog đã công bố.',
+    material: '',
+    images: [{
+      url: '/assets/products/owner-provided/binh-thien-nga-01.webp',
+      alt: 'Bình Thiên Nga, ảnh sản phẩm do chủ dự án cung cấp.',
+      sortOrder: 0,
+    }],
+    saleMode: 'quote',
+    featured: false,
+    availableForPurchase: false,
+    stockLabel: 'Yêu cầu tư vấn',
+  };
+  await page.route('**/api/v1/products/binh-thien-nga', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ data: product, meta: { requestId: 'p11-published-product-only' } }),
+  }));
+
+  await page.goto('/san-pham/binh-thien-nga');
+  await expect(page.getByRole('heading', { level: 1, name: product.name, exact: true })).toBeVisible();
+  await expect(page.locator('.product-detail__description')).toHaveText(product.description);
+  await expect(page.locator('.product-gallery__main img')).toHaveAttribute('src', product.images[0].url);
+  await expect(page.locator('.product-gallery__media-note')).toContainText('Ảnh sản phẩm do chủ dự án cung cấp');
+  await expect(page.getByRole('heading', { name: 'Khám phá câu chuyện gốm Việt', exact: true })).toBeVisible();
+  await expect(page.locator('.product-narrative')).toHaveCount(0);
+  await expect(page.getByText(/Bảo vật quốc gia|Cù Lao Chàm/u)).toHaveCount(0);
+  await expect(page).toHaveTitle('Bình Thiên Nga | TRO & LAM');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', product.description);
 });
 
 test('published story and NFC browser routes expose only published content and honor tag revocation', async ({ page }) => {
   await login(page, USERS.admin);
+  await page.goto('/admin/content');
+  await expect(page.locator('.admin-layout')).toHaveCount(1);
+  await expect(page.locator('.catalog-header')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Điều hướng quản trị', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Nội dung', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Câu chuyện và trang nội dung', exact: true })).toBeVisible();
   const slug = 'p11-browser-content-fixture';
   const draftInput = {
     slug,
@@ -677,6 +730,86 @@ test('public home, catalog, product-line, and contact pages pass automated WCAG 
   await expect(menuButton).toBeFocused();
 });
 
+test('customer account pages have no horizontal overflow or selected WCAG violations on mobile and desktop', async ({ page }) => {
+  test.setTimeout(60_000);
+  const routes = [
+    ['/tai-khoan/ho-so', 'Hồ sơ của tôi'],
+    ['/tai-khoan/dia-chi', 'Địa chỉ nhận hàng'],
+    ['/tai-khoan/doi-mat-khau', 'Đổi mật khẩu'],
+    ['/tai-khoan/don-hang', 'Đơn hàng của tôi'],
+    ['/tai-khoan/voucher', 'Kho voucher'],
+    ['/tai-khoan/thong-bao', 'Thông báo'],
+  ];
+  const viewports = [
+    { width: 320, height: 800 },
+    { width: 360, height: 780 },
+    { width: 390, height: 844 },
+    { width: 768, height: 900 },
+    { width: 1280, height: 900 },
+  ];
+
+  await login(page, USERS.customer);
+  const accountMenuTrigger = page.getByRole('button', { name: 'Mở menu tài khoản', exact: true });
+  await accountMenuTrigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(accountMenuTrigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#header-account-menu-panel')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#header-account-menu-panel')).toHaveCount(0);
+  await expect(accountMenuTrigger).toBeFocused();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const [path, heading] of routes) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+      const layout = await page.evaluate(() => ({
+        viewportWidth: globalThis.innerWidth,
+        documentWidth: globalThis.document.documentElement.scrollWidth,
+      }));
+      expect(layout.documentWidth, `${path} overflowed at ${viewport.width}px`)
+        .toBeLessThanOrEqual(layout.viewportWidth + 1);
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(violations.map(({ id, impact, description, nodes }) => ({
+        id,
+        impact,
+        description,
+        nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+      })), `${path} at ${viewport.width}px`).toEqual([]);
+    }
+  }
+
+  for (const viewport of [
+    { width: 320, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/tai-khoan/ho-so');
+    await accountMenuTrigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#header-account-menu-panel')).toBeVisible();
+    const layout = await page.evaluate(() => ({
+      viewportWidth: globalThis.innerWidth,
+      documentWidth: globalThis.document.documentElement.scrollWidth,
+    }));
+    expect(layout.documentWidth, `open customer account menu overflowed at ${viewport.width}px`)
+      .toBeLessThanOrEqual(layout.viewportWidth + 1);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(violations.map(({ id, impact, description, nodes }) => ({
+      id,
+      impact,
+      description,
+      nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+    })), `open customer account menu at ${viewport.width}px`).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(accountMenuTrigger).toBeFocused();
+  }
+});
+
 test('public catalog filters are reflected in the URL and pagination restores after reload', async ({ page }) => {
   await page.goto('/san-pham');
   const filters = page.locator('.catalog-filters');
@@ -784,9 +917,22 @@ test('guest cart updates, survives reload, removes items, stays isolated and mer
   }
 });
 
+test('customer is denied the admin shell and stays protected on product and account admin routes', async ({ page }) => {
+  await login(page, USERS.customer);
+  await page.goto('/admin/products/new');
+  await expect(page).toHaveURL(/\/loi\/403$/u);
+  await expect(page.locator('.admin-layout')).toHaveCount(0);
+  await page.goto('/admin/users/' + process.env.P11_E2E_ADMIN_RESET_CUSTOMER_ID);
+  await expect(page).toHaveURL(/\/loi\/403$/u);
+  await expect(page.locator('.admin-layout')).toHaveCount(0);
+  await page.goto('/tai-khoan/ho-so');
+  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+  await expect(page.locator('.admin-layout')).toHaveCount(0);
+});
+
 test('customer manages addresses with manual fallback and is denied staff/admin APIs', async ({ page }) => {
   await login(page, USERS.customer);
-  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
 
   const ownIdentity = await browserApi(page, '/api/v1/auth/me');
   expect(ownIdentity.status).toBe(200);
@@ -870,10 +1016,12 @@ async function addressBookFlow(page) {
 test('staff manages dashboard and fulfillment while remaining denied admin APIs', async ({ page }) => {
   await login(page, USERS.staff);
   await expect(page.locator('.catalog-header')).toHaveCount(0);
-  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mở menu tài khoản', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Mở menu tài khoản', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('heading', { name: 'Bảng công việc', exact: true })).toBeVisible();
-  await expect(page.getByText('Chưa cấu hình ngưỡng tồn kho; chưa thể đếm sản phẩm sắp hết hàng.')).toBeVisible();
+  await expect(page.getByText('Tồn khả dụng hiện tại ≤ 5 sản phẩm · Tối đa 10 mã hàng cần ưu tiên.')).toBeVisible();
 
   const dashboard = await browserApi(page, '/api/v1/staff/dashboard');
   expect(dashboard.status).toBe(200);
@@ -887,7 +1035,7 @@ test('staff manages dashboard and fulfillment while remaining denied admin APIs'
 
 async function staffShipmentFlow(page) {
   await page.goto('/staff/orders');
-  await expect(page.getByRole('heading', { name: 'Đơn hàng', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Quản lý đơn hàng', exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Hàng đợi' }).selectOption('');
 
   await page.getByRole('button', { name: new RegExp(STAFF_ORDER_CODE, 'u') }).click();
@@ -1096,24 +1244,396 @@ test('PayOS provider unavailable leaves the persisted synthetic order pending an
   await expectSyntheticPendingPayment(orderId);
 });
 
-test('admin session can read admin statistics and catalog while anonymous callers remain denied', async ({ page }) => {
+test('admin navigation shell remains accessible, responsive and contained on customer detail routes', async ({ page }) => {
+  const userId = process.env.P11_E2E_ADMIN_RESET_CUSTOMER_ID;
+  expect(userId).toMatch(/^[a-f0-9]{24}$/u);
+  await login(page, USERS.admin);
+  await page.goto(`/admin/users/${userId}`);
+  await expect(page.locator('.admin-layout')).toHaveCount(1);
+  await expect(page.locator('.catalog-header')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mở menu tài khoản', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Điều hướng quản trị', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Khách hàng & tài khoản', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: USERS.adminResetCustomer.name, exact: true })).toBeVisible();
+
+  for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    const dimensions = await page.evaluate(() => ({ viewportWidth: globalThis.innerWidth, documentWidth: globalThis.document.documentElement.scrollWidth }));
+    expect(dimensions.documentWidth, `admin user detail overflowed at ${viewport.width}px`)
+      .toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(violations.map(({ id, impact, description, nodes }) => ({
+      id, impact, description, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+    })), `admin user detail at ${viewport.width}px`).toEqual([]);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const menuButton = page.locator('.admin-layout__menu-toggle');
+  await menuButton.focus();
+  await page.keyboard.press('Enter');
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  const sidebar = page.locator('#admin-navigation');
+  await expect(sidebar).toHaveClass(/is-open/u);
+  await expect(sidebar.getByRole('link', { name: 'Khách hàng & tài khoản', exact: true })).toHaveAttribute('aria-current', 'page');
+  const openDimensions = await page.evaluate(() => ({ viewportWidth: globalThis.innerWidth, documentWidth: globalThis.document.documentElement.scrollWidth }));
+  expect(openDimensions.documentWidth).toBeLessThanOrEqual(openDimensions.viewportWidth + 1);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map(({ id, impact, description, nodes }) => ({
+    id, impact, description, nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+  })), 'open admin navigation on mobile').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(menuButton).toBeFocused();
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('admin session reaches its guarded workspace and can read admin statistics and catalog', async ({ page }) => {
   await page.goto('/');
   const anonymous = await browserApi(page, '/api/v1/staff/dashboard');
   expect(anonymous.status).toBe(401);
 
   await login(page, USERS.admin);
-  await expect(page.getByRole('heading', { name: 'Bảng công việc', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin$/u);
   const ownIdentity = await browserApi(page, '/api/v1/auth/me');
   expect(ownIdentity.status).toBe(200);
   expect(ownIdentity.body.data.role).toBe('admin');
   await page.goto('/admin');
   await expect(page.locator('.catalog-header')).toHaveCount(0);
-  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toBeVisible();
+  await expect(page.locator('.admin-layout')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Điều hướng quản trị', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: 'Mở menu tài khoản', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Mở menu tài khoản', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { name: 'Tổng quan vận hành', exact: true })).toBeVisible();
+  await page.goto('/admin/reports');
   await expect(page.getByRole('heading', { name: 'Đối soát trong kỳ', exact: true })).toBeVisible();
   const catalogAdmin = await browserApi(page, '/api/v1/admin/products');
   expect(catalogAdmin.status).toBe(200);
+});
+
+test('admin-requested reset link uses verified email without returning credentials or revoking the session', async ({ page, browser }) => {
+  const userId = process.env.P11_E2E_ADMIN_RESET_CUSTOMER_ID;
+  const email = USERS.adminResetCustomer.email;
+  const replacementPassword = 'P11 admin reset replacement 82!';
+  expect(userId).toMatch(/^[a-f0-9]{24}$/u);
+
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+  try {
+    await login(customerPage, USERS.adminResetCustomer);
+    await login(page, USERS.admin);
+    const before = await inspectP11Database(async ({ AuthChallenge: ChallengeRead, AuthSession: SessionRead, User: UserRead }) => {
+      const user = await UserRead.findById(userId).lean().exec();
+      return {
+        user,
+        sessions: await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec(),
+        challenges: await ChallengeRead.find({ userId: new mongoose.Types.ObjectId(userId), purpose: 'reset_password' }).lean().exec(),
+      };
+    });
+    expect(before.user).toMatchObject({ emailNormalized: email, role: 'customer', status: 'active' });
+    expect(before.user.emailVerifiedAt).toBeInstanceOf(Date);
+    const adminSession = await browserApi(page, '/api/v1/auth/me');
+    expect(adminSession.status).toBe(200);
+    const adminIdentity = adminSession.body.data;
+
+    await page.goto(`/admin/users/${userId}`);
+    await expect(page.locator('.admin-layout')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: USERS.adminResetCustomer.name, exact: true })).toBeVisible();
+    await expect(page.locator('.catalog-header')).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
+    const resetPanel = page.locator('.identity-admin__reset-panel');
+    const reason = 'Khách hàng yêu cầu hỗ trợ truy cập, xác nhận danh tính qua kênh phù hợp.';
+    await resetPanel.getByLabel('Lý do hỗ trợ', { exact: true }).fill(reason);
+    await expect(resetPanel.getByRole('button', { name: 'Gửi liên kết đặt lại', exact: true })).toBeDisabled();
+    await resetPanel.getByRole('checkbox').check();
+
+    const resetResponsePromise = page.waitForResponse((response) => response.url().endsWith(`/api/v1/admin/users/${userId}/password-reset`)
+      && response.request().method() === 'POST');
+    await resetPanel.getByRole('button', { name: 'Gửi liên kết đặt lại', exact: true }).click();
+    const resetResponse = await resetResponsePromise;
+    const resetBody = await resetResponse.json();
+    expect(resetResponse.status(), JSON.stringify(resetBody)).toBe(202);
+    expect(resetBody.data).toEqual({ accepted: true, queued: true });
+    expect(JSON.stringify(resetBody)).not.toMatch(/token|password|passwordHash|actionUrl/iu);
+    await expect(page.getByRole('status')).toContainText('được xếp gửi');
+    await expect(page.getByRole('status')).toContainText('không xác nhận thư đã được giao');
+    await expect(resetPanel.getByLabel('Lý do hỗ trợ', { exact: true })).toHaveValue('');
+
+    const afterRequest = await inspectP11Database(async ({ AuditLog: AuditRead, AuthChallenge: ChallengeRead, AuthSession: SessionRead, OutboxEvent: OutboxEventRead, User: UserRead }) => {
+      const user = await UserRead.findById(userId).lean().exec();
+      const challenges = await ChallengeRead.find({ userId: new mongoose.Types.ObjectId(userId), purpose: 'reset_password' }).lean().exec();
+      const sessions = await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec();
+      const outbox = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
+      const audit = await AuditRead.findOne({ action: 'identity.user.password-reset.request', targetId: userId }).sort({ createdAt: -1 }).lean().exec();
+      return { user, challenges, sessions, outbox, audit };
+    });
+    expect(afterRequest.user.passwordHash).toBe(before.user.passwordHash);
+    expect(afterRequest.user).toMatchObject({ status: before.user.status, authVersion: before.user.authVersion, version: before.user.version });
+    expect(afterRequest.sessions.map(({ _id, revokedAt }) => ({ id: String(_id), revokedAt: revokedAt || null })))
+      .toEqual(before.sessions.map(({ _id, revokedAt }) => ({ id: String(_id), revokedAt: revokedAt || null })));
+    const activeChallenge = afterRequest.challenges.find(({ consumedAt }) => !consumedAt);
+    expect(activeChallenge).toBeTruthy();
+    expect(activeChallenge.tokenHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(afterRequest.challenges.filter(({ consumedAt }) => !consumedAt)).toHaveLength(1);
+    for (const oldChallenge of before.challenges.filter(({ consumedAt }) => !consumedAt)) {
+      expect(afterRequest.challenges.find(({ _id }) => String(_id) === String(oldChallenge._id))?.consumedAt).toBeInstanceOf(Date);
+    }
+    expect(afterRequest.audit).toMatchObject({ outcome: 'success', reasonCode: 'ADMIN_PASSWORD_RESET_REQUESTED' });
+    expect(afterRequest.audit.changesRedacted.reason).toBe(reason);
+    expect(JSON.stringify(afterRequest.audit)).not.toContain(email);
+
+    const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+    const resetMail = afterRequest.outbox.flatMap((event) => event.payload.deliveries
+      .filter((delivery) => delivery.encryptedMail)
+      .map((delivery) => decryptMail(delivery.encryptedMail)))
+      .find((message) => message.template === 'reset_password' && message.recipient === email);
+    expect(resetMail).toEqual(expect.objectContaining({
+      template: 'reset_password', recipient: email, data: expect.objectContaining({ actionUrl: expect.any(String) }),
+    }));
+    const resetUrl = new URL(resetMail.data.actionUrl);
+    expect(resetUrl.origin).toBe('http://127.0.0.1:5190');
+    expect(resetUrl.pathname).toBe('/dat-lai-mat-khau');
+    const token = new URLSearchParams(resetUrl.hash.slice(1)).get('token');
+    expect(token).toMatch(/^[A-Za-z0-9_-]{32,}$/u);
+    expect(activeChallenge.tokenHash).toBe(hashToken(token));
+    expect(JSON.stringify(resetBody)).not.toContain(token);
+    expect(JSON.stringify(afterRequest.audit)).not.toContain(token);
+
+    await page.reload();
+    const currentAdmin = await browserApi(page, '/api/v1/auth/me');
+    expect(currentAdmin.status).toBe(200);
+    expect(currentAdmin.body.data).toMatchObject({ id: adminIdentity.id, role: 'admin', status: 'active' });
+    const adminLoginResponse = await browserApi(page, '/api/v1/auth/login', {
+      method: 'POST', body: { email: USERS.admin.email, password: FIXTURE_PASSWORD },
+    });
+    expect(adminLoginResponse.status).toBe(200);
+
+    const claimBody = { token, password: replacementPassword };
+    const rejectedAdminReset = await browserApi(page, `/api/v1/admin/users/${userId}/password-reset`, {
+      method: 'POST', body: { reason, ...claimBody },
+    });
+    expect(rejectedAdminReset.status).toBe(400);
+    expect(JSON.stringify(rejectedAdminReset.body)).not.toContain(token);
+
+    const customerIdentityBeforeUse = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(customerIdentityBeforeUse.status).toBe(200);
+    expect(customerIdentityBeforeUse.body.data).toMatchObject({ id: userId, email, role: 'customer' });
+    const targetSessionsBeforeUse = await inspectP11Database(async ({ AuthSession: SessionRead }) => SessionRead
+      .find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec());
+    expect(targetSessionsBeforeUse.length).toBeGreaterThan(0);
+    expect(targetSessionsBeforeUse.some((session) => !session.revokedAt)).toBe(true);
+
+    await page.goto(`/dat-lai-mat-khau#${new URLSearchParams({ token })}`);
+    await page.getByLabel('Mật khẩu mới · ít nhất 12 ký tự', { exact: true }).fill(replacementPassword);
+    await page.getByLabel('Nhập lại mật khẩu mới', { exact: true }).fill(replacementPassword);
+    const completionPromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/reset-password')
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Cập nhật mật khẩu', exact: true }).click();
+    const completion = await completionPromise;
+    const completionBody = await completion.json();
+    expect(completion.status(), JSON.stringify(completionBody)).toBe(200);
+    expect(completionBody.data.reset).toBe(true);
+    await expect(page.getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
+
+    const consumed = await inspectP11Database(async ({ AuthChallenge: ChallengeRead, AuthSession: SessionRead, User: UserRead }) => {
+      const user = await UserRead.findById(userId).lean().exec();
+      return {
+        challenge: await ChallengeRead.findOne({ tokenHash: hashToken(token), purpose: 'reset_password' }).lean().exec(),
+        sessions: await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec(),
+        user,
+      };
+    });
+    expect(consumed.challenge.consumedAt).toBeInstanceOf(Date);
+    expect(consumed.user.passwordHash).not.toBe(before.user.passwordHash);
+    expect(consumed.user).toMatchObject({ role: 'customer', status: 'active', authVersion: before.user.authVersion + 1 });
+    expect(consumed.sessions.length).toBeGreaterThan(0);
+    expect(consumed.sessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
+    const replay = await browserApi(page, '/api/v1/auth/reset-password', { method: 'POST', body: claimBody });
+    expect(replay.status).toBe(410);
+
+    const staleCustomerSession = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(staleCustomerSession.status).toBe(401);
+    expect(staleCustomerSession.body.error?.code).toBe('SESSION_EXPIRED');
+    await login(customerPage, { ...USERS.adminResetCustomer, role: 'customer' });
+    const customerLogin = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(customerLogin.status).toBe(200);
+    expect(customerLogin.body.data).toMatchObject({ id: userId, email, role: 'customer' });
+  } finally {
+    await customerContext.close();
+  }
+});
+
+test('admin revenue trend follows the selected Vietnam date range and exposes keyboard and table data', async ({ page }) => {
+  await page.goto('/');
+  const anonymous = await browserApi(page, '/api/v1/admin/statistics');
+  expect(anonymous.status).toBe(401);
+  await page.goto('/admin/products');
+  await expect(page).toHaveURL(/\/dang-nhap$/u);
+
+  const statisticsRequests = [];
+  const statistics = {
+    grossCollectedVnd: 350_000,
+    refundedVnd: 20_000,
+    netCollectedVnd: 330_000,
+    comparison: {
+      from: '2026-09-27T17:00:00.000Z', to: '2026-09-30T16:59:59.999Z',
+      grossCollectedVnd: 205_000, deltaVnd: 145_000, changePercent: 70.7,
+    },
+    revenueTrend: {
+      timezone: 'Asia/Ho_Chi_Minh',
+      daily: [
+        { date: '2026-10-01', grossCollectedVnd: 100_000 },
+        { date: '2026-10-02', grossCollectedVnd: 0 },
+        { date: '2026-10-03', grossCollectedVnd: 250_000 },
+      ],
+      comparisonDaily: [
+        { date: '2026-10-01', comparisonDate: '2026-09-28', grossCollectedVnd: 50_000 },
+        { date: '2026-10-02', comparisonDate: '2026-09-29', grossCollectedVnd: 75_000 },
+        { date: '2026-10-03', comparisonDate: '2026-09-30', grossCollectedVnd: 80_000 },
+      ],
+    },
+    orderCounts: {},
+    topProducts: [],
+  };
+  const localDayFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const shiftDay = (day, offset) => {
+    const shifted = new Date(`${day}T12:00:00Z`);
+    shifted.setUTCDate(shifted.getUTCDate() + offset);
+    return shifted.toISOString().slice(0, 10);
+  };
+  const statisticsForRange = (fromValue, toValue, amount) => {
+    const firstDay = localDayFormatter.format(new Date(fromValue));
+    const days = Math.round((Date.parse(toValue) - Date.parse(fromValue) + 1) / 86_400_000);
+    const daily = Array.from({ length: days }, (_, index) => ({
+      date: shiftDay(firstDay, index), grossCollectedVnd: index === 0 ? amount : 0,
+    }));
+    const comparisonStart = shiftDay(firstDay, -days);
+    return {
+      ...statistics,
+      grossCollectedVnd: amount,
+      refundedVnd: 0,
+      netCollectedVnd: amount,
+      comparison: { ...statistics.comparison, grossCollectedVnd: 0, deltaVnd: amount, changePercent: null },
+      revenueTrend: {
+        timezone: 'Asia/Ho_Chi_Minh',
+        daily,
+        comparisonDaily: daily.map((point, index) => ({
+          date: point.date,
+          comparisonDate: shiftDay(comparisonStart, index),
+          grossCollectedVnd: 0,
+        })),
+      },
+    };
+  };
+  let statisticsMode = 'normal';
+  let releaseSevenDayRequest;
+  let markSevenDayRequestStarted;
+  let markSevenDayRequestFinished;
+  const sevenDayRequestStarted = new Promise((resolve) => { markSevenDayRequestStarted = resolve; });
+  const sevenDayRequestFinished = new Promise((resolve) => { markSevenDayRequestFinished = resolve; });
+
+  await login(page, USERS.admin);
+  await page.route('**/api/v1/admin/statistics**', async (route) => {
+    const url = new URL(route.request().url());
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+    statisticsRequests.push({ from, to });
+    if (statisticsMode === 'race' && from === '2026-10-01T17:00:00.000Z') {
+      markSevenDayRequestStarted();
+      await new Promise((resolve) => { releaseSevenDayRequest = resolve; });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: statisticsForRange(from, to, 700_000) }) });
+      markSevenDayRequestFinished();
+      return;
+    }
+    if (statisticsMode === 'error') {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { message: 'Finance ledger temporarily unavailable.' } }) });
+      return;
+    }
+    const data = statisticsMode === 'race' ? statisticsForRange(from, to, 300_000) : statistics;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) });
+  });
+  await page.route('**/api/v1/staff/dashboard**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ data: {
+      orderQueues: { pending: 0, processing: 0, deliveryFailed: null, assignedToMe: null },
+      ticketQueues: { unassigned: 0, assignedToMe: 0 },
+      lowStock: null,
+      operationalCounts: { newContacts: 0, unreadNotifications: 0 },
+    } }),
+  }));
+
+  await page.goto('/admin');
+  await expect(page.locator('.admin-layout')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tiền đã thu theo ngày', exact: true })).toBeVisible();
+  await page.getByLabel('Từ ngày').fill('2026-10-01');
+  await page.getByLabel('Đến ngày').fill('2026-10-03');
+  await page.getByRole('button', { name: 'Cập nhật', exact: true }).click();
+  await expect(page.getByText(/Đang xem 3 ngày/u)).toBeVisible();
+  await expect.poll(() => statisticsRequests.some(({ from, to }) => (
+    from === '2026-09-30T17:00:00.000Z' && to === '2026-10-03T16:59:59.999Z'
+  ))).toBe(true);
+
+  const daySlider = page.getByRole('slider', { name: 'Chọn ngày để xem số tiền đã thu và kỳ đối chiếu' });
+  await daySlider.focus();
+  await expect(daySlider).toHaveAttribute('aria-valuetext', /3 tháng 10, 2026/u);
+  await daySlider.press('ArrowLeft');
+  await expect(daySlider).toHaveAttribute('aria-valuetext', /2 tháng 10, 2026/u);
+  const chartBounds = await page.locator('.admin-chart__plot').boundingBox();
+  await page.mouse.move(chartBounds.x + chartBounds.width * 0.25, chartBounds.y + chartBounds.height / 2);
+  await expect(daySlider).toHaveAttribute('aria-valuetext', /1 tháng 10, 2026/u);
+  await page.mouse.move(0, 0);
+  await expect(daySlider).toHaveAttribute('aria-valuetext', /3 tháng 10, 2026/u);
+
+  await page.getByRole('button', { name: 'Xem bảng dữ liệu', exact: true }).click();
+  const table = page.getByRole('table', { name: 'Dữ liệu tiền đã thu theo ngày và kỳ đối chiếu' });
+  await expect(table.getByRole('row')).toHaveCount(4);
+  const firstDay = table.getByRole('row').nth(1).locator('td');
+  const zeroDay = table.getByRole('row').nth(2).locator('td');
+  const lastDay = table.getByRole('row').nth(3).locator('td');
+  await expect(firstDay.nth(0)).toContainText(/100\.000\s*₫/u);
+  await expect(firstDay.nth(2)).toContainText(/50\.000\s*₫/u);
+  await expect(zeroDay.nth(0)).toHaveText(/^0\s*₫$/u);
+  await expect(zeroDay.nth(2)).toContainText(/75\.000\s*₫/u);
+  await expect(lastDay.nth(0)).toContainText(/250\.000\s*₫/u);
+  await expect(lastDay.nth(2)).toContainText(/80\.000\s*₫/u);
+
+  await page.clock.install({ time: new Date('2026-10-08T12:00:00+07:00') });
+  await page.getByRole('button', { name: 'Hôm nay', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Hôm nay', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Từ ngày')).toHaveValue('2026-10-08');
+  await expect(page.getByLabel('Đến ngày')).toHaveValue('2026-10-08');
+  await expect.poll(() => statisticsRequests.some(({ from, to }) => (
+    from === '2026-10-07T17:00:00.000Z' && to === '2026-10-08T16:59:59.999Z'
+  ))).toBe(true);
+
+  statisticsMode = 'race';
+  await page.getByRole('button', { name: '7 ngày', exact: true }).click();
+  await sevenDayRequestStarted;
+  await page.getByRole('button', { name: 'Hôm nay', exact: true }).click();
+  const grossCollected = page.locator('.operations-metric').filter({ hasText: 'Tiền đã thu' }).locator('strong');
+  await expect(grossCollected).toHaveText('300.000 ₫');
+  releaseSevenDayRequest();
+  await sevenDayRequestFinished;
+  await expect(grossCollected).toHaveText('300.000 ₫');
+
+  statisticsMode = 'error';
+  await page.getByRole('button', { name: 'Cập nhật', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Finance ledger temporarily unavailable.');
+  await expect(page.getByRole('heading', { name: 'Tiền đã thu theo ngày', exact: true })).toHaveCount(0);
+  statisticsMode = 'normal';
+  await page.getByRole('alert').getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Tiền đã thu theo ngày', exact: true })).toBeVisible();
+  await expect(grossCollected).toHaveText('350.000 ₫');
 });
 
 test('admin can create, version-update and archive a product while order snapshots and audit history persist', async ({ page }) => {
@@ -1270,15 +1790,52 @@ test('admin can select one image on creation and add four more while editing', a
 
 test('customer notifications stay owner-scoped and read changes persist without affecting another owner', async ({ page }) => {
   await login(page, USERS.customer);
+  await page.goto('/tai-khoan');
+  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Đơn hàng gần đây', exact: true })).toBeVisible();
+  await expect(page.getByText(STAFF_ORDER_CODE, { exact: true })).toBeVisible();
+  await expect(page.getByText('Bạn có 3 thông báo chưa đọc.', { exact: true })).toBeVisible();
+  await expect(page.locator('.header-account-menu__badge')).toHaveText('3');
+  await expect(page.getByRole('link', { name: 'Địa chỉ giao hàng', exact: true })).toHaveAttribute('href', '/tai-khoan/dia-chi');
+  await expect(page.getByRole('link', { name: 'Hỗ trợ và khiếu nại', exact: true })).toHaveAttribute('href', '/tai-khoan/ho-tro');
+
   await page.goto('/tai-khoan/thong-bao');
   await expect(page.getByRole('heading', { name: 'Thông báo', exact: true })).toBeVisible();
   await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toBeVisible();
   await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Promotion Notice', { exact: true })).toBeVisible();
   await expect(page.getByText('P11 Private Other Customer Notice', { exact: true })).toHaveCount(0);
+
+  const promotionResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
+    && new URL(response.url()).searchParams.get('category') === 'promotion');
+  await page.getByRole('button', { name: 'Ưu đãi', exact: true }).click();
+  expect((await promotionResponsePromise).status()).toBe(200);
+  await expect(page.getByText('P11 Customer Promotion Notice', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toHaveCount(0);
+
+  const systemResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
+    && new URL(response.url()).searchParams.get('category') === 'system');
+  await page.getByRole('button', { name: 'Cập nhật hệ thống', exact: true }).click();
+  expect((await systemResponsePromise).status()).toBe(200);
+  await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Promotion Notice', { exact: true })).toHaveCount(0);
+
+  const orderResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
+    && new URL(response.url()).searchParams.get('category') === 'order');
+  await page.getByRole('button', { name: 'Cập nhật đơn hàng', exact: true }).click();
+  expect((await orderResponsePromise).status()).toBe(200);
+  await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toBeVisible();
+  await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toHaveCount(0);
+
+  const allResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
+    && !new URL(response.url()).searchParams.has('category'));
+  await page.getByRole('button', { name: 'Tất cả', exact: true }).click();
+  expect((await allResponsePromise).status()).toBe(200);
 
   const unread = await browserApi(page, '/api/v1/notifications/unread-count');
   expect(unread.status).toBe(200);
-  expect(unread.body.data.count).toBe(2);
+  expect(unread.body.data.count).toBe(3);
   const foreignMarkRead = await browserApi(page, `/api/v1/notifications/${process.env.P11_E2E_FIXTURE_OTHER_NOTIFICATION_ID}/read`, {
     method: 'PATCH', body: {},
   });
@@ -1286,15 +1843,17 @@ test('customer notifications stay owner-scoped and read changes persist without 
   expect(foreignMarkRead.body.error?.code).toBe('NOT_FOUND');
 
   const unreadRows = page.locator('.operations-notifications > li.is-unread');
-  await expect(unreadRows).toHaveCount(2);
+  await expect(unreadRows).toHaveCount(3);
   await unreadRows.first().getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click();
-  await expect(unreadRows).toHaveCount(1);
+  await expect(unreadRows).toHaveCount(2);
+  await expect(page.locator('.header-account-menu__badge')).toHaveText('2');
 
   await page.getByLabel('Chỉ hiện chưa đọc', { exact: true }).check();
-  await expect(page.locator('.operations-notifications > li')).toHaveCount(1);
+  await expect(page.locator('.operations-notifications > li')).toHaveCount(2);
   await expect(page.getByText('P11 Private Other Customer Notice', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Đánh dấu tất cả đã đọc', exact: true }).click();
   await expect(page.getByText('Bạn đã đọc tất cả thông báo.', { exact: true })).toBeVisible();
+  await expect(page.locator('.header-account-menu__badge')).toHaveCount(0);
 
   const unreadAfter = await browserApi(page, '/api/v1/notifications/unread-count');
   expect(unreadAfter.status).toBe(200);
@@ -1305,7 +1864,7 @@ test('customer notifications stay owner-scoped and read changes persist without 
     const other = await NotificationRead.findById(process.env.P11_E2E_FIXTURE_OTHER_NOTIFICATION_ID).lean().exec();
     return { own, other };
   });
-  expect(persisted.own).toHaveLength(2);
+  expect(persisted.own).toHaveLength(3);
   expect(persisted.own.every((item) => item.readAt instanceof Date)).toBe(true);
   expect(persisted.other.readAt).toBeNull();
 });
@@ -1426,6 +1985,14 @@ test('customer and staff support ticket round-trip keeps internal notes private'
     await openTicketLink.click();
     await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
     await expect(staffPage.getByText(initialMessage, { exact: true })).toBeVisible();
+    const relatedOrderLink = staffPage.locator('.support-staff-ticket-tools').getByRole('link');
+    await expect(relatedOrderLink).toHaveAttribute('href', `/staff/orders/${orderId}`);
+    await relatedOrderLink.click();
+    await expect(staffPage).toHaveURL(new RegExp(`/staff/orders/${orderId}$`, 'u'));
+    await expect(staffPage.getByRole('heading', { name: 'Quản lý đơn hàng', exact: true })).toBeVisible();
+    await expect(staffPage.locator('.commerce-staff-detail')).toBeVisible();
+    await staffPage.goto(`/staff/support/${ticketId}`);
+    await expect(staffPage.getByRole('heading', { name: subject, exact: true })).toBeVisible();
 
     supportPhase = 'staff assignment';
     const assignmentResponsePromise = staffPage.waitForResponse((response) => response.url().endsWith(`/api/v1/staff/tickets/${ticketId}`)
@@ -1872,7 +2439,7 @@ test('customer registration verifies through encrypted outbox and returns to log
   const loginBody = await loginResponse.json();
   expect(loginResponse.status(), JSON.stringify(loginBody)).toBe(200);
   expect(loginBody.data.user).toMatchObject({ email, role: 'customer' });
-  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
 });
 
 test('admin block, customer appeal and admin approval revoke old access and allow a fresh customer login', async ({ page, browser }) => {
@@ -1966,7 +2533,7 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const freshLoginBody = await freshLoginResponse.json();
     expect(freshLoginResponse.status(), JSON.stringify(freshLoginBody)).toBe(200);
     expect(freshLoginBody.data.user).toMatchObject({ email: USERS.customer.email, role: 'customer', status: 'active' });
-    await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
   } finally {
     await adminContext.close();
   }
@@ -2048,7 +2615,7 @@ test('customer resets a password through encrypted outbox, consuming the link an
   const newLoginBody = await newLoginResponse.json();
   expect(newLoginResponse.status(), JSON.stringify(newLoginBody)).toBe(200);
   expect(newLoginBody.data.user).toMatchObject({ email, role: 'customer' });
-  await expect(page.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
 });
 
 test('customer logout revokes the server session and clears the browser cookie', async ({ page, context }) => {
@@ -2165,5 +2732,215 @@ test('admin role changes require a reason and confirmation, audit the result and
     await expect(auditRow.locator('pre')).not.toContainText(USERS.otherCustomer.email);
   } finally {
     await Promise.all([customerContext.close().catch(() => {}), adminContext.close().catch(() => {})]);
+  }
+});
+
+test('customer manages profile, receives an admin voucher, and applies it during checkout', async ({ browser, page }) => {
+  test.setTimeout(60_000);
+  const voucherCode = 'P11ACCOUNT20';
+  const voucherTitle = 'P11 synthetic customer voucher';
+  const updatedEmail = 'profile.updated.p11@example.test';
+  const updatedName = 'P11 Profile Flow Customer Updated';
+  const newPassword = 'P11 profile flow new password 73!';
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+
+  try {
+    await login(page, USERS.admin);
+    await page.goto('/admin/vouchers');
+    await expect(page.getByRole('heading', { name: 'Quản lý mã Voucher', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Cấp voucher mới', exact: true }).click();
+    await page.getByLabel('Email khách hàng', { exact: true }).fill(USERS.profileCustomer.email);
+    await page.getByLabel('Mã voucher', { exact: true }).fill(voucherCode);
+    await page.getByLabel('Tên ưu đãi', { exact: true }).fill(voucherTitle);
+    await page.getByLabel('Số tiền giảm (VND)', { exact: true }).fill('20000');
+    await page.getByLabel('Đơn tối thiểu (VND)', { exact: true }).fill('100000');
+    await page.getByLabel('Hạn dùng', { exact: true }).fill('2026-10-20T23:59');
+    const issueResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/admin/vouchers')
+      && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Cấp voucher', exact: true }).click();
+    const issueResponse = await issueResponsePromise;
+    const issueBody = await issueResponse.json();
+    expect(issueResponse.status(), JSON.stringify(issueBody)).toBe(201);
+    expect(issueBody.data).toMatchObject({ code: voucherCode, status: 'available', customer: { email: USERS.profileCustomer.email } });
+    await expect(page.locator('.identity-feedback--success')).toContainText('Voucher đã được cấp');
+    const voucherId = issueBody.data.id;
+
+    await login(customerPage, USERS.profileCustomer);
+    await customerPage.getByRole('button', { name: 'Mở menu tài khoản' }).click();
+    await expect(customerPage.locator('.header-account-menu__badge')).toHaveText('1');
+    const accountMenu = customerPage.locator('#header-account-menu-panel');
+    await expect(accountMenu.getByRole('link', { name: /^Thông báo/u })).toBeVisible();
+    for (const label of ['Tài khoản của tôi', 'Hồ sơ', 'Địa chỉ', 'Đổi mật khẩu', 'Đơn mua', 'Kho voucher']) {
+      await expect(accountMenu.getByRole('link', { name: label, exact: true })).toBeVisible();
+    }
+    await accountMenu.getByRole('link', { name: /^Thông báo/u }).click();
+    await expect(customerPage.getByRole('heading', { name: 'Thông báo', exact: true })).toBeVisible();
+    await expect(customerPage.getByText('Bạn có voucher mới', { exact: true })).toBeVisible();
+    await customerPage.getByRole('button', { name: 'Ưu đãi', exact: true }).click();
+    await expect(customerPage.getByText('Bạn có voucher mới', { exact: true })).toBeVisible();
+
+    await customerPage.goto('/tai-khoan/voucher');
+    await expect(customerPage.getByRole('heading', { name: 'Kho voucher', exact: true })).toBeVisible();
+    await expect(customerPage.getByText(voucherCode, { exact: true })).toBeVisible();
+    await expect(customerPage.getByText('Giảm 20.000 ₫', { exact: true })).toBeVisible();
+
+    const customerCart = await browserApi(customerPage, '/api/v1/cart');
+    expect(customerCart.status).toBe(200);
+    const cartWrite = await browserApi(customerPage, `/api/v1/cart/items/${process.env.P11_E2E_FIXTURE_PRODUCT_ID}`, {
+      method: 'PUT', body: { quantity: 1, expectedVersion: customerCart.body.data.version },
+    });
+    expect(cartWrite.status, JSON.stringify(cartWrite.body)).toBe(200);
+
+    let quoteRequestBody;
+    let orderRequestBody;
+    await customerPage.route('**/api/v1/checkout/quote', async (route) => {
+      quoteRequestBody = route.request().postDataJSON();
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: {
+        items: [{ productId: process.env.P11_E2E_FIXTURE_PRODUCT_ID, sku: PUBLISHED_PRODUCT.sku, name: PUBLISHED_PRODUCT.name, quantity: 1, unitPriceVnd: 120000, available: 2 }],
+        subtotalVnd: 120000, discountVnd: 20000, shippingFeeVnd: 5000, totalVnd: 105000,
+        quoteExpiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), warnings: [],
+      } }) });
+    });
+    await customerPage.route('**/api/v1/orders', async (route) => {
+      orderRequestBody = route.request().postDataJSON();
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ data: {
+        order: { id: '507f1f77bcf86cd799439099', code: 'TL-P11-VOUCHER', status: 'pending', paymentStatus: 'pending', paymentMethod: 'cod', totalVnd: 105000 },
+        payment: { status: 'pending', retryable: false },
+      } }) });
+    });
+    await customerPage.goto('/thanh-toan');
+    await expect(customerPage.getByRole('heading', { name: 'Thông tin nhận hàng', exact: true })).toBeVisible();
+    await customerPage.getByLabel('Người nhận', { exact: true }).fill(updatedName);
+    await customerPage.getByLabel('Số điện thoại', { exact: true }).fill('0900000033');
+    await customerPage.getByLabel('Địa chỉ', { exact: true }).fill('33 Đường Thử nghiệm');
+    await customerPage.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
+    await customerPage.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('33 Đường Thử nghiệm, Hải Dương');
+    await customerPage.locator('#checkout-voucher').selectOption(voucherId);
+    const quoteResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/checkout/quote')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
+    const quoteResponse = await quoteResponsePromise;
+    const quoteBody = await quoteResponse.json();
+    expect(quoteResponse.status(), JSON.stringify(quoteBody)).toBe(200);
+    expect(quoteBody.data).toMatchObject({ subtotalVnd: 120000, discountVnd: 20000, shippingFeeVnd: 5000, totalVnd: 105000 });
+    expect(quoteRequestBody.voucherId).toBe(voucherId);
+    await expect(customerPage.locator('.commerce-totals')).toContainText('−20.000 ₫');
+    await expect(customerPage.locator('.commerce-totals')).toContainText('105.000 ₫');
+    await customerPage.getByRole('checkbox', { name: /Tôi xác nhận thông tin nhận hàng/u }).check();
+    const orderResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/orders')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click();
+    const orderResponse = await orderResponsePromise;
+    const orderBody = await orderResponse.json();
+    expect(orderResponse.status(), JSON.stringify(orderBody)).toBe(201);
+    expect(orderBody.data.order.totalVnd).toBe(105000);
+    expect(orderRequestBody).toMatchObject({ voucherId, consent: true });
+    await expect(customerPage.getByRole('heading', { name: 'Cảm ơn bạn đã đặt hàng', exact: true })).toBeVisible();
+
+    await customerPage.goto('/tai-khoan/ho-so');
+    await customerPage.getByLabel('Họ và tên', { exact: true }).fill(updatedName);
+    await customerPage.getByLabel('Ngày sinh', { exact: true }).fill('1992-04-20');
+    await customerPage.locator('#profile-gender').selectOption('prefer_not_to_say');
+    await customerPage.getByRole('button', { name: 'Lưu hồ sơ', exact: true }).click();
+    await expect(customerPage.getByRole('status')).toContainText('Thông tin hồ sơ đã được lưu');
+    expect((await browserApi(customerPage, '/api/v1/auth/me')).body.data).toMatchObject({ birthDate: '1992-04-20', gender: 'prefer_not_to_say' });
+
+    await customerPage.getByLabel('Email mới', { exact: true }).fill(USERS.customer.email);
+    await customerPage.getByLabel('Mật khẩu hiện tại', { exact: true }).fill(FIXTURE_PASSWORD);
+    const duplicateEmailPromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/account/email-change')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Gửi mã xác minh', exact: true }).click();
+    const duplicateEmail = await duplicateEmailPromise;
+    expect(duplicateEmail.status()).toBe(409);
+    expect((await duplicateEmail.json()).error.code).toBe('EMAIL_IN_USE');
+    await expect(customerPage.getByRole('alert')).toContainText('Email này đã được sử dụng');
+
+    await customerPage.getByLabel('Email mới', { exact: true }).fill(updatedEmail);
+    const emailChallengePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/account/email-change')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Gửi mã xác minh', exact: true }).click();
+    const emailChallenge = await emailChallengePromise;
+    const emailChallengeBody = await emailChallenge.json();
+    expect(emailChallenge.status(), JSON.stringify(emailChallengeBody)).toBe(202);
+    const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
+    const verificationMail = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
+      const events = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
+      return events.flatMap((event) => event.payload.deliveries
+        .filter((delivery) => delivery.encryptedMail)
+        .map((delivery) => decryptMail(delivery.encryptedMail)))
+        .find((message) => message.template === 'change_email' && message.recipient === updatedEmail);
+    });
+    expect(verificationMail.data.verificationCode).toMatch(/^\d{6}$/u);
+    await customerPage.getByLabel('Mã xác minh 6 chữ số', { exact: true }).fill(verificationMail.data.verificationCode);
+    const verifyEmailPromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/account/email-change/verify')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Xác minh email mới', exact: true }).click();
+    const verifyEmail = await verifyEmailPromise;
+    expect(verifyEmail.status()).toBe(200);
+    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
+    expect((await browserApi(customerPage, '/api/v1/auth/me')).status).toBe(401);
+
+    const accountAfterEmailChange = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, AuthSession: AuthSessionRead, User: UserRead }) => {
+      const user = await UserRead.findOne({ emailNormalized: updatedEmail }).lean().exec();
+      return {
+        user,
+        challenge: await AuthChallengeRead.findOne({ userId: user?._id, purpose: 'change_email' }).lean().exec(),
+        sessions: await AuthSessionRead.find({ userId: user?._id }).lean().exec(),
+      };
+    });
+    expect(accountAfterEmailChange.user).toMatchObject({ name: updatedName, emailNormalized: updatedEmail, birthDate: '1992-04-20', gender: 'prefer_not_to_say' });
+    expect(accountAfterEmailChange.challenge.consumedAt).toBeInstanceOf(Date);
+    expect(accountAfterEmailChange.sessions.length).toBeGreaterThan(0);
+    expect(accountAfterEmailChange.sessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
+
+    await login(customerPage, { ...USERS.profileCustomer, email: updatedEmail });
+    await customerPage.goto('/tai-khoan/doi-mat-khau');
+    await customerPage.getByLabel('Mật khẩu hiện tại', { exact: true }).fill(FIXTURE_PASSWORD);
+    await customerPage.getByLabel('Mật khẩu mới', { exact: true }).fill(newPassword);
+    await customerPage.getByLabel('Nhập lại mật khẩu mới', { exact: true }).fill(newPassword);
+    const passwordChangePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/account/password')
+      && response.request().method() === 'POST');
+    await customerPage.getByRole('button', { name: 'Đổi mật khẩu', exact: true }).click();
+    const passwordChange = await passwordChangePromise;
+    expect(passwordChange.status()).toBe(200);
+    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
+
+    const afterPasswordChange = await inspectP11Database(async ({ AuthSession: AuthSessionRead, User: UserRead }) => {
+      const user = await UserRead.findOne({ emailNormalized: updatedEmail }).lean().exec();
+      return {
+        user,
+        sessions: await AuthSessionRead.find({ userId: user?._id }).lean().exec(),
+      };
+    });
+    expect(afterPasswordChange.sessions.length).toBeGreaterThan(0);
+    expect(afterPasswordChange.sessions.every((session) => session.revokedAt instanceof Date)).toBe(true);
+
+    const staleSession = await browserApi(customerPage, '/api/v1/auth/me');
+    expect(staleSession.status).toBe(401);
+    const oldPasswordLogin = await browserApi(customerPage, '/api/v1/auth/login', {
+      method: 'POST', body: { email: updatedEmail, password: FIXTURE_PASSWORD },
+    });
+    expect(oldPasswordLogin.status).toBe(401);
+    expect(oldPasswordLogin.body.error.code).toBe('AUTH_REQUIRED');
+    const newPasswordLogin = await browserApi(customerPage, '/api/v1/auth/login', {
+      method: 'POST', body: { email: updatedEmail, password: newPassword },
+    });
+    expect(newPasswordLogin.status).toBe(200);
+    expect(newPasswordLogin.body.data.user.email).toBe(updatedEmail);
+    await customerPage.goto('/tai-khoan/ho-so');
+    await expect(customerPage.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
+    await customerPage.getByRole('button', { name: 'Mở menu tài khoản' }).click();
+    const authenticatedAccountMenu = customerPage.locator('#header-account-menu-panel');
+    await expect(authenticatedAccountMenu.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
+    const logoutResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/auth/logout')
+      && response.request().method() === 'POST');
+    await authenticatedAccountMenu.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+    const logoutResponse = await logoutResponsePromise;
+    expect(logoutResponse.status()).toBe(204);
+    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
+    expect((await browserApi(customerPage, '/api/v1/auth/me')).status).toBe(401);
+  } finally {
+    await customerContext.close();
   }
 });

@@ -10,7 +10,7 @@ Ngày: 06/10/2026. Dùng AC/DEC trong `01-business-and-permissions.md`. Các enu
 4. Staff phân công lead, ghi note nội bộ, gửi tư vấn/báo giá đã được admin cho phép. Bản đầu không tự chuyển báo giá thành order nếu chưa có hợp đồng giá/stock approved. Agent không bịa sản phẩm bespoke/hóa đơn/tích hợp shipping.
 5. Admin draft/edit/preview/publish/archive content và product. Product đã có order bị archive thay xóa cứng. Direct bắt buộc price hợp lệ, SKU và cấu hình bán.
 
-Contact/quote lead state: `new -> assigned -> contacted -> closed`; có thể reopen bằng staff/admin kèm lý do. Kết quả thành công/thất bại là outcome/ghi chú tùy chọn, không thêm enum qualified/closed_won/closed_lost ở baseline. Collection chuẩn `contacts`, quote là kind quote, không tạo quote collection hoặc tự convert thành order. AC-PUB-01, AC-CONTACT-01.
+Contact/quote lead state: `new -> assigned -> contacted -> closed`; staff có thể reopen kèm lý do. Kết quả thành công/thất bại là outcome/ghi chú tùy chọn, không thêm enum qualified/closed_won/closed_lost ở baseline. Collection chuẩn `contacts`, quote là kind quote, không tạo quote collection hoặc tự convert thành order. AC-PUB-01, AC-CONTACT-01.
 
 ## 2. Đăng ký, đăng nhập và tài khoản bị khóa
 
@@ -64,8 +64,8 @@ Inventory `onHand >= reserved >= 0`. Reservation enum `held|committed|released`;
 - Checkout giữ tồn bằng atomic condition `available >= qty`; cập nhật nhiều SKU trong transaction MongoDB replica set (Atlas). Rollback nếu bất kỳ SKU thiếu.
 - PayOS reservation TTL đề xuất 15 phút, gắn thời hạn payment link. COD pending không tự expire bản đầu; cảnh báo staff khi quá thời gian chờ cấu hình để xác minh/hủy thủ công. Checkout rate limit theo principal/IP và giới hạn số pending orders/quantity chống chiếm tồn; mọi thay đổi policy COD TTL sau này phải bổ sung acceptance/test.
 - Payment accepted đúng thời hạn: giữ reservation held và bảo vệ khỏi expire; không trừ onHand lúc paid. Đến bước xuất kho `shipped`, transaction giảm onHand và reserved cùng lượng rồi reservation held -> committed, đúng một lần. COD confirmed cũng bảo vệ reservation đến xuất kho. Không vừa confirmed vừa shipped trừ tồn.
-- Cancel trước xuất kho release một lần. Hàng return chỉ tăng onHand sau staff/admin kiểm hàng thực tế và quyết định có thể tái bán; không cộng tồn ngay customer gửi request.
-- Hết reservation và late payment: ghi payment verified cùng exception `late_payment_stock_review`, ngừng auto-confirm; admin/staff kiểm tồn để re-reserve hoặc refund. Không nói đã thanh toán thất bại khi tiền thực sự đã vào.
+- Cancel trước xuất kho release một lần. Hàng return chỉ tăng onHand sau staff kiểm hàng thực tế và quyết định có thể tái bán; không cộng tồn ngay customer gửi request.
+- Hết reservation và late payment: ghi payment verified cùng exception `late_payment_stock_review`, ngừng auto-confirm; staff kiểm tồn để re-reserve, admin quyết định/ghi nhận refund qua quyền admin. Không nói đã thanh toán thất bại khi tiền thực sự đã vào.
 - Reservation release và payment webhook chạy đồng thời phải serialize trên order/reservation version và đảm bảo không oversell/lost payment.
 
 ## 6. Đơn và thanh toán là hai máy trạng thái
@@ -74,14 +74,14 @@ Fulfillment đơn:
 
 | Từ | Sang | Ai / điều kiện |
 |---|---|---|
-| `pending` | `confirmed` | Staff/admin; COD hợp lệ hoặc online paid verified, reservation còn hợp lệ |
-| `pending` | `cancelled` | Owner theo policy hoặc staff/admin; release tồn; paid thì tạo refund case |
-| `confirmed` | `processing` | Staff/admin bắt đầu chuẩn bị |
-| `confirmed` | `cancelled` | Staff/admin theo policy + lý do, chưa xuất kho; không sửa payment paid thành pending |
-| `processing` | `shipped` | Staff/admin; có carrier/tracking hoặc lý do giao thủ công; tồn xuất đúng một lần |
-| `processing` | `cancelled` | Staff/admin trước giao hãng, điều kiện đặt riêng/custom tuân policy |
-| `shipped` | `delivered` | Staff/admin chứng cứ giao; integration vận chuyển chỉ khi đã cấu hình |
-| `shipped` | `return_requested` | Hàng giao thất bại cần quay về, staff/admin có chứng cứ; case giữ nguyên delivery facts |
+| `pending` | `confirmed` | Staff; COD hợp lệ hoặc online paid verified, reservation còn hợp lệ |
+| `pending` | `cancelled` | Owner theo policy hoặc staff; release tồn; paid thì tạo refund case |
+| `confirmed` | `processing` | Staff bắt đầu chuẩn bị |
+| `confirmed` | `cancelled` | Staff theo policy + lý do, chưa xuất kho; không sửa payment paid thành pending |
+| `processing` | `shipped` | Staff; có carrier/tracking hoặc lý do giao thủ công; tồn xuất đúng một lần |
+| `processing` | `cancelled` | Staff trước giao hãng, điều kiện đặt riêng/custom tuân policy |
+| `shipped` | `delivered` | Staff chứng cứ giao; integration vận chuyển chỉ khi đã cấu hình |
+| `shipped` | `return_requested` | Hàng giao thất bại cần quay về, staff có chứng cứ; case giữ nguyên delivery facts |
 | `delivered` | `return_requested` | Owner gửi return case hợp lệ; không tự hứa chấp thuận/hoàn tiền |
 | `return_requested` | `returned` | Return case approved và hàng thực nhận; inspection tồn riêng |
 
@@ -92,7 +92,7 @@ Payment:
 | Từ | Sang | Điều kiện |
 |---|---|---|
 | Khởi tạo | `pending` | COD chờ thu hoặc online payment attempt chờ xác minh; không có enum unpaid |
-| `pending` | `paid` | COD đã thu, staff/admin ghi chứng cứ và thời gian; đơn delivered không tự đồng nghĩa đã thu |
+| `pending` | `paid` | COD đã thu, staff ghi chứng cứ và thời gian; đơn delivered không tự đồng nghĩa đã thu |
 | `pending` | `paid` | Webhook/query payOS từ server đã verify signature/order/amount/currency |
 | `pending` | `failed` hoặc `expired` | Provider/query/job xác minh; chưa có tiền |
 | `pending` | `cancelled` | Attempt/link đã hủy được xác minh, chưa có tiền; không suy ra order đã hủy |
@@ -106,7 +106,7 @@ Giữ payment attempts/events riêng; order payment aggregate không mất lịc
 
 Enum payment contract: `pending|paid|failed|expired|cancelled|refund_pending|refunded|partially_refunded`; partial refund chưa mở mặc định. Attempt cancelled vẫn có thể nhận thanh toán đến muộn verified và vào exception, không bỏ qua tiền thật. Frontend callback `/thanh-toan/ket-qua` chỉ polling server và hiện pending/verified/failure; tham số URL `success=true` không cập nhật DB. Webhook duplicate/out-of-order không hạ paid về pending, không lặp stock/email; signature invalid hoặc amount không khớp trả xử lý từ chối theo provider contract và log an toàn. Mặc định không gọi refund payOS tự động: admin ghi hoàn ngoài hệ thống đã xác minh và audit, staff chỉ đề xuất; không fake endpoint.
 
-Staff dashboard: queue pending, processing, giao thất bại, ticket chưa tiếp nhận, assigned-to-me, thời gian chờ; filter/date/pagination; không gọi tổng số đơn là doanh thu. Admin revenue tách đơn đặt, tiền thực thu, hoàn tiền, số dư net; dùng payment events và timezone VN. AC-ORDER-01, AC-PAY-01/02, AC-STAFF-01.
+Staff dashboard: queue pending, processing, giao thất bại, ticket chưa tiếp nhận, assigned-to-me, thời gian chờ; filter/date/pagination; không gọi tổng số đơn là doanh thu. Admin dashboard dùng endpoint admin riêng và chỉ hiển thị dữ liệu tổng hợp được cấp cho admin; không gọi staff dashboard/queue API. Admin revenue tách đơn đặt, tiền thực thu, hoàn tiền, số dư net; dùng payment events và timezone VN. AC-ORDER-01, AC-PAY-01/02, AC-STAFF-01, AC-ACL-01.
 
 ## 7. Tra đơn guest và claim tài khoản
 
@@ -122,7 +122,7 @@ Review: customer chọn delivered order và item, 1–5 sao/comment/ảnh option
 
 Ticket kind `support|complaint|return`. Support/complaint có thể không gắn đơn; nếu có phải owner hoặc guest order credential. Return yêu cầu delivered, trong window policy cấu hình, lý do/items/ảnh chứng cứ; ngoài window vẫn cho complaint, không tự hứa refund. Guest verified order có thể gửi ticket qua scoped order session; guest không có order dùng contact.
 
-Support state `open -> assigned -> in_progress -> waiting_customer -> resolved -> closed`; waiting_customer có thể quay in_progress, owner có thể reply/reopen theo window cấu hình. Phân công bằng CAS để hai staff không cùng claim; staff/admin nhắn public hoặc internal note tách rõ. Notification đến owner và staff được phân công; không broadcast nội dung riêng cho mọi customer.
+Support state `open -> assigned -> in_progress -> waiting_customer -> resolved -> closed`; waiting_customer có thể quay in_progress, owner có thể reply/reopen theo window cấu hình. Phân công bằng CAS để hai staff không cùng claim; staff gửi phản hồi công khai hoặc internal note, customer/admin self-service chỉ đọc và trả lời ticket của chính mình. Notification đến owner và staff được phân công; không broadcast nội dung riêng cho mọi customer.
 
 Return collection `return_requests`, enum baseline `requested|approved|rejected|received|closed`: requested -> approved hoặc rejected; approved -> received; received -> closed sau inspection/xử lý liên quan. “Đang xem xét”, “chờ khách gửi”, “đã kiểm hàng” là giai đoạn diễn giải/timeline, không thêm enum under_review/awaiting_return/inspected/completed. Rejected là terminal case với lý do; complaint có thể tiếp tục. Approved không tự refunded; hàng received có inspectionEvidence, tình trạng tái bán và hành động stock; admin quyết định refund case riêng. Baseline full return/full refund; schema items/amount mở đường cho tương lai nhưng partial/replacement tắt bằng feature flag và UI không giả hỗ trợ.
 
@@ -134,7 +134,7 @@ Outbox trong cùng transaction nghiệp vụ; worker retry có backoff/dead-lett
 
 | Sự kiện | Người nhận | Kênh / liên kết |
 |---|---|---|
-| Order created | Customer hoặc email guest; staff/admin vận hành | Inbox + email xác nhận; guest dùng secure link |
+| Order created | Customer hoặc email guest; staff vận hành | Inbox + email xác nhận; guest dùng secure link |
 | Order/shipping/payment cập nhật | Owner, staff phụ trách khi exception | Inbox/email; deep link kiểm quyền lại |
 | Ticket mới/reply/status | Owner và staff phụ trách | Inbox + email cần thiết; không gửi note nội bộ |
 | Khóa/đổi role/appeal decision | User liên quan, admin khi appeal pending | Email và restricted appeal status; sessions revoke |

@@ -51,13 +51,14 @@ Scaffold TRO hiện chưa có các collection bên dưới, auth, commerce hay w
 | `refunds` / P06 | orderId, paymentAttemptId?, amountVnd, status `requested/approved/rejected/processing/completed/failed`, reason, requestedBy, approvedBy?, externalReference?, version | unique externalReference partial string; tổng completed+in-flight refund không vượt paidAmount; staff chỉ tạo requested, admin duyệt; kết quả hoàn tiền cần chứng cứ |
 | `return_requests` / P07 | orderId, ticketId, userId?, items[{productId,quantity,reason,receivedQuantity?,resellableQuantity?}], status `requested/approved/rejected/received/closed`, previousFulfillmentStatus, reviewedBy?, inspectionEvidence?, version | một active request/order qua partial unique `{orderId}` với `active:true`; trả hàng và refund là hai tài nguyên riêng; inventory effect gọi P05 port, không tự ghi inventory |
 | `reviews` / P07 | userId, orderId, productId, rating 1..5, comment, images?, moderationStatus `pending/published/hidden`, moderatedBy?, moderationReason?, version | unique `{userId,orderId,productId}`; `{productId,moderationStatus,createdAt}`; chỉ người mua của order delivered, item có trong order; public ẩn email/phone |
-| `tickets` / P07 | code, userId? hoặc guestAccessHash?, orderId?, kind `support/complaint/return`, subject, status `open/assigned/in_progress/waiting_customer/resolved/closed`, priority, assignedTo?, version | unique code; `{assignedTo,status,updatedAt}`, `{userId,createdAt}`; guest có order proof; admin/staff nhận/giải quyết; private internal note không trả cho khách |
+| `tickets` / P07 | code, userId? hoặc guestAccessHash?, orderId?, kind `support/complaint/return`, subject, status `open/assigned/in_progress/waiting_customer/resolved/closed`, priority, assignedTo?, version | unique code; `{assignedTo,status,updatedAt}`, `{userId,createdAt}`; guest có order proof; staff nhận/giải quyết qua quyền staff; private internal note không trả cho customer/admin self-service |
 | `ticket_messages` / P07 | ticketId, authorId?, authorRole `customer/staff/admin/guest`, visibility `customer/internal`, body, attachmentIds?, createdAt | `{ticketId,createdAt,_id}`; customer/guest không được đặt internal; append-only, attachment qua allowlist/storage |
 | `contacts` / P07 | name, email, phone?, kind `general/corporate/quote`, productId?, quantity?, company?, message, consentAt, status `new/assigned/contacted/closed`, assignedTo? | `{status,createdAt}`; persist trước enqueue SMTP, không gửi mail đến recipient tùy ý do client nhập |
 | `stories` / P08 | slug, title, productIds, origin, artisan?, motifs, sections, media, locale `vi/en`, status `draft/published/archived`, publishedAt?, version | unique `{slug,locale}`; chỉ nội dung đã biên tập và published public; Gemini draft không tự publish |
 | `pages` / P08 | slug, title, blocks, locale, status, version | unique `{slug,locale}`; blocks theo schema allowlist, sanitize rich text |
 | `nfc_tags` / P08 | publicId, productId?, storyId, status `active/revoked`, createdBy, version | unique publicId ngẫu nhiên; không chứa secret, PII hay quyền auth. NFC mở HTTPS `/nfc/:publicId`; public đọc story đã publish; tag bị revoke trả 410 |
-| `notifications` / P09 | userId, eventKey, category `order/support/account/system`, title, body, href, readAt? | unique `{userId,eventKey}`; `{userId,createdAt}`, `{userId,readAt,createdAt}`; href là internal route allowlist; guest nhận mail, không có inbox user |
+| `notifications` / P09 | userId, eventKey, category `order/support/account/system/promotion`, title, body, href, readAt? | unique `{userId,eventKey}`; `{userId,createdAt}`, `{userId,readAt,createdAt}`; customer view nhóm thành đơn hàng/ưu đãi/hệ thống (support/account legacy thuộc hệ thống); href là internal route allowlist; guest nhận mail, không có inbox user |
+| `vouchers` / P05 | userId, code, title, discountType `fixed/percent`, discountValue, maxDiscountVnd?, minSubtotalVnd, expiresAt, status `available/redeemed/revoked/expired`, redeemedAt?, redeemedOrderId?, createdBy | unique code; `{userId,status,expiresAt,createdAt}`; voucher cấp riêng bởi admin, một lần/customer, giá trị nhập VND hoặc phần trăm tối đa 100; server tính giảm trên tiền hàng trước phí ship; checkout CAS/redeem trong transaction tạo đơn; hủy đơn trước shipped trả voucher nếu còn hạn; order giữ snapshot |
 | `outbox_events` / P09 | eventKey, type, aggregateType, aggregateId, aggregateVersion, payload, state `pending/processing/sent/failed`, attempts, nextAttemptAt, leaseUntil?, lockedBy? | unique eventKey; `{state,nextAttemptAt}`; lease atomic, retry backoff, dead-letter sau 5 lần retry với jitter (delay 1m/5m/15m/1h/6h); notification/mail at-least-once nên consumer dedupe |
 | `audit_logs` / P09 | actorId?, actorRole?, requestId, action, targetType, targetId?, outcome, reasonCode?, changesRedacted?, createdAt | `{createdAt}`, `{actorId,createdAt}`, `{targetType,targetId,createdAt}`, requestId; append-only; admin chỉ GET; redact password/token/payment signature/email content |
 | `ai_conversations` / P10 | ownerUserId? hoặc guestHash?, messagesRedacted, expiresAt, consentAt? | TTL theo policy đề xuất 30 ngày và purge path; không đưa PII/secret/đơn của người khác vào Gemini |
@@ -92,12 +93,12 @@ Order enum chung: `pending, confirmed, processing, shipped, delivered, cancelled
 
 | From | To | Điều kiện |
 | --- | --- | --- |
-| pending | confirmed | staff/admin; PayOS phải paid, COD đã kiểm tra thông tin và còn reservation |
+| pending | confirmed | staff; PayOS phải paid, COD đã kiểm tra thông tin và còn reservation |
 | pending | cancelled | khách owner/guest proof hoặc staff; PayOS chưa paid có thể expiry; nếu paid phải theo luồng refund |
-| confirmed | processing, cancelled | staff/admin; hủy phải giải phóng stock và mở refund nếu đã thu |
+| confirmed | processing, cancelled | staff; hủy phải giải phóng stock và mở refund nếu đã thu |
 | processing | shipped | Nếu giao qua hãng, bắt buộc `shipping.carrier` và `shipping.trackingNumber`; giao thủ công phải ghi `reason`; PayOS phải paid; commit reservation giảm stock trong cùng transaction |
-| processing | cancelled | chỉ staff/admin trước bàn giao; lý do, release reservation, refund khi cần |
-| shipped | delivered | staff/admin xác nhận chứng cứ bàn giao; COD đánh dấu paid chỉ khi xác nhận thu tiền |
+| processing | cancelled | chỉ staff trước bàn giao; lý do, release reservation, refund khi cần |
+| shipped | delivered | staff xác nhận chứng cứ bàn giao; COD đánh dấu paid chỉ khi xác nhận thu tiền |
 | shipped, delivered | return_requested | tạo ticket return, lý do; shipped chỉ sự cố giao hàng; delivered trong 7 ngày đề xuất |
 | return_requested | returned | staff xác nhận đã nhận/kiểm hàng; inventory chỉ tăng phần đạt tiêu chuẩn bán lại; admin xử lý refund riêng |
 | return_requested | shipped hoặc delivered | từ chối yêu cầu trả, khôi phục `previousFulfillmentStatus` đã lưu, lý do bắt buộc |
@@ -108,7 +109,7 @@ Payment enum chung: `pending, paid, failed, expired, cancelled, refund_pending, 
 - `pending -> paid/failed/expired/cancelled`; `failed/expired/cancelled -> paid` chỉ qua event provider xác minh hoặc reconciliation: late payment không được bỏ qua.
 - `paid/partially_refunded -> refund_pending`; completed refund: nếu refundedAmount=paidAmount thì refunded, nhỏ hơn thì partially_refunded. Refund fail trở về paid/partially_refunded theo ledger.
 - Không nhận `paymentStatus:'paid'` từ public request, query redirect hoặc Gemini. Staff được xác nhận COD có chứng cứ; admin refund không tự sửa amount ledger.
-- Late paid khi đơn/reservation đã hủy: ghi thu tiền và `payment_events.review`, mở case cần staff/admin; không tự hồi sinh đơn/stock, không thông báo giao hàng thành công.
+- Late paid khi đơn/reservation đã hủy: ghi thu tiền và `payment_events.review`, mở case để staff kiểm tra và admin quyết định refund theo quyền riêng; không tự hồi sinh đơn/stock, không thông báo giao hàng thành công.
 
 ## 5. Transaction và chống race
 
@@ -136,6 +137,6 @@ Atlas phải hỗ trợ transaction; test dùng replica set. Không coi Mongo st
 
 ## 7. Các quyết định nghiệp vụ còn cần xác nhận trước launch
 
-Chính sách trả trong 7 ngày, giới hạn 20 address, thời hạn reservation PayOS 15 phút, COD không auto-expire, fee theo bảng cấu hình server, cash refund xử lý manual có chứng từ, moderation review trước công bố, bán buy/quote/both từng sản phẩm là mặc định đề xuất. Agent triển khai dưới config và fixture, ghi rõ demo; **không tự khẳng định đây là chính sách chính thức TRO & LAM**. Chưa có voucher/loyalty trong phạm vi yêu cầu; không kéo nghiệp vụ trà/voucher của dự án tham khảo sang gốm.
+Chính sách trả trong 7 ngày, giới hạn 20 address, thời hạn reservation PayOS 15 phút, COD không auto-expire, fee theo bảng cấu hình server, cash refund xử lý manual có chứng từ, moderation review trước công bố, bán buy/quote/both từng sản phẩm là mặc định đề xuất. Agent triển khai dưới config và fixture, ghi rõ demo; **không tự khẳng định đây là chính sách chính thức TRO & LAM**. Voucher được bổ sung theo DEC-29; không tạo voucher mẫu hoặc phần thưởng tự động.
 
-Quote v1 là contact lead `kind:quote` có productId/quantity và hàng đợi staff/admin để quản lý phản hồi. Đạt mục tiêu khi khách gửi được và staff quản lý được; **không có tự động convert quote thành order** ở baseline. Nếu thêm phase quote acceptance, dùng collection quote riêng có giá snapshot, validUntil, version và acceptance proof; conversion server kiểm giá/thời hạn/tồn kho, không tin số tiền do khách gửi. `both` có cả mua ở giá công bố và yêu cầu báo giá; `quote` chỉ lead, `buy` chỉ checkout.
+Quote v1 là contact lead `kind:quote` có productId/quantity và hàng đợi staff để quản lý phản hồi. Đạt mục tiêu khi khách gửi được và staff quản lý được; **không có tự động convert quote thành order** ở baseline. Nếu thêm phase quote acceptance, dùng collection quote riêng có giá snapshot, validUntil, version và acceptance proof; conversion server kiểm giá/thời hạn/tồn kho, không tin số tiền do khách gửi. `both` có cả mua ở giá công bố và yêu cầu báo giá; `quote` chỉ lead, `buy` chỉ checkout.

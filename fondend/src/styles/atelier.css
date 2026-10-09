@@ -76,9 +76,6 @@
 .product-card__bottom { align-items: center; }
 .product-card__bottom .text-link { border: 0; }
 .product-card__image img { object-fit: contain; }
-.product-card__tag--concept { top: 12px; right: auto; bottom: auto; left: 12px; background: #806943; }
-.product-card__tag--provided { top: 12px; right: auto; bottom: auto; left: 12px; background: #214d4c; }
-.product-card__tag--derived { top: 12px; right: auto; bottom: auto; left: 12px; background: #59675f; }
 .product-gallery__media-note { margin: 10px 0 0; padding: 10px 12px; border-left: 2px solid #a2844c; background: #f2eee3; color: #5b5c55; font-size: 11px; line-height: 1.65; }
 .catalog-state { min-height: 220px; background: #eeece3; border: 1px solid #dedbd0; }
 .catalog-state--error { background: #f3eee3; border-color: #d5c8ac; }
