@@ -55,12 +55,13 @@ npm run dev
 ```
 Web: http://localhost:5173. API: http://localhost:5000/api/v1/health.
 Backend chỉ mở cổng sau khi kết nối DB thành công; env example không phải credential hoạt động.
+`npm run dev` chờ API báo sẵn sàng rồi mới mở Vite, tránh lỗi proxy `ECONNREFUSED` trong lúc backend khởi động. Proxy dùng `PORT` từ môi trường hoặc `backend/.env`; có thể ghi đè bằng `API_PROXY_TARGET`. Nếu API chưa sẵn sàng sau 30 giây, lệnh báo kiểm tra log backend và cấu hình kết nối.
 Có thể chạy riêng frontend bằng `npm run dev:web` khi chưa có Atlas.
 
 ```powershell
 npm run check
 ```
-Lệnh này xác thực contract, chạy ESLint/backend tests và build frontend. Unit/route tests dùng
+Lệnh này xác thực contract, chạy ESLint, kiểm thử khởi động local/backend tests và build frontend. Unit/route tests dùng
 dependency injection. Các test replica-set cần URI loopback riêng; browser E2E yêu cầu
 `P11_E2E_MONGODB_URI` có tên database theo mẫu kiểm thử. Xem
 [bằng chứng release](doc/release/README.md) trước khi diễn giải kết quả.

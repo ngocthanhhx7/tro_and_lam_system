@@ -11,16 +11,17 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "node node_modules/concurrently/dist/bin/concurrently.js -k -n web,api \"npm run dev -w fondend\" \"npm run dev -w backend\"",
+    "dev": "node node_modules/concurrently/dist/bin/concurrently.js -k -n web,api \"node scripts/dev-web.js\" \"npm run dev -w backend\"",
     "dev:demo": "node scripts/dev-demo.js",
     "dev:web": "npm run dev -w fondend",
     "dev:api": "npm run dev -w backend",
     "build": "npm run build -w fondend",
     "lint": "node node_modules/eslint/bin/eslint.js .",
     "test": "npm test -w backend",
+    "test:dev": "node --test tests/dev/*.test.js",
     "test:e2e": "node node_modules/@playwright/test/cli.js test --config tests/e2e/playwright.config.js",
     "validate:contracts": "node scripts/validate-contracts.js",
-    "check": "npm run validate:contracts && npm run lint && npm test && npm run build"
+    "check": "npm run validate:contracts && npm run lint && npm run test:dev && npm test && npm run build"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",

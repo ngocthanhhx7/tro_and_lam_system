@@ -14,7 +14,7 @@ const processes = spawn(process.execPath, [
   '-k',
   '-n',
   'web,api',
-  'npm run dev -w fondend',
+  'node scripts/dev-web.js',
   'npm run dev -w backend',
 ], {
   cwd: repositoryRoot,
@@ -25,7 +25,7 @@ const processes = spawn(process.execPath, [
     FRONTEND_PORT: frontendPort,
     CORS_ORIGIN: webOrigin,
     PUBLIC_WEB_URL: webOrigin,
-    API_PROXY_TARGET: `http://localhost:${demoApiPort}`,
+    API_PROXY_TARGET: `http://127.0.0.1:${demoApiPort}`,
   },
   stdio: 'inherit',
 });
