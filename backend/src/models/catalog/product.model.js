@@ -25,6 +25,8 @@ const productSchema = new Schema({
   },
   storyId: { type: Schema.Types.ObjectId },
   saleMode: { type: String, enum: ['buy', 'quote', 'both'], required: true },
+  // Explicit owner approval for a reference SKU; only a controlled migration writes this field.
+  purchaseApproved: { type: Boolean, default: false },
   priceVnd: { type: Number, min: 1, validate: Number.isSafeInteger },
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft', index: true },
   featured: { type: Boolean, default: false },

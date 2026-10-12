@@ -15,8 +15,8 @@ const PUBLIC_PRODUCT_FIELDS = Object.freeze([
 ]);
 const DEMO_CATALOG_SKU = /^DEMO-(?:LIF|DIP)-\d{3}$/u;
 
-function isDemoCatalogProduct(product) {
-  return DEMO_CATALOG_SKU.test(String(product?.sku || '').toUpperCase());
+function needsPurchaseApproval(product) {
+  return DEMO_CATALOG_SKU.test(String(product?.sku || '').toUpperCase()) && product?.purchaseApproved !== true;
 }
 
 function plainId(value) {
@@ -71,7 +71,7 @@ function toCategory(category) {
 function toPublicProduct(product, availability) {
   const categoryId = asCategoryId(product);
   const quoteOnly = product.saleMode === 'quote';
-  const demoOnly = isDemoCatalogProduct(product);
+  const demoOnly = needsPurchaseApproval(product);
   const available = !quoteOnly && !demoOnly && availability.status === 'known' && availability.available;
   const data = {
     id: plainId(product),
@@ -180,8 +180,8 @@ export function createCatalogService({
 
   async function availabilityFor(products, { session, required = false } = {}) {
     const quoteOnly = products.filter((product) => product.saleMode === 'quote');
-    const demoOnly = products.filter((product) => product.saleMode !== 'quote' && isDemoCatalogProduct(product));
-    const buyable = products.filter((product) => product.saleMode !== 'quote' && !isDemoCatalogProduct(product));
+    const demoOnly = products.filter((product) => product.saleMode !== 'quote' && needsPurchaseApproval(product));
+    const buyable = products.filter((product) => product.saleMode !== 'quote' && !needsPurchaseApproval(product));
     const ids = buyable.map(plainId);
     const fixedStates = new Map([
       ...quoteOnly.map((product) => [plainId(product), { status: 'quote', available: false }]),
@@ -313,7 +313,7 @@ export function createCatalogService({
       if (!Array.isArray(ids)) throw badRequest('BAD_REQUEST', 'Sản phẩm không hợp lệ');
       const products = await productRepository.findPublishedProductsByIds(ids, { session });
       return products.filter((product) => ['buy', 'both'].includes(product.saleMode)
-        && !isDemoCatalogProduct(product)
+        && !needsPurchaseApproval(product)
         && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0).map(toCheckoutProduct);
     },
 

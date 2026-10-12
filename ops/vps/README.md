@@ -32,4 +32,6 @@ Certbot uses `/var/lib/tro-lam/acme` for HTTP validation and reloads Nginx after
 
 The current application disables production image/support attachment uploads until a durable provider is implemented. SMTP, PayOS and Gemini remain unavailable until the owner's configuration enables them. Existing Atlas records must be verified as appropriate for public use; installation does not publish demo fixtures.
 
+Reference SKUs remain blocked from purchase by default. After the owner explicitly approves exact products, `approve-purchases.js` accepts their distinct product IDs and records the approval in `products.purchaseApproved`. It requires existing published direct-sale products with a positive price and available stock. The operator migration saves a private backup and uses product versions plus audit records in a transaction; it does not rename SKUs or change price/inventory. Future reference products remain blocked until separately approved.
+
 For subsequent deployments, upload a new release directory and install dependencies there; retain the shared env. Record the previous `current` target before switching. To roll back application files, point `current` to that previous release and restart the API/reload Nginx. Retain database indexes and durable configuration; do not roll back by deleting orders, users or payment history.

@@ -178,7 +178,7 @@ test('quote-only products omit price and cannot be returned by the checkout port
   assert.equal(streamReads, 0);
 });
 
-test('demo reference SKUs stay unavailable even when persisted inventory exists', async () => {
+test('unapproved demo reference SKUs stay unavailable even when persisted inventory exists', async () => {
   const demo = product('64f000000000000000000042', { sku: 'DEMO-DIP-005' });
   let inventoryReads = 0;
   const { service } = serviceFor({
@@ -213,6 +213,29 @@ test('demo reference SKUs stay unavailable even when persisted inventory exists'
   assert.equal(detail.availableForPurchase, false);
   assert.deepEqual(await service.getCheckoutProducts([demo._id]), []);
   assert.equal(inventoryReads, 0);
+});
+
+test('owner-approved demo products can be listed and checked out while inventory still controls availability', async () => {
+  const approved = product('64f000000000000000000044', { sku: 'DEMO-DIP-005', purchaseApproved: true });
+  let inStock = true;
+  const { service } = serviceFor({
+    repository: {
+      listPublishedProductPage: async () => ({ items: [approved], total: 1 }),
+      streamPublishedProducts: async function* () { yield approved; },
+      findPublishedProductBySlug: async () => approved,
+      findPublishedProductsByIds: async () => [approved],
+    },
+    inventoryPort: { getAvailability: async ids => ids.map(productId => ({ productId, available: inStock })) },
+  });
+  const listed = await service.listPublishedProducts({});
+  assert.equal(listed.items[0].availableForPurchase, true);
+  assert.equal(listed.items[0].stockLabel, 'Có thể đặt mua');
+  assert.equal((await service.getCheckoutProducts([approved._id]))[0].sku, approved.sku);
+  assert.equal((await service.getPublishedProductBySlug(approved.slug)).availableForPurchase, true);
+  assert.equal((await service.listPublishedProducts({ available: 'true' })).items.length, 1);
+  inStock = false;
+  assert.equal((await service.getPublishedProductBySlug(approved.slug)).availableForPurchase, false);
+  assert.equal((await service.listPublishedProducts({ available: 'true' })).items.length, 0);
 });
 
 test('draft and products in unpublished categories stay private by slug and ID', async () => {
