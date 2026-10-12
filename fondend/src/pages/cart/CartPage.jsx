@@ -212,7 +212,7 @@ export default function CartPage() {
           <div><p className="cart-page__eyebrow">TUYỂN CHỌN ĐỒNG ĐIỆU</p><h2 id="cart-recommendations-title">Có thể bạn cũng yêu thích</h2></div>
           <Link to="/san-pham">Xem toàn bộ sản phẩm <span aria-hidden="true">→</span></Link>
         </div>
-        <div className="product-grid">{recommendations.map((product) => <ProductCard key={product.id} product={product} />)}</div>
+        <div className="product-grid">{recommendations.map((product) => <ProductCard key={product.id} product={product} onCartUpdated={setCart} />)}</div>
       </section>}
     </div>
   </section>;

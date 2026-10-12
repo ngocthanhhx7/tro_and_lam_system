@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import { addCartQuantity, formatVnd } from '../../services/catalog/catalogApi.js';
 
-export default function ProductCard({ product, headingLevel = 'h2' }) {
+export default function ProductCard({ product, headingLevel = 'h2', onCartUpdated }) {
   const [cartStatus, setCartStatus] = useState({ state: 'idle', message: '' });
   const image = product.images?.[0];
   const quoteOnly = product.saleMode === 'quote';
@@ -16,7 +16,8 @@ export default function ProductCard({ product, headingLevel = 'h2' }) {
     if (!canAddToCart || cartStatus.state === 'loading') return;
     setCartStatus({ state: 'loading', message: '' });
     try {
-      await addCartQuantity(product.id, 1);
+      const response = await addCartQuantity(product.id, 1);
+      onCartUpdated?.(response.data);
       setCartStatus({ state: 'success', message: 'Đã thêm vào giỏ hàng.' });
     } catch (error) {
       setCartStatus({ state: 'error', message: error.message || 'Chưa thêm được sản phẩm. Hãy thử lại.' });
