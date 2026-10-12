@@ -64,7 +64,7 @@ export default function AdminLayout({ children }) {
     <a className="admin-layout__skip" href="#admin-main">Bỏ qua điều hướng</a>
     <aside id="admin-navigation" className={`admin-layout__sidebar${menuOpen ? ' is-open' : ''}`} aria-label={isStaff ? 'Khu vực vận hành' : 'Khu vực quản trị'}>
       <Link className="admin-layout__brand" to={home} onClick={closeMenus}>
-        <img src="/assets/logo/logo.PNG" width="38" height="38" alt="" /><span><strong>TRO &amp; LAM</strong><small>{isStaff ? 'KHÔNG GIAN VẬN HÀNH' : 'TRANG QUẢN TRỊ'}</small></span>
+        <img src="/assets/logo/logo-160.webp" width="38" height="38" alt="" /><span><strong>TRO &amp; LAM</strong><small>{isStaff ? 'KHÔNG GIAN VẬN HÀNH' : 'TRANG QUẢN TRỊ'}</small></span>
       </Link>
       <nav aria-label={isStaff ? 'Điều hướng vận hành' : 'Điều hướng quản trị'}>
         {(isStaff ? staffGroups : adminGroups).map((group) => <div className="admin-layout__nav-group" key={group.label}>

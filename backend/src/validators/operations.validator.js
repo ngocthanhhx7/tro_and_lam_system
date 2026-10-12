@@ -86,6 +86,7 @@ function validateShippingZones(zones) {
     if (!Array.isArray(zone.provinceNames) || zone.provinceNames.length < 1 || zone.provinceNames.length > MAX_SETTING_ITEMS) {
       throw invalid(`${field}.provinceNames`, 'Cần ít nhất một tên tỉnh/thành đã được xác nhận');
     }
+    if (zone.provinceNames.includes('*') && zone.provinceNames.length !== 1) throw invalid(`${field}.provinceNames`, 'Vùng toàn quốc chỉ dùng một phạm vi');
     zone.provinceNames.forEach((name, nameIndex) => {
       const nameField = `${field}.provinceNames[${nameIndex}]`;
       if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) throw invalid(nameField);

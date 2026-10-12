@@ -10,6 +10,7 @@ function unavailableQuote(message) {
 
 /** Quote only from owner-configured zones and an explicit recipient province. */
 export function quoteConfiguredShippingFeeVnd(settings, recipient) {
+  if (recipient?.countryCode && recipient.countryCode !== 'VN') unavailableQuote('Hiện chỉ hỗ trợ giao hàng trong Việt Nam');
   const zones = settings?.shippingZones;
   if (!Array.isArray(zones) || zones.length === 0) {
     unavailableQuote('Phí giao hàng chưa được chủ dự án cấu hình và xác nhận');
@@ -40,7 +41,7 @@ export function quoteConfiguredShippingFeeVnd(settings, recipient) {
     }
   }
 
-  const feeVnd = configuredProvinces.get(normalizeProvinceName(recipient.province));
+  const feeVnd = configuredProvinces.get(normalizeProvinceName(recipient.province)) ?? configuredProvinces.get('*');
   if (feeVnd === undefined) unavailableQuote('Không tìm thấy phí giao hàng đã cấu hình cho tỉnh/thành này');
   return feeVnd;
 }

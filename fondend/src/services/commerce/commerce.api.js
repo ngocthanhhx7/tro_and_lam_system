@@ -6,6 +6,7 @@ let volatileRetry = null;
 
 export const commerceApi = Object.freeze({
   getCart: async () => json(await getJson('/cart')),
+  getCheckoutOptions: async () => json(await getJson('/checkout/options')),
   listAddresses: async () => json(await getJson('/account/addresses')),
   quoteCheckout: async (body) => json(await requestJson('/checkout/quote', { method: 'POST', body })),
   createOrder: async (body, key) => json(await requestJson('/orders', {

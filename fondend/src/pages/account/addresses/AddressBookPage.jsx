@@ -126,7 +126,7 @@ export default function AddressBookPage() {
         }));
         setNotice('Địa chỉ gợi ý đã được điền. Hãy kiểm tra số nhà, người nhận và số điện thoại trước khi lưu.');
       } catch (geoRequestError) {
-        setGeoError(`${messageFor(geoRequestError)} Nhập địa chỉ thủ công vẫn dùng được.`);
+        setGeoError(messageFor(geoRequestError));
       } finally {
         setGeoBusy(false);
       }
@@ -228,7 +228,8 @@ export default function AddressBookPage() {
         <button className="address-button address-button--soft" type="button" onClick={suggestAddress} disabled={geoBusy}>
           {geoBusy ? 'Đang lấy gợi ý…' : 'Dùng vị trí hiện tại'}
         </button>
-        <p className="address-card__hint">Chỉ lấy vị trí sau khi bạn bấm nút. Tọa độ được gửi tới dịch vụ gợi ý địa chỉ; địa chỉ trả về chỉ là gợi ý cần bạn kiểm tra. Nếu dịch vụ không hoạt động, hãy nhập tay.</p>
+        <p className="address-card__hint">Chỉ lấy vị trí sau khi bạn bấm nút và cho phép định vị. Tọa độ được làm tròn tới khoảng 100 m rồi gửi tới Photon để gợi ý địa chỉ. Hãy kiểm tra lại số nhà và tên đường; bạn luôn có thể nhập tay.</p>
+        <p className="address-card__hint">Gợi ý bởi <a href="https://photon.komoot.io/" target="_blank" rel="noreferrer">Photon</a> · Dữ liệu © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</p>
         {geoError && <p className="address-alert address-alert--error" role="status">{geoError}</p>}
         <form className="address-form" onSubmit={submit}>
           <AddressField label="Tên gợi nhớ" name="label" value={form.label} onChange={updateField} maxLength={80} error={fieldErrors.label} />

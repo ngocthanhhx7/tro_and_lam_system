@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.5.0",
+  "contractVersion": "1.6.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,8 +13,16 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30", "DEC-31"],
   "amendments": [
+    {
+      "id": "DEC-31",
+      "date": "2026-10-13",
+      "reason": "The owner requested working checkout and editable shipping fees; checkout must display actual available payment methods before creating an order.",
+      "changes": ["GET /checkout/options exposes public checkout availability, paymentMethods and shippingZones.", "A single '*' province name denotes the owner-configured Vietnam-wide shipping fallback; specific province fees take priority."],
+      "consumers": ["P05", "P09", "PUB-02"],
+      "migration": "Configure business shippingZones, codEnabled and checkoutLimits through the audited settings service; no invented default fee."
+    },
     {
       "id": "DEC-17",
       "date": "2026-10-06",
@@ -193,8 +201,8 @@
     "runtime": "Node 24.21.0",
     "result": {
       "openapiVersion": "3.1.0",
-      "paths": 109,
-      "operations": 129,
+      "paths": 110,
+      "operations": 130,
       "dtoSchemas": 67,
       "enums": 25,
       "dtoFixtures": 30

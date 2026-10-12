@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.5.0
+  version: 1.6.0
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -339,6 +339,13 @@ paths:
       x-actors: [customer, staff, admin]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CartMerge' } } } }
       responses: { '200': { $ref: '#/components/responses/Success' }, '409': { $ref: '#/components/responses/Error' } }
+  /checkout/options:
+    get:
+      operationId: getCheckoutOptions
+      tags: [checkout]
+      x-actors: [guest, customer, staff, admin]
+      description: Returns checkoutConfigured, available paymentMethods and public shippingZones (id, provinceNames, feeVnd). A single '*' province name represents the Vietnam-wide fallback; province-specific fees override it.
+      responses: { '200': { $ref: '#/components/responses/Success' }, '503': { $ref: '#/components/responses/Error' } }
   /checkout/quote:
     post:
       operationId: quoteCheckout

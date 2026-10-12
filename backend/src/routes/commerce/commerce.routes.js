@@ -84,6 +84,8 @@ export function createCommerceRouter({ ports = {}, config = {} } = {}) {
     }));
   }
 
+  router.get('/checkout/options', async (_req, res) => sendSuccess(res, await service.getCheckoutOptions()));
+
   router.post('/checkout/quote', csrf, validateCommerceBody('checkoutQuote'), async (req, res) => {
     return sendSuccess(res, await service.quoteCheckout(await resolveActor(req), req.validatedBody));
   });

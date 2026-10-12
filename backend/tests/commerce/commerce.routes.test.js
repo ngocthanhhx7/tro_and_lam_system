@@ -15,6 +15,7 @@ function createFixture(overrides = {}) {
   app.use(express.json());
   app.use((_req, res, next) => { res.locals.requestId = 'request-commerce-route-test'; next(); });
   const service = {
+    async getCheckoutOptions() { return { checkoutConfigured: true, paymentMethods: ['payos'], shippingZones: [] }; },
     async quoteCheckout(actor, body) { calls.push({ name: 'quoteCheckout', actor, body }); return { totalVnd: 200000 }; },
     async createOrder(actor, body, key, context) {
       calls.push({ name: 'createOrder', actor, body, key, context });
@@ -60,6 +61,13 @@ function createFixture(overrides = {}) {
   app.use(errorHandler);
   return { app, calls };
 }
+
+test('checkout options are readable by a guest without a session or CSRF mutation', async () => {
+  const { app } = createFixture();
+  const response = await request(app).get('/api/v1/checkout/options');
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body.data.paymentMethods, ['payos']);
+});
 
 test('guest checkout sets a scoped HttpOnly proof cookie and removes the token from JSON', async () => {
   const { app, calls } = createFixture();

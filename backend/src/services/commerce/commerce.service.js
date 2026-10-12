@@ -267,6 +267,22 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     };
   }
 
+  async function getCheckoutOptions() {
+    if (typeof ports.settings?.getBusinessSettings !== 'function') return { checkoutConfigured: false, paymentMethods: [], shippingZones: [] };
+    const { values = {} } = await ports.settings.getBusinessSettings();
+    const shippingReady = Array.isArray(values.shippingZones) && values.shippingZones.length > 0
+      && typeof values.codEnabled === 'boolean' && values.checkoutLimits && typeof values.checkoutLimits === 'object';
+    if (!shippingReady) return { checkoutConfigured: false, paymentMethods: [], shippingZones: [] };
+    const paymentMethods = [];
+    if (values.codEnabled && Number.isSafeInteger(values.checkoutLimits.maxPendingCodOrders) && values.checkoutLimits.maxPendingCodOrders > 0) paymentMethods.push('cod');
+    if (typeof ports.payment?.isConfigured === 'function' && await ports.payment.isConfigured()) paymentMethods.push('payos');
+    return {
+      checkoutConfigured: paymentMethods.length > 0,
+      paymentMethods,
+      shippingZones: values.shippingZones.map(({ id, provinceNames, feeVnd }) => ({ id, provinceNames, feeVnd })),
+    };
+  }
+
   function checkoutActorKey(actor) {
     if (actor?.id) return `user:${actor.id}`;
     if (actor?.orderId) return `guest-order:${actor.orderId}`;
@@ -1093,6 +1109,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
   }
 
   return Object.freeze({
+    getCheckoutOptions,
     repository,
     quoteCheckout,
     createOrder,

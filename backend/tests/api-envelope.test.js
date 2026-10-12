@@ -30,9 +30,9 @@ test('validation errors include bounded field details and request ID', async () 
 });
 
 test('rate limit responses keep the standard error envelope', async () => {
-  const app = createApp();
+  const app = createApp({ apiRateLimitLimit: 2 });
   let response;
-  for (let attempt = 0; attempt < 101; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     response = await request(app).get('/api/v1/missing');
   }
 
@@ -40,6 +40,13 @@ test('rate limit responses keep the standard error envelope', async () => {
   assert.equal(response.body.error.code, 'RATE_LIMITED');
   assert.ok(response.body.meta.requestId);
   assert.equal(response.headers['x-request-id'], response.body.meta.requestId);
+});
+
+test('normal browsing across catalog, cart and dashboard is not blocked by the former 100-request ceiling', async () => {
+  const app = createApp();
+  for (let attempt = 0; attempt < 105; attempt += 1) {
+    assert.equal((await request(app).get('/api/v1/missing')).status, 404);
+  }
 });
 
 test('isolated app instances can set a bounded global API rate limit', async () => {

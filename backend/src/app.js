@@ -20,8 +20,8 @@ export function createApp({
   isDatabaseReady = defaultReadiness,
   domainRouters = [],
   mediaStaticDirectory,
-  apiRateLimitLimit = 100,
-  apiRateLimitWindowMs = 15 * 60 * 1000,
+  apiRateLimitLimit = 300,
+  apiRateLimitWindowMs = 60 * 1000,
 } = {}) {
   if (!Number.isSafeInteger(apiRateLimitLimit) || apiRateLimitLimit < 1) {
     throw new TypeError('API rate limit must be a positive safe integer');

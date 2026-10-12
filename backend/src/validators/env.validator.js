@@ -131,6 +131,8 @@ export function validateEnv(source) {
     }
   }
   const backgroundWorkersEnabled = booleanSetting(source, 'BACKGROUND_WORKERS_ENABLED', true);
+  const geocodingProvider = source.GEOCODING_PROVIDER || 'disabled';
+  if (!['disabled', 'photon'].includes(geocodingProvider)) throw new Error('GEOCODING_PROVIDER chỉ nhận disabled/photon');
 
   const mediaStorageDriver = source.MEDIA_STORAGE_DRIVER || (nodeEnv === 'development' ? 'local' : 'disabled');
   if (!['local', 'disabled'].includes(mediaStorageDriver)) throw new Error('MEDIA_STORAGE_DRIVER chỉ nhận local/disabled');
@@ -165,7 +167,7 @@ export function validateEnv(source) {
     payosEnabled, payosClientId, payosApiKey, payosChecksumKey, payosTimeoutMs,
     geminiApiKey, geminiModel, aiTimeoutMs, aiDailyBudget,
     reservationSweepIntervalMs, paymentReconciliationIntervalMs,
-    backgroundWorkersEnabled, mediaStorageDriver, mediaStoragePath, mediaPublicBaseUrl,
+    backgroundWorkersEnabled, geocodingProvider, mediaStorageDriver, mediaStoragePath, mediaPublicBaseUrl,
     supportStorageDriver, supportStoragePath,
   };
 }

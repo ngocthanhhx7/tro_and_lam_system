@@ -26,6 +26,7 @@ function messageFor(error, fallback) {
 export default function CheckoutPage() {
   const { user, loading: authLoading, errorCode: authErrorCode } = useAuth();
   const [cart, setCart] = useState(null);
+  const [checkoutOptions, setCheckoutOptions] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [vouchers, setVouchers] = useState([]);
   const [voucherLoadError, setVoucherLoadError] = useState('');
@@ -52,12 +53,23 @@ export default function CheckoutPage() {
     setLoading(true);
     setError(null);
     try {
-      const cartResponse = await commerceApi.getCart();
+      const [cartResult, optionsResult, addressesResult, vouchersResult] = await Promise.allSettled([
+        commerceApi.getCart(), commerceApi.getCheckoutOptions(),
+        user ? commerceApi.listAddresses() : Promise.resolve([]),
+        user?.role === 'customer' ? voucherApi.listMine() : Promise.resolve({ data: [] }),
+      ]);
+      if (cartResult.status === 'rejected') throw cartResult.reason;
+      if (optionsResult.status === 'rejected') throw optionsResult.reason;
+      const cartResponse = cartResult.value;
+      const options = optionsResult.value;
       setCart(cartResponse);
+      setCheckoutOptions(options);
+      setPaymentMethod(current => options.paymentMethods.includes(current) ? current : (options.paymentMethods[0] || ''));
       setQuote(null);
       if (user) {
         try {
-          const saved = await commerceApi.listAddresses();
+          if (addressesResult.status === 'rejected') throw addressesResult.reason;
+          const saved = addressesResult.value;
           const list = Array.isArray(saved) ? saved : [];
           setAddresses(list);
           const defaultAddress = list.find((address) => address.isDefault);
@@ -73,7 +85,8 @@ export default function CheckoutPage() {
         if (user.role === 'customer') {
           setVoucherId('');
           try {
-            const savedVouchers = await voucherApi.listMine();
+            if (vouchersResult.status === 'rejected') throw vouchersResult.reason;
+            const savedVouchers = vouchersResult.value;
             setVouchers(Array.isArray(savedVouchers.data) ? savedVouchers.data : []);
             setVoucherLoadError('');
           } catch (requestError) {
@@ -216,7 +229,8 @@ export default function CheckoutPage() {
   return <section className="commerce-page">
     <p className="commerce-eyebrow">CHECKOUT</p>
     <h1>Thông tin nhận hàng</h1>
-    <p className="commerce-lede">Giá sản phẩm, phí giao hàng và tình trạng tồn kho được máy chủ tính lại trước khi tạo đơn.</p>
+    <p className="commerce-lede">Điền thông tin nhận hàng và chọn “Tính phí và kiểm tra tồn” để xem tổng tiền trước khi xác nhận đặt hàng.</p>
+    {checkoutOptions && !checkoutOptions.checkoutConfigured && <p className="commerce-error" role="alert">Hiện chưa nhận đơn trực tuyến. Vui lòng liên hệ cửa hàng để được hỗ trợ.</p>}
     <div className="commerce-checkout-layout">
       <form className="commerce-panel commerce-form" onSubmit={submitOrder}>
         {user && addresses.length > 0 && <label className="commerce-field" htmlFor="checkout-address">
@@ -246,8 +260,8 @@ export default function CheckoutPage() {
 
         <label className="commerce-field" htmlFor="checkout-payment"><span>Phương thức thanh toán</span>
           <select id="checkout-payment" value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setQuote(null); }}>
-            <option value="cod">Thanh toán khi nhận hàng (nếu đang được cấu hình)</option>
-            <option value="payos">Thanh toán trực tuyến qua PayOS (nếu đang được cấu hình)</option>
+            {!checkoutOptions?.paymentMethods.length && <option value="">Chưa có phương thức thanh toán khả dụng</option>}
+            {checkoutOptions?.paymentMethods.map(method => <option key={method} value={method}>{method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán trực tuyến qua PayOS'}</option>)}
           </select>
         </label>
         {user?.role === 'customer' && <label className="commerce-field" htmlFor="checkout-voucher"><span>Voucher</span>
@@ -278,19 +292,19 @@ export default function CheckoutPage() {
           const quoted = quote?.items?.find((entry) => entry.productId === id);
           return <li key={id}>
             <span><strong>{quoted?.name || item.name || item.product?.name || 'Sản phẩm gốm'}</strong><small>SKU {quoted?.sku || item.sku || item.product?.sku || '—'} · SL {item.quantity}</small></span>
-            <span>{quoted ? formatMoney(quoted.unitPriceVnd * quoted.quantity) : 'Chờ báo giá'}</span>
+            <span>{quoted ? formatMoney(quoted.unitPriceVnd * quoted.quantity) : Number.isSafeInteger(item.lineTotalVnd) ? formatMoney(item.lineTotalVnd) : 'Chưa có giá'}</span>
           </li>;
         })}</ul>
         {quote?.warnings?.length > 0 && <div className="commerce-error" role="alert"><strong>Chưa đủ tồn kho</strong><p>Giỏ hàng cần được cập nhật trước khi đặt.</p></div>}
         <dl className="commerce-totals">
-          <div><dt>Tạm tính</dt><dd>{quote ? formatMoney(quote.subtotalVnd) : '—'}</dd></div>
+          <div><dt>Tạm tính</dt><dd>{formatMoney(quote?.subtotalVnd ?? cart.subtotalVnd)}</dd></div>
           <div><dt>Giảm giá voucher</dt><dd>{quote ? `−${formatMoney(quote.discountVnd || 0)}` : '—'}</dd></div>
           <div><dt>Phí giao hàng</dt><dd>{quote ? formatMoney(quote.shippingFeeVnd) : 'Chưa xác định'}</dd></div>
           <div className="commerce-total"><dt>Tổng cộng</dt><dd>{quote ? formatMoney(quote.totalVnd) : '—'}</dd></div>
         </dl>
         {quote?.quoteExpiresAt && <p className="commerce-note">Báo giá đến {new Date(quote.quoteExpiresAt).toLocaleTimeString('vi-VN')}.</p>}
         {quoteExpired && <p className="commerce-error" role="status">Báo giá hết hạn. Hãy tính lại để kiểm tra phí và tồn kho.</p>}
-        <p className="commerce-note">Phí được lấy từ cấu hình cửa hàng. Nếu phương thức thanh toán, vùng giao hàng hoặc phí chưa được cấu hình, hệ thống sẽ báo lỗi và không tạo đơn.</p>
+        <p className="commerce-note">Kiểm tra địa chỉ nhận hàng và tổng tiền trước khi xác nhận đặt hàng.</p>
       </aside>
     </div>
   </section>;

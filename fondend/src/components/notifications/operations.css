@@ -374,6 +374,7 @@
 }
 
 .operations-settings__field textarea,
+.operations-settings__field input,
 .operations-settings__field select,
 .operations-settings__reason textarea {
   width: 100%;
@@ -414,6 +415,12 @@
   background: white;
   color: var(--status-success);
 }
+
+.shipping-zone-editor { display: grid; gap: 18px; }
+.shipping-zone-row { display: grid; gap: 12px; padding: 18px; border: 1px solid var(--border-subtle); background: var(--surface-muted, #f7f5ef); }
+.shipping-zone-row label { display: grid; gap: 6px; }
+.shipping-zone-row textarea { font-family: inherit; }
+.shipping-zone-row button { justify-self: start; }
 
 .operations-bell {
   position: relative;

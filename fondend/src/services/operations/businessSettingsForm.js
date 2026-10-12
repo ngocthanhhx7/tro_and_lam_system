@@ -23,6 +23,7 @@ function validateShippingZones(zones) {
     if (!Array.isArray(zone.provinceNames) || zone.provinceNames.length < 1 || zone.provinceNames.length > 100) {
       throw new TypeError(`shippingZones[${index}].provinceNames cần có từ 1 đến 100 tỉnh/thành.`);
     }
+    if (zone.provinceNames.includes('*') && zone.provinceNames.length !== 1) throw new TypeError('Vùng toàn quốc không được ghép với danh sách tỉnh/thành.');
     for (const name of zone.provinceNames) {
       if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) {
         throw new TypeError('Tên tỉnh/thành cần có từ 1 đến 100 ký tự.');

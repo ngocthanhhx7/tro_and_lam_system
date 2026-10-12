@@ -14,6 +14,7 @@ import { createAssistantRouter } from './assistant/assistant.routes.js';
 import { createAssistantTranscriptPort } from './assistant/assistant.ports.js';
 import { createPublishedContentPort } from './content/content.ports.js';
 import { createAccountService } from './services/account/account.service.js';
+import { createPhotonAdapter } from './services/integrations/photon/photon.adapter.js';
 import { createCatalogService } from './services/catalog/catalog.service.js';
 import { createMongooseCatalogRepository } from './services/catalog/mongoose-catalog.repository.js';
 import { createLocalMediaProvider, createUnavailableMediaProvider } from './services/catalog/media-provider.js';
@@ -209,7 +210,7 @@ export async function createDomainComposition(env) {
     })
     : null;
 
-  const accountService = createAccountService({ ports: { catalogService }, config });
+  const accountService = createAccountService({ ports: { catalogService, geocoder: createPhotonAdapter({ enabled: env.geocodingProvider === 'photon' }) }, config });
   const actorResolvers = makeActorResolvers(identity, identityService, config);
   const commerceConfig = { ...config };
   const paymentBridge = Object.freeze({

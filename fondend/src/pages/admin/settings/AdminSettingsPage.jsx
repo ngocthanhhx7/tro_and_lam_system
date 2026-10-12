@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { operationsApi } from '../../../services/operations/operationsApi.js';
 import { businessSettingsDrafts, parseBusinessSettingsDrafts } from '../../../services/operations/businessSettingsForm.js';
+import ShippingZoneEditor from './ShippingZoneEditor.jsx';
 import '../../../components/notifications/operations.css';
 
 const JSON_FIELDS = [
-  { key: 'shippingZones', label: 'Khu vực và phí giao hàng', kind: 'array', help: 'Mỗi vùng gồm đúng id, provinceNames (tên tỉnh/thành đã duyệt) và feeVnd (số nguyên VND không âm). Tên tỉnh/thành được so khớp chính xác sau khi chuẩn hóa chữ hoa, dấu và khoảng trắng; địa chỉ thiếu hoặc không khớp tỉnh/thành sẽ không nhận được báo giá. Chỉ nhập phí do chủ dự án xác nhận; để danh sách trống sẽ chặn checkout.' },
-  { key: 'checkoutLimits', label: 'Giới hạn checkout', kind: 'object', help: 'Chỉ hỗ trợ maxPendingCodOrders là số nguyên dương. Nếu chưa có giá trị, COD checkout vẫn tắt; hệ thống không tự đặt mặc định.' },
   { key: 'supportWindows', label: 'Khung giờ hỗ trợ', kind: 'object', help: 'Đối tượng JSON theo giờ hỗ trợ do chủ dự án xác nhận.' },
 ];
 
@@ -83,7 +82,7 @@ export default function AdminSettingsPage() {
   return (
     <section className="operations-page">
       <header className="operations-page__heading">
-        <div><p className="operations-eyebrow">Quản trị · Cấu hình an toàn</p><h1>Cấu hình vận hành</h1><p>Chỉ chỉnh nhóm cấu hình nghiệp vụ được phép. Secret và địa chỉ provider không được hiển thị ở đây.</p></div>
+        <div><p className="operations-eyebrow">Quản trị · Cài đặt</p><h1>Cấu hình vận hành</h1><p>Điều chỉnh phí giao hàng, thanh toán khi nhận hàng và thời gian hỗ trợ.</p></div>
         <button type="button" className="operations-button operations-button--quiet" onClick={loadSettings} disabled={loading || saving}>Tải lại</button>
       </header>
 
@@ -95,6 +94,11 @@ export default function AdminSettingsPage() {
         <p className="operations-settings__version">Phiên bản hiện tại: {settings.version}. Mỗi lần lưu cần lý do và tạo audit.</p>
 
         <fieldset className="operations-settings__field">
+          <legend>Phí giao hàng</legend>
+          <ShippingZoneEditor value={drafts.shippingZones} onChange={value => updateDraft('shippingZones', value)} disabled={saving} />
+        </fieldset>
+
+        <fieldset className="operations-settings__field">
           <legend>Bật thanh toán COD</legend>
           {settings.values.codEnabled === undefined && <p className="operations-settings__pending">Chưa cấu hình · đang chờ quyết định của chủ dự án.</p>}
           <label htmlFor="settings-cod">Trạng thái COD</label>
@@ -103,6 +107,10 @@ export default function AdminSettingsPage() {
             <option value="true">Bật</option>
             <option value="false">Tắt</option>
           </select>
+          <label htmlFor="settings-cod-limit">Số đơn COD chờ xử lý tối đa mỗi khách</label>
+          <input id="settings-cod-limit" type="number" min="1" step="1" disabled={saving} required={drafts.codEnabled === 'true'}
+            value={JSON.parse(drafts.checkoutLimits || '{}').maxPendingCodOrders ?? ''}
+            onChange={event => updateDraft('checkoutLimits', JSON.stringify(event.target.value === '' ? {} : { maxPendingCodOrders: Number(event.target.value) }))} />
         </fieldset>
 
         {JSON_FIELDS.map(({ key, label, kind, help }) => (

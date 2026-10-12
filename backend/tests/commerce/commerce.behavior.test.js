@@ -285,6 +285,16 @@ function serviceFixture({ stock = { [PRODUCT_A]: 1, [PRODUCT_B]: 1 }, settings, 
   return { service: createCommerceService({ ports }), repository, proofCalls };
 }
 
+test('checkout options expose configured shipping and only available payment methods', async () => {
+  const { service } = serviceFixture({ paymentConfigured: true });
+  const options = await service.getCheckoutOptions();
+  assert.equal(options.checkoutConfigured, true);
+  assert.deepEqual(options.paymentMethods, ['cod', 'payos']);
+  assert.equal(options.shippingZones[0].feeVnd, 25000);
+  const empty = serviceFixture({ settings: {}, paymentConfigured: true });
+  assert.deepEqual(await empty.service.getCheckoutOptions(), { checkoutConfigured: false, paymentMethods: [], shippingZones: [] });
+});
+
 test('checkout calculates VND from catalog and snapshots recipient and product data', async () => {
   const { service, repository } = serviceFixture();
   const actor = { id: USER_ID, role: 'customer', status: 'active', user: { emailNormalized: 'an@example.com' } };

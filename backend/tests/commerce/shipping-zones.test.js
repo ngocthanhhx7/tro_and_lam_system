@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createShippingZoneQuotePort, quoteConfiguredShippingFeeVnd } from '../../src/services/commerce/shipping-zones.js';
 
+test('nationwide fallback uses the owner fee while a province-specific override takes priority', () => {
+  const settings = { shippingZones: [
+    { id: 'nationwide', provinceNames: ['*'], feeVnd: 0 },
+    { id: 'hanoi', provinceNames: ['Hà Nội'], feeVnd: 30000 },
+  ] };
+  assert.equal(quoteConfiguredShippingFeeVnd(settings, { province: 'Hà Nội', countryCode: 'VN' }), 30000);
+  assert.equal(quoteConfiguredShippingFeeVnd(settings, { province: 'Hà Nội - Hanoi City', countryCode: 'VN' }), 0);
+  assert.throws(() => quoteConfiguredShippingFeeVnd(settings, { province: 'Paris', countryCode: 'FR' }), { code: 'DATABASE_UNAVAILABLE' });
+});
+
 test('shipping quote matches an explicitly configured province after case, accent, and whitespace normalization', async () => {
   const port = createShippingZoneQuotePort();
   const feeVnd = await port.quoteFeeVnd({

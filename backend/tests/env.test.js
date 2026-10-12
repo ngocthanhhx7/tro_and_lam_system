@@ -25,6 +25,11 @@ test('valid configuration has development defaults', () => {
 test('missing database configuration fails', () => {
   assert.throws(() => validateEnv({}), /MONGODB_URI/);
 });
+test('free geocoding is explicit and cannot select an arbitrary upstream', () => {
+  assert.equal(validateEnv(valid).geocodingProvider, 'disabled');
+  assert.equal(validateEnv({ ...valid, GEOCODING_PROVIDER: 'photon' }).geocodingProvider, 'photon');
+  assert.throws(() => validateEnv({ ...valid, GEOCODING_PROVIDER: 'https://example.com' }), /GEOCODING_PROVIDER/);
+});
 test('placeholder Atlas credentials fail', () => {
   assert.throws(() => validateEnv({ MONGODB_URI: 'mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/tro_lam' }), /MONGODB_URI/);
 });
