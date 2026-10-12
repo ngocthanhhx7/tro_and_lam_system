@@ -9,10 +9,10 @@ function fail(status, code, message) {
   throw new ServiceError(status, code, message);
 }
 
-function asVoucher(value, { includeCustomer = false } = {}) {
+function asVoucher(value, { includeCustomer = false, at = new Date() } = {}) {
   const row = value?.toObject ? value.toObject() : value;
   const expiresAt = new Date(row.expiresAt);
-  const expired = expiresAt <= new Date();
+  const expired = expiresAt <= at;
   return {
     id: idOf(row),
     code: row.code,
@@ -44,15 +44,24 @@ function calculateDiscount(voucher, subtotalVnd) {
 }
 
 export function createVoucherService({ Voucher = DefaultVoucher, User = DefaultUser, auditPort, notificationService, now = () => new Date() } = {}) {
+  const voucherDto = (value, options = {}) => asVoucher(value, { ...options, at: now() });
   async function listMine(userId) {
     const rows = await Voucher.find({ userId }).sort({ createdAt: -1, _id: -1 }).limit(100).lean();
-    return rows.map((row) => asVoucher(row));
+    return rows.map((row) => voucherDto(row));
+  }
+
+  async function resolveCode(userId, code) {
+    const normalized = typeof code === 'string' ? code.trim().toUpperCase() : '';
+    if (!userId || !/^[A-Z0-9][A-Z0-9_-]{2,39}$/u.test(normalized)) fail(422, 'VOUCHER_NOT_AVAILABLE', 'Mã voucher chưa khả dụng cho tài khoản của bạn');
+    const voucher = await Voucher.findOne({ code: normalized, userId, status: 'available', expiresAt: { $gt: now() } }).exec();
+    if (!voucher) fail(422, 'VOUCHER_NOT_AVAILABLE', 'Mã voucher không tồn tại, đã hết hạn hoặc không dành cho tài khoản của bạn');
+    return voucherDto(voucher);
   }
 
   async function listAdmin() {
     const rows = await Voucher.find({}).populate({ path: 'userId', select: 'name emailNormalized' })
       .sort({ createdAt: -1, _id: -1 }).limit(200).exec();
-    return rows.map((row) => asVoucher(row, { includeCustomer: true }));
+    return rows.map((row) => voucherDto(row, { includeCustomer: true }));
   }
 
   async function issue(actor, input, { requestId } = {}) {
@@ -103,7 +112,7 @@ export function createVoucherService({ Voucher = DefaultVoucher, User = DefaultU
       if (error?.code === 11000) fail(409, 'VOUCHER_CODE_IN_USE', 'Mã voucher đã tồn tại');
       throw error;
     }
-    return asVoucher({ ...created.toObject(), userId: { _id: targetUserId, name: undefined, emailNormalized: email } }, { includeCustomer: true });
+    return voucherDto({ ...created.toObject(), userId: { _id: targetUserId, name: undefined, emailNormalized: email } }, { includeCustomer: true });
   }
 
   async function revoke(actor, id, { requestId } = {}) {
@@ -117,7 +126,7 @@ export function createVoucherService({ Voucher = DefaultVoucher, User = DefaultU
         action: 'voucher.revoke', targetType: 'voucher', targetId: idOf(voucher), outcome: 'success',
         changesRedacted: { code: voucher.code, status: 'revoked' }, createdAt: now(),
       }, { session });
-      return asVoucher(voucher);
+      return voucherDto(voucher);
     });
   }
 
@@ -160,5 +169,5 @@ export function createVoucherService({ Voucher = DefaultVoucher, User = DefaultU
     return true;
   }
 
-  return Object.freeze({ listMine, listAdmin, issue, revoke, quote, redeem, releaseForOrder });
+  return Object.freeze({ listMine, resolveCode, listAdmin, issue, revoke, quote, redeem, releaseForOrder });
 }

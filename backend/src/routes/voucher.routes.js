@@ -39,6 +39,14 @@ export function createVoucherRouter({ identity, service, models, auditPort } = {
   router.get('/account/vouchers', ...requireCustomerVoucherAccess, async (req, res) => {
     return sendSuccess(res, await voucherService.listMine(req.actor.id));
   });
+  router.post('/account/vouchers/resolve', ...requireCustomerVoucherAccess, identity.csrfProtection, async (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)
+      || Object.keys(req.body).length !== 1 || typeof req.body.code !== 'string'
+      || !CODE.test(req.body.code.trim().toUpperCase())) {
+      throw new ServiceError(400, 'VALIDATION_ERROR', 'Mã voucher cần từ 3–40 ký tự chữ, số, dấu gạch ngang hoặc gạch dưới');
+    }
+    return sendSuccess(res, await voucherService.resolveCode(req.actor.id, req.body.code));
+  });
   router.get('/admin/vouchers', ...requireVoucherManagement, async (_req, res) => {
     return sendSuccess(res, await voucherService.listAdmin());
   });

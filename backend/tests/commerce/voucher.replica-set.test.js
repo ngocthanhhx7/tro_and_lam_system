@@ -81,6 +81,9 @@ test('P05 replica set: admin-issued voucher is private, server-priced, one-use, 
       expiresAt: '2026-10-10T00:00:00.000Z',
     }, { requestId: 'voucher-test-issue-001' });
     assert.equal(issued.code, 'FIXED50');
+    assert.equal((await voucherService.resolveCode(String(customer._id), ' fixed50 ')).id, issued.id);
+    await assert.rejects(voucherService.resolveCode(String(anotherCustomer._id), 'FIXED50'), { status: 422, code: 'VOUCHER_NOT_AVAILABLE' });
+    await assert.rejects(voucherService.resolveCode(String(customer._id), 'NOT-ISSUED'), { status: 422, code: 'VOUCHER_NOT_AVAILABLE' });
     assert.equal(issued.customer.email, customer.emailNormalized);
     assert.equal((await voucherService.listMine(String(customer._id))).length, 1);
     assert.equal((await voucherService.listMine(String(anotherCustomer._id))).length, 0, 'wallet reads remain owner-scoped');
@@ -160,6 +163,7 @@ test('P05 replica set: admin-issued voucher is private, server-priced, one-use, 
     assert.equal(firstOrder.voucherSnapshot.code, 'FIXED50');
     assert.equal(firstOrder.voucherSnapshot.discountVnd, 50000);
     assert.equal((await voucherService.listMine(String(customer._id))).find((voucher) => voucher.code === 'FIXED50').status, 'redeemed');
+    await assert.rejects(voucherService.resolveCode(String(customer._id), 'FIXED50'), { status: 422, code: 'VOUCHER_NOT_AVAILABLE' });
 
     const firstCancellation = await commerceService.cancelOwnedOrder(customerActor, first.order.id, {
       expectedVersion: 0, reason: 'Khách đổi ý trước khi giao.',
@@ -175,6 +179,7 @@ test('P05 replica set: admin-issued voucher is private, server-priced, one-use, 
       expectedVersion: 0, reason: 'Hủy sau khi voucher hết hạn.',
     }, 'voucher-cancel-idempotency-key-second-002');
     assert.equal((await voucherService.listMine(String(customer._id))).find((voucher) => voucher.code === 'FIXED50').status, 'expired');
+    await assert.rejects(voucherService.resolveCode(String(customer._id), 'FIXED50'), { status: 422, code: 'VOUCHER_NOT_AVAILABLE' });
 
     const racingVoucher = await voucherService.issue(adminActor, {
       email: customer.emailNormalized, code: 'RACE0001', title: 'Chỉ dùng một lần',
