@@ -1,0 +1,28 @@
+[Unit]
+Description=TRO & LAM API
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=trolam
+Group=trolam
+WorkingDirectory=/opt/tro-lam/current/backend
+ExecCondition=/usr/bin/node /opt/tro-lam/current/ops/vps/env-ready.js
+ExecStart=/usr/bin/node /opt/tro-lam/current/backend/src/server.js
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=35
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/tro-lam
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

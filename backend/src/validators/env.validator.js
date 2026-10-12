@@ -19,6 +19,8 @@ export function validateEnv(source) {
   if (!['development', 'test', 'production'].includes(nodeEnv)) throw new Error('NODE_ENV không hợp lệ');
   const port = Number(source.PORT || 5000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT phải nằm trong 1–65535');
+  const listenHost = source.LISTEN_HOST || '0.0.0.0';
+  if (!['0.0.0.0', '127.0.0.1', '::1'].includes(listenHost)) throw new Error('LISTEN_HOST chỉ nhận 0.0.0.0, 127.0.0.1 hoặc ::1');
   const mongoUri = source.MONGODB_URI;
   if (!mongoUri || !/^mongodb(?:\+srv)?:\/\//.test(mongoUri) || /USERNAME|PASSWORD|CLUSTER/.test(mongoUri)) throw new Error('Cần cấu hình MONGODB_URI thật trong backend/.env');
   const corsOrigin = source.CORS_ORIGIN || (nodeEnv === 'production' ? '' : 'http://localhost:5173');
@@ -151,7 +153,7 @@ export function validateEnv(source) {
   const supportStoragePath = resolve(source.SUPPORT_STORAGE_PATH || '.data/private-support-attachments');
 
   return {
-    nodeEnv, port, mongoUri, corsOrigin, origins, trustProxy, csrfSecret, publicWebUrl: publicWebOrigin,
+    nodeEnv, port, listenHost, mongoUri, corsOrigin, origins, trustProxy, csrfSecret, publicWebUrl: publicWebOrigin,
     sessionCookieName: cookieName(source, 'SESSION_COOKIE_NAME', 'tl_session'),
     restrictedCookieName: cookieName(source, 'RESTRICTED_COOKIE_NAME', 'tl_appeal'),
     guestOrderCookieName: cookieName(source, 'GUEST_ORDER_COOKIE_NAME', 'tl_guest_order'),

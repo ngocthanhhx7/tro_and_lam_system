@@ -6,6 +6,7 @@ const valid = { MONGODB_URI: 'mongodb://localhost:27017/tro_lam' };
 test('valid configuration has development defaults', () => {
   const config = validateEnv(valid);
   assert.equal(config.port, 5000);
+  assert.equal(config.listenHost, '0.0.0.0');
   assert.equal(config.publicWebUrl, 'http://localhost:5173');
   assert.equal(config.sameSite, 'Lax');
   assert.equal(config.secureCookies, false);
@@ -29,6 +30,11 @@ test('placeholder Atlas credentials fail', () => {
 });
 test('invalid ports fail', () => {
   for (const port of ['abc', '0', '65536', '1.5']) assert.throws(() => validateEnv({ ...valid, PORT: port }), /PORT/);
+});
+
+test('backend can bind to loopback behind the VPS reverse proxy', () => {
+  assert.equal(validateEnv({ ...valid, LISTEN_HOST: '127.0.0.1' }).listenHost, '127.0.0.1');
+  assert.throws(() => validateEnv({ ...valid, LISTEN_HOST: 'example.com' }), /LISTEN_HOST/u);
 });
 test('production requires an explicit CORS origin', () => {
   assert.throws(() => validateEnv({ ...valid, NODE_ENV: 'production' }), /CORS_ORIGIN/);

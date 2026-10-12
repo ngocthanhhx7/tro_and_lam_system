@@ -12,7 +12,7 @@ try {
     ...env,
     mediaStaticDirectory: env.mediaStorageDriver === 'local' ? env.mediaStoragePath : undefined,
     domainRouters: composition.domainRouters,
-  }).listen(env.port, '0.0.0.0', () => {
+  }).listen(env.port, env.listenHost, () => {
     console.log(`TRO & LAM API listening on port ${env.port}`);
     if (env.backgroundWorkersEnabled) void composition.startWorkers();
   });
