@@ -231,17 +231,15 @@ export function createAssistantService({
     const rawProducts = Array.isArray(result) ? result : result?.items;
     if (!Array.isArray(rawProducts)) throw new Error('Published catalog port returned an invalid result');
     const products = rawProducts.map(productContext).filter(Boolean).slice(0, MAX_PRODUCTS);
-    const stories = [];
-    for (const product of products) {
-      if (stories.length >= MAX_STORIES || !/^[a-f\d]{24}$/i.test(product.storyId)) continue;
-      if (stories.some((story) => story.id === product.storyId)) continue;
+    const storyIds = [...new Set(products.map(product => product.storyId).filter(id => /^[a-f\d]{24}$/i.test(id)))];
+    const stories = (await Promise.all(storyIds.map(async storyId => {
       try {
-        const story = storyContext(await contentPort.getPublishedStoryById(product.storyId));
-        if (story) stories.push(story);
+        return storyContext(await contentPort.getPublishedStoryById(storyId));
       } catch (error) {
         if (error?.status !== 404) throw error;
+        return null;
       }
-    }
+    }))).filter(Boolean).slice(0, MAX_STORIES);
     return { available: true, products, stories };
   }
 

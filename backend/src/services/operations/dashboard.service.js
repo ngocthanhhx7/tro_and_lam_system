@@ -74,22 +74,21 @@ export function createDashboardService({ Order, Ticket, Contact, Notification, U
     const { from, to } = parseDateRange({ from: fromValue, to: toValue });
     if (!Order || !Ticket) throw unavailable('DATABASE_UNAVAILABLE', 'Order/support data source chưa được kết nối');
     const range = createdAtRange(from, to);
-    const [pending, processing, unassignedTickets, assignedToMeTickets, newContacts, unreadNotifications] = await Promise.all([
+    const [pending, processing, unassignedTickets, assignedToMeTickets, newContacts, unreadNotifications, orderPortMetrics, lowStock, inventoryAlerts] = await Promise.all([
       countDocuments(Order, { ...range, status: 'pending' }),
       countDocuments(Order, { ...range, status: 'processing' }),
       countDocuments(Ticket, { ...range, status: 'open', $or: [{ assignedTo: null }, { assignedTo: { $exists: false } }] }),
       countDocuments(Ticket, { ...range, assignedTo: actorId, status: { $in: ACTIVE_TICKET_STATUSES } }),
       countDocuments(Contact, { ...range, status: 'new' }),
       countDocuments(Notification, { userId: actorId, readAt: null }),
+      orderMetrics?.getStaffQueueMetrics?.({ actorId, from, to }) || {},
+      inventoryMetrics?.getLowStockMetric?.({ from, to }) ?? null,
+      getInventoryAlerts(),
     ]);
     if ([pending, processing, unassignedTickets, assignedToMeTickets].some((value) => value === null)) {
       throw unavailable('DATABASE_UNAVAILABLE', 'Order/support metrics chưa sẵn sàng');
     }
-    const [orderPortMetrics, lowStock] = await Promise.all([
-      orderMetrics?.getStaffQueueMetrics?.({ actorId, from, to }) || {},
-      inventoryMetrics?.getLowStockMetric?.({ from, to }) ?? null,
-    ]);
-    const inventoryAlerts = Inventory?.aggregate ? {
+    async function getInventoryAlerts() { return Inventory?.aggregate ? {
       threshold: 5,
       items: await Inventory.aggregate([
         { $addFields: { available: { $subtract: ['$onHand', '$reserved'] } } },
@@ -101,7 +100,7 @@ export function createDashboardService({ Order, Ticket, Contact, Notification, U
         { $limit: 10 },
         { $project: { _id: 0, productId: { $toString: '$productId' }, sku: '$product.sku', name: '$product.name', onHand: 1, reserved: 1, available: 1 } },
       ]),
-    } : null;
+    } : null; }
     return {
       orderQueues: {
         pending,

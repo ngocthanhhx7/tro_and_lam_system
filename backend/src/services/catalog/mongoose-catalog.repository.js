@@ -161,10 +161,12 @@ export function createMongooseCatalogRepository({
     async findPublishedProductsByIds(ids, { session } = {}) {
       const validIds = ids.filter((id) => mongoose.isValidObjectId(id));
       if (!validIds.length) return [];
-      const categoryIds = await publishedCategoryIds(Category, session);
-      let query = Product.find({ _id: { $in: validIds }, status: 'published', categoryId: { $in: categoryIds } }).lean();
-      query = withSession(query, session);
-      return query;
+      return withSession(Product.aggregate([
+        { $match: { _id: { $in: validIds.map(id => new mongoose.Types.ObjectId(id)) }, status: 'published' } },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        { $project: { _publishedCategory: 0 } },
+      ]), session);
     },
 
     async findProductsByIds(ids, { session } = {}) {

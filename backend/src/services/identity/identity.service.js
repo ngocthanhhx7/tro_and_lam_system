@@ -266,12 +266,14 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
 
   async function authenticateSession(token) {
     if (!token) throw new ServiceError(401, 'AUTH_REQUIRED', 'Cần đăng nhập để tiếp tục');
-    const session = await repository.findSession(hashToken(token));
+    const joined = typeof repository.findSessionWithUser === 'function';
+    const snapshot = joined ? await repository.findSessionWithUser(hashToken(token)) : null;
+    const session = joined ? snapshot?.session : await repository.findSession(hashToken(token));
     const currentTime = now();
     if (!session || session.revokedAt || new Date(session.expiresAt) <= currentTime) {
       throw new ServiceError(401, 'SESSION_EXPIRED', 'Phiên đăng nhập đã hết hạn');
     }
-    const user = await repository.findUserById(session.userId);
+    const user = joined ? snapshot.user : await repository.findUserById(session.userId);
     if (!user || user.status === 'blocked') {
       await repository.updateSession(session._id ?? session.id, { revokedAt: currentTime });
       throw new ServiceError(403, 'ACCOUNT_BLOCKED', 'Tài khoản đang bị khóa');

@@ -7,6 +7,19 @@ const USER_B = '222222222222222222222222';
 const PRODUCT_A = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const PRODUCT_B = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 
+test('a guest read reuses only its own unmerged snapshot and does not create an empty cart', async () => {
+  const { service, repository } = makeService();
+  const actor = { kind: 'guest', guestTokenHash: 'a'.repeat(64) };
+  const empty = await service.getCart(actor, { guestCartSnapshot: null });
+  assert.equal(empty.items.length, 0);
+  assert.equal(repository.carts.length, 0);
+  await service.getCart(actor);
+  const snapshot = await service.getGuestCartSnapshot(actor.guestTokenHash);
+  assert.equal((await service.getCart(actor, { guestCartSnapshot: snapshot })).version, 0);
+  await assert.rejects(service.getCart({ kind: 'guest', guestTokenHash: 'b'.repeat(64) }, { guestCartSnapshot: snapshot }), { status: 403, code: 'FORBIDDEN' });
+  await assert.rejects(service.getCart(actor, { guestCartSnapshot: { ...snapshot, mergedAt: new Date() } }), { status: 403, code: 'FORBIDDEN' });
+});
+
 class MemoryAccountRepository {
   addresses = [];
   carts = [];

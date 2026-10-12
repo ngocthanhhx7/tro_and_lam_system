@@ -125,13 +125,13 @@ export class AccountRepository {
   }
 
   async findUserCart(userId, { session } = {}) {
-    let query = this.models.Cart.findOne({ userId });
+    let query = this.models.Cart.findOne({ userId: { $eq: userId, $type: 'objectId' } }).lean();
     if (session) query = query.session(session);
     return cartRecord(await query.exec());
   }
 
   async findGuestCart(guestTokenHash, { session } = {}) {
-    let query = this.models.Cart.findOne({ guestTokenHash });
+    let query = this.models.Cart.findOne({ guestTokenHash: { $eq: guestTokenHash, $type: 'string' } }).lean();
     if (session) query = query.session(session);
     return cartRecord(await query.exec());
   }

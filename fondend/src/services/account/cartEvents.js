@@ -1,3 +1,4 @@
+import { invalidateCartRead } from './cartRead.js';
 export const CART_UPDATED_EVENT = 'tro-lam:cart-updated';
 
 export function getCartItemCount(cart) {
@@ -8,6 +9,7 @@ export function getCartItemCount(cart) {
 }
 
 export function publishCartUpdate(cart) {
+  invalidateCartRead();
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT, {
     detail: { count: getCartItemCount(cart) },

@@ -218,8 +218,14 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
     return address;
   }
 
-  async function getCart(actor, { session } = {}) {
+  async function getCart(actor, { session, guestCartSnapshot } = {}) {
     const owner = cartOwner(actor);
+    if (owner.kind === 'guest' && guestCartSnapshot !== undefined && !session) {
+      if (guestCartSnapshot && (guestCartSnapshot.guestTokenHash !== owner.key || guestCartSnapshot.mergedAt)) {
+        throw new ServiceError(403, 'FORBIDDEN', 'Giỏ hàng khách không hợp lệ');
+      }
+      return cartWithPrices(guestCartSnapshot ? toCartRecord(guestCartSnapshot) : { version: 0, items: [] });
+    }
     const cart = session
       ? toCartRecord(owner.kind === 'user'
         ? await repository.findUserCart(owner.key, { session })
@@ -285,6 +291,11 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
   async function guestCartWasMerged(tokenHash, { session } = {}) {
     const guest = await repository.findGuestCart(tokenHash, { session });
     return Boolean(guest?.mergedAt);
+  }
+
+  async function getGuestCartSnapshot(tokenHash) {
+    if (typeof tokenHash !== 'string' || !/^[a-f\d]{64}$/i.test(tokenHash)) throw badRequest('BAD_REQUEST', 'Giỏ hàng khách không hợp lệ');
+    return repository.findGuestCart(tokenHash);
   }
 
   async function mergeGuestCart(actor, guestTokenHash, expectedVersionValue, { session } = {}) {
@@ -392,6 +403,7 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
     mergeGuestCart,
     removeCommittedItems,
     guestCartWasMerged,
+    getGuestCartSnapshot,
     reverseGeocode,
   });
 }

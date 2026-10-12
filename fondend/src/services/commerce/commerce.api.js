@@ -1,11 +1,16 @@
 import { getJson, requestJson } from '../httpClient.js';
+import { readCart } from '../account/cartRead.js';
+import { accountApi } from '../account/account.api.js';
 
 const json = (response) => response.data;
 const idempotencyHeaders = (key) => ({ 'Idempotency-Key': key });
 let volatileRetry = null;
 
 export const commerceApi = Object.freeze({
-  getCart: async () => json(await getJson('/cart')),
+  getCart: async () => {
+    const response = await readCart();
+    return json(response.data.guestMergeRequired ? await accountApi.mergeGuestCart(response.data.version) : response);
+  },
   getCheckoutOptions: async () => json(await getJson('/checkout/options')),
   listAddresses: async () => json(await getJson('/account/addresses')),
   quoteCheckout: async (body, { signal } = {}) => json(await requestJson('/checkout/quote', { method: 'POST', body, signal })),

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.7.0
+  version: 1.7.1
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -322,6 +322,7 @@ paths:
       responses: { '200': { $ref: '#/components/responses/Success' }, '503': { $ref: '#/components/responses/Error' } }
   /cart:
     get:
+      description: Returns fresh cart prices and an additive guestMergeRequired hint. A customer with a guest-cart cookie merges through the CSRF-protected merge endpoint; other reads do not request a merge.
       operationId: getCart
       tags: [cart]
       x-actors: [guest, customer, staff, admin]

@@ -6,6 +6,7 @@ function aggregateModel(total, pipelines = [], daily = []) {
   return {
     aggregate(pipeline) {
       pipelines.push(pipeline);
+      if (pipeline.some(stage => stage.$facet)) return Promise.resolve([{ headline: total === null ? [] : [{ totalVnd: total }], daily }]);
       const groupedByDate = pipeline.some((stage) => stage.$group?._id?.$dateToString);
       if (groupedByDate) return Promise.resolve(daily);
       return Promise.resolve(total === null ? [] : [{ totalVnd: total }]);
@@ -32,9 +33,6 @@ test('finance ledger totals applied PayOS, recorded COD, and completed refunds b
     ],
   });
   assert.deepEqual(pipelines.map(([stage]) => stage.$match).filter(Boolean), [
-    { processingState: 'applied', verifiedAt: { $gte: from, $lte: to } },
-    { recordedAt: { $gte: from, $lte: to } },
-    { status: 'completed', updatedAt: { $gte: from, $lte: to } },
     { processingState: 'applied', verifiedAt: { $gte: from, $lte: to } },
     { recordedAt: { $gte: from, $lte: to } },
     { status: 'completed', updatedAt: { $gte: from, $lte: to } },

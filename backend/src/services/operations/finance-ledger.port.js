@@ -1,19 +1,14 @@
-function amountTotal(Model, match) {
-  return Model.aggregate([
-    { $match: match },
-    { $group: { _id: null, totalVnd: { $sum: '$amountVnd' } } },
-  ]).then((rows) => rows[0]?.totalVnd ?? 0);
-}
-
-function dailyAmountTotals(Model, field, { from, to, timezone, match = {} }) {
+function ledgerSeries(Model, field, { from, to, timezone, match = {} }) {
   return Model.aggregate([
     { $match: { ...match, [field]: { $gte: from, $lte: to } } },
-    { $group: {
-      _id: { $dateToString: { format: '%Y-%m-%d', date: `$${field}`, timezone } },
-      totalVnd: { $sum: '$amountVnd' },
+    { $facet: {
+      headline: [{ $group: { _id: null, totalVnd: { $sum: '$amountVnd' } } }],
+      daily: [{ $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: `$${field}`, timezone } },
+        totalVnd: { $sum: '$amountVnd' },
+      } }, { $sort: { _id: 1 } }],
     } },
-    { $sort: { _id: 1 } },
-  ]);
+  ]).then(rows => ({ totalVnd: rows[0]?.headline?.[0]?.totalVnd ?? 0, daily: rows[0]?.daily ?? [] }));
 }
 
 // Date bounds arrive as instants; the admin page constructs inclusive Asia/Ho_Chi_Minh day bounds.
@@ -30,17 +25,19 @@ export function createFinanceLedgerPort({ PaymentEvent, CodCollection, Refund })
       }
       if (timezone !== 'Asia/Ho_Chi_Minh') throw new TypeError('Finance ledger supports Asia/Ho_Chi_Minh only');
 
-      const range = { $gte: from, $lte: to };
-      const [payosCollectedVnd, codCollectedVnd, refundedVnd, payosDaily, codDaily, refundsDaily] = await Promise.all([
-        amountTotal(PaymentEvent, { processingState: 'applied', verifiedAt: range }),
-        amountTotal(CodCollection, { recordedAt: range }),
-        amountTotal(Refund, { status: 'completed', updatedAt: range }),
-        dailyAmountTotals(PaymentEvent, 'verifiedAt', {
+      const [payos, cod, refunds] = await Promise.all([
+        ledgerSeries(PaymentEvent, 'verifiedAt', {
           from, to, timezone, match: { processingState: 'applied' },
         }),
-        dailyAmountTotals(CodCollection, 'recordedAt', { from, to, timezone }),
-        dailyAmountTotals(Refund, 'updatedAt', { from, to, timezone, match: { status: 'completed' } }),
+        ledgerSeries(CodCollection, 'recordedAt', { from, to, timezone }),
+        ledgerSeries(Refund, 'updatedAt', { from, to, timezone, match: { status: 'completed' } }),
       ]);
+      const payosCollectedVnd = payos.totalVnd;
+      const codCollectedVnd = cod.totalVnd;
+      const refundedVnd = refunds.totalVnd;
+      const payosDaily = payos.daily;
+      const codDaily = cod.daily;
+      const refundsDaily = refunds.daily;
 
       const reportedGrossVnd = payosCollectedVnd + codCollectedVnd;
       const dailyGrossVnd = payosDaily.reduce((sum, row) => sum + row.totalVnd, 0)

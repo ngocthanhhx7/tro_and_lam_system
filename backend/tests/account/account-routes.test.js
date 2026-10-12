@@ -99,3 +99,10 @@ test('address routes do not allow another signed-in owner to update a resource',
     .send({ label: 'Địa chỉ khác', expectedVersion: 0 })
     .expect(404);
 });
+
+test('cart reads indicate a merge only for an authenticated customer with a guest cookie', async () => {
+  const { app } = makeApp();
+  assert.equal((await request(app).get('/api/v1/cart').expect(200)).body.data.guestMergeRequired, false);
+  assert.equal((await request(app).get('/api/v1/cart').set('Cookie', `tl_session=${SESSION_A}`).expect(200)).body.data.guestMergeRequired, false);
+  assert.equal((await request(app).get('/api/v1/cart').set('Cookie', `tl_session=${SESSION_A}; tl_guest_cart=${GUEST_TOKEN}`).expect(200)).body.data.guestMergeRequired, true);
+});

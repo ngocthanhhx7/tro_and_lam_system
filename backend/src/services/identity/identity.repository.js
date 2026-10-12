@@ -90,6 +90,17 @@ export class IdentityRepository {
     return this.models.AuthSession.findOne({ tokenHash }).session(session || null).exec();
   }
 
+  async findSessionWithUser(tokenHash) {
+    const [row] = await this.models.AuthSession.aggregate([
+      { $match: { tokenHash } },
+      { $lookup: { from: this.models.User.collection.name, localField: 'userId', foreignField: '_id',
+        pipeline: [{ $project: { passwordHash: 0 } }], as: '_sessionUser' } },
+    ]);
+    if (!row) return null;
+    const { _sessionUser, ...session } = row;
+    return { session: this.models.AuthSession.hydrate(session), user: _sessionUser[0] ? this.models.User.hydrate(_sessionUser[0]) : null };
+  }
+
   async updateSession(id, changes, { session } = {}) {
     return this.models.AuthSession.findByIdAndUpdate(id, { $set: changes }, { returnDocument: 'after', session }).exec();
   }

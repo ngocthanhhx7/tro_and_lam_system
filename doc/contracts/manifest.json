@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.7.0",
+  "contractVersion": "1.7.1",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,8 +13,16 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30", "DEC-31", "DEC-33"],
+  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30", "DEC-31", "DEC-33", "DEC-34"],
   "amendments": [
+    {
+      "id": "DEC-34",
+      "date": "2026-10-13",
+      "reason": "Owner requested query optimization across all flows. Avoid unnecessary merge requests while preserving guest-cart login merge.",
+      "changes": ["GET /cart adds guestMergeRequired, true only for a customer session with a guest-cart cookie. The client retains CSRF-protected POST /cart/merge when required; checkout also handles required merge."],
+      "consumers": ["P03", "P05", "cart frontend"],
+      "migration": "None; the hint is additive. Prices, ownership, merge tombstones and versions remain authoritative server-side."
+    },
     {
       "id": "DEC-33",
       "date": "2026-10-13",

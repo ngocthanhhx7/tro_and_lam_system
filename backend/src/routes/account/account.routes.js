@@ -56,9 +56,14 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
       let token = cookieValue(req, cookieName);
       if (!token) token = randomBytes(32).toString('base64url');
       let tokenHash = guestTokenHash(token);
-      if (await service.guestCartWasMerged(tokenHash)) {
+      const reuseSnapshot = req.method === 'GET' && req.path === '/cart' && typeof service.getGuestCartSnapshot === 'function';
+      const snapshot = reuseSnapshot ? await service.getGuestCartSnapshot(tokenHash) : undefined;
+      if (reuseSnapshot ? Boolean(snapshot?.mergedAt) : await service.guestCartWasMerged(tokenHash)) {
         token = randomBytes(32).toString('base64url');
         tokenHash = guestTokenHash(token);
+        if (reuseSnapshot) req.guestCartSnapshot = null;
+      } else if (reuseSnapshot) {
+        req.guestCartSnapshot = snapshot;
       }
       setGuestCookie(res, token);
       req.cartActor = { kind: 'guest', guestTokenHash: tokenHash };
@@ -102,7 +107,10 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
     return sendSuccess(res, await service.reverseGeocode(input));
   });
 
-  router.get('/cart', resolveCartActor, async (req, res) => sendSuccess(res, await service.getCart(req.cartActor)));
+  router.get('/cart', resolveCartActor, async (req, res) => {
+    const cart = await service.getCart(req.cartActor, { guestCartSnapshot: req.guestCartSnapshot });
+    return sendSuccess(res, { ...cart, guestMergeRequired: req.cartActor?.role === 'customer' && Boolean(cookieValue(req, cookieName)) });
+  });
   router.put('/cart/items/:productId', csrfProtection, resolveCartActor, async (req, res) => {
     const input = validateCartItemWrite(req.body);
     return sendSuccess(res, await service.setCartItemQuantity(req.cartActor, req.params.productId, input.quantity, input.expectedVersion));

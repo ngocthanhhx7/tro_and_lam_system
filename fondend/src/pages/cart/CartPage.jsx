@@ -38,7 +38,7 @@ export default function CartPage() {
     setError('');
     try {
       let response = await accountApi.getCart();
-      if (user) {
+      if (user && response.data.guestMergeRequired) {
         // The server consumes the opaque guest token and records it as merged in one transaction.
         response = await accountApi.mergeGuestCart(response.data.version);
       }
@@ -57,7 +57,7 @@ export default function CartPage() {
     async function loadInitialCart() {
       try {
         let response = await accountApi.getCart();
-        if (user) response = await accountApi.mergeGuestCart(response.data.version);
+        if (user && response.data.guestMergeRequired) response = await accountApi.mergeGuestCart(response.data.version);
         if (!active) return;
         setCart(response.data);
         setNotice(response.data.adjustments?.length
