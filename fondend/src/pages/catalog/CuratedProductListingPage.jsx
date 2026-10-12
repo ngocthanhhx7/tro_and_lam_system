@@ -22,7 +22,7 @@ export default function CuratedProductListingPage() {
 
   return <div className="curated-listing">
     <header className="curated-listing__hero">
-      <div className="curated-listing__hero-art" aria-hidden="true"><img src="/assets/editorial/product-listing-hero.png" alt="" width="1586" height="1024" loading="eager" fetchPriority="high" /></div>
+      <div className="curated-listing__hero-art" aria-hidden="true"><img src="/assets/editorial/product-listing-hero.webp" alt="" width="1586" height="1024" loading="eager" fetchPriority="high" /></div>
       <div className="curated-listing__hero-inner section-wrap">
         <div className="curated-listing__hero-copy">
           <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>
