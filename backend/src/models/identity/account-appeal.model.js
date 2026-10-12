@@ -10,7 +10,12 @@ const accountAppealSchema = new mongoose.Schema({
   version: { type: Number, required: true, default: 0 },
 }, { timestamps: true, collection: 'account_appeals' });
 
-accountAppealSchema.index({ userId: 1 }, { unique: true, partialFilterExpression: { status: 'pending' } });
+// Keep the older non-unique userId_1 lookup index during additive migrations.
+accountAppealSchema.index({ userId: 1 }, {
+  unique: true,
+  partialFilterExpression: { status: 'pending' },
+  name: 'account_appeals_one_pending_per_user',
+});
 accountAppealSchema.index({ status: 1, createdAt: -1 });
 
 export const AccountAppeal = mongoose.models.AccountAppeal || mongoose.model('AccountAppeal', accountAppealSchema);
