@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import {
@@ -11,6 +11,7 @@ import { voucherApi } from '../../services/commerce/voucher.api.js';
 import { formatMoney } from '../commerce/commerce.format.js';
 import '../commerce/commerce.css';
 import useAutomaticQuote from './useAutomaticQuote.js';
+import { createRequestScope } from '../../services/requestScope.js';
 
 const recordId = (value) => String(value?.id ?? value?._id ?? '');
 const cartProductId = (item) => String(item?.productId ?? item?.product?.id ?? item?.product?._id ?? '');
@@ -46,6 +47,7 @@ export default function CheckoutPage() {
   const [addressError, setAddressError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const loadScope = useRef(createRequestScope());
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -53,14 +55,21 @@ export default function CheckoutPage() {
   }, []);
 
   const load = useCallback(async () => {
+    const isCurrent = loadScope.current.begin();
     setLoading(true);
     setError(null);
+    setApplyingVoucher(false);
+    setVoucherCode('');
+    setVoucherError('');
+    setConsent(false);
+    setConfirmation(null);
     try {
       const [cartResult, optionsResult, addressesResult, vouchersResult] = await Promise.allSettled([
         commerceApi.getCart(), commerceApi.getCheckoutOptions(),
         user ? commerceApi.listAddresses() : Promise.resolve([]),
         user?.role === 'customer' ? voucherApi.listMine() : Promise.resolve({ data: [] }),
       ]);
+      if (!isCurrent()) return;
       if (cartResult.status === 'rejected') throw cartResult.reason;
       if (optionsResult.status === 'rejected') throw optionsResult.reason;
       const cartResponse = cartResult.value;
@@ -109,15 +118,18 @@ export default function CheckoutPage() {
         setVoucherLoadError('');
       }
     } catch (requestError) {
-      setError(requestError);
+      if (isCurrent()) setError(requestError);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
+    const scope = loadScope.current;
     if (authLoading || authErrorCode === 'ACCOUNT_BLOCKED') return;
-    void Promise.resolve().then(load);
+    let live = true;
+    void Promise.resolve().then(() => { if (live) return load(); });
+    return () => { live = false; scope.invalidate(); };
   }, [authLoading, authErrorCode, load]);
 
   const items = useMemo(() => Array.isArray(cart?.items) ? cart.items : [], [cart]);
@@ -151,16 +163,18 @@ export default function CheckoutPage() {
   }
 
   async function applyVoucher() {
+    const isCurrent = loadScope.current.capture();
     setVoucherError('');
     if (user?.role !== 'customer') { setVoucherError('Đăng nhập tài khoản khách hàng để sử dụng voucher.'); return; }
     setApplyingVoucher(true);
     try {
       const response = await voucherApi.resolveCode(voucherCode);
+      if (!isCurrent()) return;
       setVoucherId(response.data.id);
       setVoucherCode(response.data.code);
     } catch (requestError) {
-      setVoucherError(messageFor(requestError, 'Mã voucher chưa khả dụng.'));
-    } finally { setApplyingVoucher(false); }
+      if (isCurrent()) setVoucherError(messageFor(requestError, 'Mã voucher chưa khả dụng.'));
+    } finally { if (isCurrent()) setApplyingVoucher(false); }
   }
 
   async function submitOrder(event) {

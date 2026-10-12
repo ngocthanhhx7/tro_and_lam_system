@@ -1064,10 +1064,15 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     const expired = await repository.models.StockReservation.find({
       status: 'held', expiresAt: { $lte: now() },
     }).sort({ expiresAt: 1, _id: 1 }).limit(Math.min(500, Math.max(1, batchSize))).lean().exec();
+    const orderIds = [...new Set(expired.map(row => String(row.orderId)))];
+    const knownOrders = typeof repository.findReservationOrders === 'function'
+      ? await repository.findReservationOrders(orderIds)
+      : await Promise.all(orderIds.map(id => repository.findStaffOrder(id)));
+    const ordersById = new Map(knownOrders.filter(Boolean).map(order => [String(order._id ?? order.id), order]));
     let released = 0;
     let deferred = 0;
     for (const reservation of expired) {
-      const knownOrder = await repository.findStaffOrder(reservation.orderId);
+      const knownOrder = ordersById.get(String(reservation.orderId));
       if (!knownOrder || knownOrder.paymentMethod !== 'payos' || knownOrder.status !== 'pending'
         || ['paid', 'refund_pending', 'refunded', 'partially_refunded'].includes(knownOrder.paymentStatus)) {
         deferred += 1;

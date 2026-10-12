@@ -39,11 +39,13 @@ export function AuthProvider({ children }) {
     const revision = authRevision.current;
     identityApi.me().then((response) => {
       if (live && revision === authRevision.current) {
+        invalidateCartRead();
         updateUser(response.data);
         setErrorCode(null);
       }
     }).catch((error) => {
       if (live && revision === authRevision.current && (error.status === 401 || error.status === 403)) {
+        invalidateCartRead();
         updateUser(null);
         setErrorCode(error.code);
       }

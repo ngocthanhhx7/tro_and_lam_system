@@ -131,7 +131,9 @@ export function createMongooseCatalogRepository({
     },
 
     async listPublishedProductPage(filters, { session } = {}) {
-      const categoryIds = await publishedCategoryIds(Category, session);
+      const categoryIds = filters.categoryId
+        ? await withSession(Category.distinct('_id', { _id: filters.categoryId, status: 'published' }), session)
+        : await publishedCategoryIds(Category, session);
       if (!categoryIds.length) return { items: [], total: 0 };
       const conditions = { ...queryText(filters), categoryId: { $in: categoryIds } };
       if (filters.categoryId) conditions.categoryId = filters.categoryId;
@@ -143,6 +145,17 @@ export function createMongooseCatalogRepository({
         .lean(), session);
       const [items, total] = await Promise.all([listQuery, countQuery]);
       return { items, total };
+    },
+
+    async listPublishedRelatedProducts(product, { session } = {}) {
+      return withSession(Product.aggregate([
+        { $match: { status: 'published', line: product.line, _id: { $ne: new mongoose.Types.ObjectId(idText(product)) } } },
+        { $sort: sortFor('newest') },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        { $limit: 4 },
+        { $project: { _publishedCategory: 0 } },
+      ]), session);
     },
 
     async *streamPublishedProducts(filters, { session } = {}) {

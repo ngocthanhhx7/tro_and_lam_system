@@ -16,6 +16,9 @@ import { createAccountRouter } from '../src/routes/account/account.routes.js';
 import { createCatalogService } from '../src/services/catalog/catalog.service.js';
 import express from 'express';
 import request from 'supertest';
+import { Order } from '../src/models/commerce/order.model.js';
+import { CommerceRepository } from '../src/services/commerce/commerce.repository.js';
+import { orderSummary } from '../src/services/commerce/commerce.service.js';
 
 const uri = process.env.QUERY_TEST_REPLICA_SET_URI;
 test('optimized queries retain published-category, cart-index and session revocation rules', { skip: !uri }, async () => {
@@ -34,12 +37,40 @@ test('optimized queries retain published-category, cart-index and session revoca
     const found = await createMongooseCatalogRepository().findPublishedProductsByIds(products.map(row => String(row._id)));
     assert.deepEqual(found.map(row => String(row._id)), [String(products[0]._id)]);
     assert.equal(found[0]._publishedCategory, undefined);
+    const catalogRepository = createMongooseCatalogRepository();
+    assert.deepEqual((await catalogRepository.listPublishedProductPage({ categoryId: categories[1]._id, page: 1, limit: 10 })).items, []);
+    const relatedSource = { _id: new mongoose.Types.ObjectId(), line: 'lifestyle', slug: 'related-source', sku: 'RELATED-SOURCE' };
+    const relatedFixtures = Array.from({ length: 8 }, (_, index) => ({ _id: new mongoose.Types.ObjectId(), slug: `related-${index}`, sku: `RELATED-${index}`, line: 'lifestyle', status: 'published', categoryId: categories[index === 0 ? 1 : 0]._id, createdAt: new Date(2026, 0, index + 1) }));
+    await CatalogProduct.collection.insertMany([relatedSource, ...relatedFixtures]);
+    const related = await catalogRepository.listPublishedRelatedProducts(relatedSource);
+    assert.equal(related.length, 4);
+    assert.ok(related.every(row => String(row.categoryId) === String(categories[0]._id) && String(row._id) !== String(relatedSource._id)));
     const hash = 'a'.repeat(64);
     await Cart.create({ guestTokenHash: hash, items: [], version: 0, expiresAt: new Date(Date.now() + 600000) });
     const e = await Cart.find({ guestTokenHash: { $eq: hash, $type: 'string' } }).explain('executionStats');
     assert.equal(e.executionStats.totalKeysExamined, 1);
     assert.equal(e.executionStats.totalDocsExamined, 1);
     const user = await User.create({ name: 'Query test', emailNormalized: 'query@example.test', passwordHash: 'local-only-hash', role: 'customer', status: 'active' });
+    const ownedOrder = { _id: new mongoose.Types.ObjectId(), userId: user._id, code: 'LOCAL-PROJECTION', status: 'pending', paymentMethod: 'payos', paymentStatus: 'pending', totalVnd: 300000, version: 4, createdAt: new Date(),
+      itemsSnapshot: [{ quantity: 2, name: 'Local cup', imageUrl: '/local.webp', sku: 'PRIVATE-SKU', unitPriceVnd: 150000 }],
+      recipientSnapshot: { recipientName: 'Local owner', phone: '0000000000', email: 'private@example.test', line1: 'private address' }, internalNote: 'private note', guestAccessTokenHash: 'private token', shipping: { events: Array(100).fill({ message: 'large history' }) } };
+    await Order.collection.insertMany([ownedOrder, { ...ownedOrder, _id: new mongoose.Types.ObjectId(), userId: new mongoose.Types.ObjectId(), code: 'OTHER-OWNER' }]);
+    const commerceRepository = new CommerceRepository();
+    const ownOrders = await commerceRepository.listOwnedOrders(String(user._id), { page: 1, limit: 10 });
+    assert.equal(ownOrders.total, 1);
+    assert.deepEqual(orderSummary(ownOrders.items[0]), orderSummary(ownedOrder));
+    assert.equal(ownOrders.items[0].recipientSnapshot, undefined);
+    assert.equal(ownOrders.items[0].itemsSnapshot[0].sku, undefined);
+    const staffOrders = await commerceRepository.listStaffOrders({ page: 1, limit: 10 });
+    const staffOrder = staffOrders.items.find(row => row.code === ownedOrder.code);
+    assert.equal(staffOrder.recipientSnapshot.recipientName, 'Local owner');
+    assert.equal(staffOrder.itemsSnapshot[0].name, 'Local cup');
+    assert.equal(staffOrder.recipientSnapshot.email, undefined);
+    assert.equal(staffOrder.shipping, undefined);
+    const reservationOrders = await commerceRepository.findReservationOrders([ownedOrder._id]);
+    assert.equal(reservationOrders.length, 1);
+    assert.equal(reservationOrders[0].paymentStatus, 'pending');
+    assert.equal(reservationOrders[0].recipientSnapshot, undefined);
     await Cart.create({ userId: user._id, items: [], version: 0, expiresAt: new Date(Date.now() + 600000) });
     assert.equal((await new AccountRepository().findUserCart(String(user._id))).userId, String(user._id));
     const accountService = createAccountService({ ports: { catalogService: createCatalogService({ productRepository: createMongooseCatalogRepository() }) } });

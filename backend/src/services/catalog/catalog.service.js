@@ -289,23 +289,27 @@ export function createCatalogService({
       if (!product) throw notFound();
       const category = await productRepository.getPublishedCategoryForProduct(product.categoryId, { session });
       if (!category) throw notFound();
-      const states = await availabilityFor([product], { session });
-      const detail = { ...toPublicProduct(product, states.get(plainId(product))), sku: product.sku };
-      if (product.storyId && storyPort?.getPublishedStoryById) {
-        try {
-          detail.story = await storyPort.getPublishedStoryById(plainId(product.storyId), { session });
-        } catch (error) {
-          if (error?.status !== 404) throw error;
+      const readStory = async () => {
+        if (!product.storyId || !storyPort?.getPublishedStoryById) return undefined;
+        try { return await storyPort.getPublishedStoryById(plainId(product.storyId), { session }); }
+        catch (error) { if (error?.status !== 404) throw error; return undefined; }
+      };
+      const readRelated = async () => {
+        if (productRepository.listPublishedRelatedProducts) {
+          const items = await productRepository.listPublishedRelatedProducts(product, { session });
+          const availability = await availabilityFor(items, { session });
+          return items.map(item => toPublicProduct(item, availability.get(plainId(item))));
         }
-      }
-      const related = await readPublishedPage({
-        line: product.line,
-        sort: 'newest',
-        page: 1,
-        limit: 5,
-        q: '',
-      }, { session });
-      detail.relatedProducts = (related.items || []).filter((item) => item.id !== detail.id).slice(0, 4);
+        const related = await readPublishedPage({ line: product.line, sort: 'newest', page: 1, limit: 5, q: '' }, { session });
+        return (related.items || []).filter(item => item.id !== plainId(product)).slice(0, 4);
+      };
+      // Session reads stay sequential; independent ordinary reads overlap network latency.
+      const [states, story, relatedProducts] = session
+        ? [await availabilityFor([product], { session }), await readStory(), await readRelated()]
+        : await Promise.all([availabilityFor([product], { session }), readStory(), readRelated()]);
+      const detail = { ...toPublicProduct(product, states.get(plainId(product))), sku: product.sku };
+      if (story) detail.story = story;
+      detail.relatedProducts = relatedProducts;
       return detail;
     },
 

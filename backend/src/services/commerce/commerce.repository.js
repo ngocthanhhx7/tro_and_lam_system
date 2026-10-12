@@ -8,6 +8,7 @@ import { Order } from '../../models/commerce/order.model.js';
 import { StockReservation } from '../../models/commerce/stock-reservation.model.js';
 
 const idOf = (value) => value?._id ?? value?.id ?? value;
+const ORDER_SUMMARY_FIELDS = '_id code status paymentMethod paymentStatus itemsSnapshot.quantity totalVnd createdAt version';
 
 export class CommerceRepository {
   constructor(models = {}) {
@@ -66,10 +67,16 @@ export class CommerceRepository {
     return query.exec();
   }
 
+  async findReservationOrders(ids) {
+    if (!ids.length) return [];
+    return this.models.Order.find({ _id: { $in: ids } })
+      .select('_id paymentMethod paymentStatus status').lean().exec();
+  }
+
   async listOwnedOrders(actorId, { status, page, limit }) {
     const filter = { userId: actorId, ...(status ? { status } : {}) };
     const [items, total] = await Promise.all([
-      this.models.Order.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).exec(),
+      this.models.Order.find(filter).select(ORDER_SUMMARY_FIELDS).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
       this.models.Order.countDocuments(filter).exec(),
     ]);
     return { items, total };
@@ -89,7 +96,7 @@ export class CommerceRepository {
       ] } : {}),
     };
     const [items, total] = await Promise.all([
-      this.models.Order.find(filter).sort({ createdAt: sort === 'newest' ? -1 : 1, _id: sort === 'newest' ? -1 : 1 }).skip((page - 1) * limit).limit(limit).exec(),
+      this.models.Order.find(filter).select(`${ORDER_SUMMARY_FIELDS} recipientSnapshot.recipientName recipientSnapshot.phone itemsSnapshot.name itemsSnapshot.imageUrl`).sort({ createdAt: sort === 'newest' ? -1 : 1, _id: sort === 'newest' ? -1 : 1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
       this.models.Order.countDocuments(filter).exec(),
     ]);
     return { items, total };

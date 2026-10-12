@@ -843,9 +843,25 @@ test('reservation expiry defers COD, paid, and non-pending orders while releasin
   const confirmed = await addExpiredOrder({ code: 'TL-EXP-CONFIRMED', status: 'confirmed', paymentMethod: 'payos', paymentStatus: 'pending' });
   const pending = await addExpiredOrder({ code: 'TL-EXP-PENDING', status: 'pending', paymentMethod: 'payos', paymentStatus: 'pending' });
 
+  let batches = 0;
+  let transactionalReads = 0;
+  const findOrder = repository.findStaffOrder.bind(repository);
+  repository.findReservationOrders = async (ids) => {
+    batches += 1;
+    assert.equal(ids.length, 4);
+    return ids.map(id => structuredClone(repository.orders.get(id)));
+  };
+  repository.findStaffOrder = async (id, options) => {
+    assert.ok(options?.session, 'order recheck must stay in the release transaction');
+    transactionalReads += 1;
+    return findOrder(id, options);
+  };
+
   const result = await service.releaseExpiredReservations();
 
   assert.deepEqual(result, { checked: 4, released: 1, deferred: 3 });
+  assert.equal(batches, 1);
+  assert.equal(transactionalReads, 1);
   assert.deepEqual(providerChecks, [String(pending._id)]);
   assert.equal(repository.reservations.get(String(paid._id)).status, 'held');
   assert.equal(repository.reservations.get(String(cod._id)).status, 'held');

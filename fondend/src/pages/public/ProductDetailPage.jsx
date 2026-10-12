@@ -4,7 +4,7 @@ import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogSt
 import Icon from '../../components/catalog/Icon.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
 import { getListingProductBySlug } from '../catalog/productListingData.js';
-import { addCartQuantity, formatVnd, getPublishedProduct, searchPublishedProducts, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
+import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { getProductImageSource } from '../../utils/productMedia.js';
 import { setPageIndexability, setPageMetadata } from '../../utils/pageMetadata.js';
 import './product-detail.css';
@@ -71,7 +71,6 @@ export default function ProductDetailPage() {
   const curatedProduct = getListingProductBySlug(slug);
   const [state, setState] = useState({ status: 'loading', product: null, error: '' });
   const [retry, setRetry] = useState(0);
-  const [relatedProductsState, setRelatedProductsState] = useState({ slug: '', products: [] });
   const [quantity, setQuantity] = useState(1);
   const [selectedImageState, setSelectedImageState] = useState({ slug: '', index: 0 });
   const [cartStatus, setCartStatus] = useState({ busy: false, message: '', error: '' });
@@ -105,27 +104,11 @@ export default function ProductDetailPage() {
     setPageMetadata({ title, description });
   }, [curatedProduct, slug, state]);
 
-  useEffect(() => {
-    if (!curatedProduct || state.slug !== slug || state.status !== 'ready' || !state.product) return undefined;
-    const controller = new AbortController();
-    searchPublishedProducts({ line: state.product.line, limit: 5 }, { signal: controller.signal })
-      .then((response) => setRelatedProductsState({
-        slug,
-        products: (response.data || []).filter((item) => item.id !== state.product.id).slice(0, 4),
-      }))
-      .catch((error) => {
-        if (error.name !== 'AbortError') setRelatedProductsState({ slug, products: [] });
-      });
-    return () => controller.abort();
-  }, [curatedProduct, slug, state.slug, state.status, state.product]);
-
   if (state.slug !== slug || state.status === 'loading') return <div className="section-wrap"><CatalogLoading count={1} /></div>;
   if (state.status === 'error' || !state.product) return <div className="section-wrap"><CatalogError message={state.error || 'Không tìm thấy sản phẩm đã công bố.'} onRetry={() => setRetry((value) => value + 1)} /></div>;
   const product = state.product;
   const cartProductId = product.id;
-  const relatedProducts = curatedProduct
-    ? (relatedProductsState.slug === slug ? relatedProductsState.products : [])
-    : (product.relatedProducts || []);
+  const relatedProducts = product.relatedProducts || [];
   const canBuy = Boolean(cartProductId) && ['buy', 'both'].includes(product.saleMode) && product.availableForPurchase === true && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0;
   const images = [...(product.images || [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const selectedImage = selectedImageState.slug === slug && selectedImageState.index < images.length ? selectedImageState.index : 0;
