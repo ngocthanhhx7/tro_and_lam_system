@@ -1,0 +1,77 @@
+.quick-contact {
+  position: fixed;
+  z-index: 79;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+.quick-contact__link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid #ffffff70;
+  border-radius: 50%;
+  color: white;
+  background: #0877ff;
+  box-shadow: 0 4px 14px #092b3b26;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.quick-contact__link--phone { background: #f47b20; }
+.quick-contact__link--zalo { background: #fff; border-color: #c9ddf7; }
+.quick-contact__link--message { background: #0866ff; }
+.quick-contact__link--top { background: #fffdf8; color: #123f56; border-color: #d9d6cc; }
+.quick-contact__icon { display: grid; place-items: center; width: 28px; height: 28px; }
+.quick-contact__icon img { display: block; width: 28px; height: 28px; object-fit: contain; }
+.quick-contact__link--zalo .quick-contact__icon img { width: 32px; height: 32px; }
+.quick-contact__link--phone .quick-contact__icon { animation: quick-contact-ring 3.6s ease-in-out infinite; }
+.quick-contact__label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 12px);
+  padding: 10px 13px;
+  border-radius: 6px;
+  color: white;
+  background: #123f56;
+  box-shadow: 0 4px 14px #092b3b1a;
+  font: 600 12px/1.4 var(--font-body, sans-serif);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-6px, -50%);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+}
+.quick-contact__label::before { content: ''; position: absolute; top: 50%; left: -5px; width: 10px; height: 10px; background: inherit; transform: translateY(-50%) rotate(45deg); }
+.quick-contact__link:focus-visible { outline: 3px solid #c69a45; outline-offset: 4px; }
+.quick-contact__link:focus-visible .quick-contact__label { opacity: 1; visibility: visible; transform: translate(0, -50%); }
+@media (hover: hover) {
+  .quick-contact__link:hover { transform: translateY(-2px); box-shadow: 0 7px 20px #092b3b33; }
+  .quick-contact__link:hover .quick-contact__label { opacity: 1; visibility: visible; transform: translate(0, -50%); }
+}
+@keyframes quick-contact-ring {
+  0%, 18%, 100% { transform: rotate(0); }
+  3%, 9%, 15% { transform: rotate(-14deg); }
+  6%, 12% { transform: rotate(14deg); }
+}
+@media (max-width: 720px) {
+  .quick-contact { left: max(12px, env(safe-area-inset-left)); gap: 9px; }
+  .quick-contact__link { width: 44px; height: 44px; }
+  .quick-contact__label { max-width: calc(100vw - 88px); }
+  /* Leave a clear touch area beside the floating rail in the sticky checkout bar. */
+  .cart-selection-summary .cart-select-all { padding-left: 42px; }
+}
+@media (hover: none) { .quick-contact__label { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .quick-contact__link, .quick-contact__label { transition: none; }
+  .quick-contact__link--phone .quick-contact__icon { animation: none; }
+}
