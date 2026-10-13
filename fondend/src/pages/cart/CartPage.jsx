@@ -210,9 +210,6 @@ export default function CartPage() {
           {checkoutAllowed
             ? <Link className="cart-button" to="/thanh-toan" state={{ selectedProductIds: selectedItems.map(item => item.productId), cartOwner: owner }}>Mua hàng ({selectedItems.length})</Link>
             : <button className="cart-button" type="button" disabled>{pendingId ? 'Đang cập nhật…' : 'Chọn sản phẩm để mua'}</button>}
-          {!user && <p className="cart-summary__note">Bạn có thể tiếp tục với tư cách khách hoặc <Link to="/dang-nhap">đăng nhập</Link> để đồng bộ giỏ hàng.</p>}
-          {user && <p className="cart-summary__note">Giỏ hàng khách đã được gộp vào giỏ tài khoản.</p>}
-          <Link className="cart-continue" to="/san-pham"><span aria-hidden="true">←</span> Tiếp tục khám phá sản phẩm</Link>
         </aside>
       </div>}
 

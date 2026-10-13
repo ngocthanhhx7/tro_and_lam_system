@@ -9,6 +9,7 @@ Thay đổi theo yêu cầu chủ dự án ngày 2026-10-13.
 - Header dùng snapshot cart đã tải để xem trước khi hover/focus, không GET mỗi lần hover. Event sau mutation mang cart DTO mới cùng số đếm. Menu customer cũng mở bằng hover chuột; touch và keyboard giữ thao tác bấm/Escape/blur.
 - Backend PUT trước thay đổi: middleware find, product aggregate, cart find, transaction cart find, findAndModify, commitTransaction, product aggregate. Trên VPS ba mẫu lần lượt 1200/1184/1183 ms, chưa tính GET giỏ phía frontend và đường truyền của người mua.
 - PUT tái sử dụng snapshot guest có kiểm tra ownership/tombstone, đọc các sản phẩm cần một lần và ghi một document bằng điều kiện `_id + version`. Không cần transaction riêng cho một atomic compare-and-set. Transaction checkout/merge nhiều document giữ nguyên. Frontend dùng single-flight GET giỏ đang chạy; không cache quyền/giá/tồn hay báo thành công trước khi API ghi thành công.
+- Sau triển khai, cùng phép đo trên VPS còn find + aggregate + findAndModify: 560/550/549 ms. Đây là thời gian middleware + PUT của giỏ kiểm thử riêng, chưa gồm GET giỏ phía frontend, CSRF lần đầu và đường truyền của người mua. Giỏ kiểm thử được dọn sau đo; không có order/payment/email mới.
 
 ## Đặt đơn và trừ giỏ
 
