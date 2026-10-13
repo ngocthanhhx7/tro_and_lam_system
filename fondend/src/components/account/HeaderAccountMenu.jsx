@@ -56,7 +56,10 @@ export default function HeaderAccountMenu() {
 
   function closeMenu() { setOpen(false); }
 
-  return <div className="header-account-menu" ref={root}>
+  return <div className="header-account-menu" ref={root}
+    onPointerEnter={event => { if (event.pointerType === 'mouse') setOpen(true); }}
+    onPointerLeave={event => { if (event.pointerType === 'mouse' && !root.current?.contains(document.activeElement)) setOpen(false); }}
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <button
       ref={trigger}
       className="catalog-header__icon-link header-account-menu__trigger"

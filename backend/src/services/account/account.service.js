@@ -235,34 +235,34 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
     return cartWithPrices(current, { session });
   }
 
-  async function setCartItemQuantity(actor, productId, quantityValue, expectedVersionValue, { session } = {}) {
+  async function setCartItemQuantity(actor, productId, quantityValue, expectedVersionValue, { session, guestCartSnapshot } = {}) {
     const owner = cartOwner(actor);
     if (!isObjectId(productId)) throw badRequest('VALIDATION_ERROR', 'Mã sản phẩm không hợp lệ');
     const quantity = Number(quantityValue);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > CART_MAX) throw badRequest('VALIDATION_ERROR', 'Số lượng phải từ 1 đến 99');
     const expectedVersion = validateExpectedVersion(expectedVersionValue);
-    const allowed = await loadProducts([productId], { session });
-    if (!productLookup(allowed).has(productId)) {
+    if (owner.kind === 'guest' && guestCartSnapshot
+      && (guestCartSnapshot.guestTokenHash !== owner.key || guestCartSnapshot.mergedAt)) {
+      throw new ServiceError(403, 'FORBIDDEN', 'Giỏ hàng khách không hợp lệ');
+    }
+    const cart = toCartRecord(owner.kind === 'guest' && guestCartSnapshot
+      ? guestCartSnapshot : await getOrCreateCart(owner, { session }));
+    if (cart.mergedAt) throw conflict('VERSION_CONFLICT');
+    assertVersion(cart, expectedVersion);
+    // Validate and price all lines once. Cart writes change one document only;
+    // the version predicate is the atomic compare-and-set, including merge races.
+    const products = await loadProducts([...new Set([...cart.items.map(item => item.productId), productId])], { session });
+    if (!productLookup(products).has(productId)) {
       throw new ServiceError(422, 'CHECKOUT_NOT_ALLOWED', 'Sản phẩm hiện không thể thêm vào giỏ hàng');
     }
-    await getOrCreateCart(owner);
-    const updated = await repository.transaction(async (transactionSession) => {
-      const current = owner.kind === 'user'
-        ? await repository.findUserCart(owner.key, { session: transactionSession })
-        : await repository.findGuestCart(owner.key, { session: transactionSession });
-      const cart = toCartRecord(current);
-      if (!cart) throw conflict('VERSION_CONFLICT');
-      assertVersion(cart, expectedVersion);
-      const index = cart.items.findIndex((item) => item.productId === productId);
-      if (index >= 0 && cart.items[index].quantity === quantity) return cart;
-      if (index >= 0) cart.items[index] = { productId, quantity };
-      else cart.items.push({ productId, quantity });
-      cart.expiresAt = expiredAt(cartTtlMs);
-      const saved = await repository.saveCart(cart, expectedVersion, { session: transactionSession });
-      if (!saved) throw conflict('VERSION_CONFLICT');
-      return toCartRecord(saved);
-    }, { session });
-    return cartWithPrices(updated, { session });
+    const index = cart.items.findIndex(item => item.productId === productId);
+    if (index >= 0 && cart.items[index].quantity === quantity) return toCartDto(cart, products);
+    if (index >= 0) cart.items[index] = { productId, quantity };
+    else cart.items.push({ productId, quantity });
+    cart.expiresAt = expiredAt(cartTtlMs);
+    const saved = await repository.saveCart(cart, expectedVersion, { session });
+    if (!saved) throw conflict('VERSION_CONFLICT');
+    return toCartDto(toCartRecord(saved), products);
   }
 
   async function removeCartItem(actor, productId, expectedVersionValue, { session } = {}) {
@@ -338,15 +338,20 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
   async function removeCommittedItems(actor, committedItems, { session } = {}) {
     const owner = cartOwner(actor);
     if (!Array.isArray(committedItems)) throw badRequest('BAD_REQUEST', 'Danh sách sản phẩm đã đặt không hợp lệ');
-    const productIds = new Set(committedItems.map((item) => typeof item === 'string' ? item : item.productId).filter(isObjectId));
+    const quantities = new Map(committedItems.map(item => typeof item === 'string'
+      ? [item, CART_MAX] : [item.productId, item.quantity]));
+    if ([...quantities].some(([id, quantity]) => !isObjectId(id) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > CART_MAX)) {
+      throw badRequest('BAD_REQUEST', 'Danh sách sản phẩm đã đặt không hợp lệ');
+    }
+    const productIds = new Set(quantities.keys());
     if (productIds.size === 0) return;
     const cart = owner.kind === 'user'
       ? await repository.findUserCart(owner.key, { session })
       : await repository.findGuestCart(owner.key, { session });
     if (!cart) return;
     const record = toCartRecord(cart);
-    const remaining = record.items.filter((item) => !productIds.has(item.productId));
-    if (remaining.length === record.items.length) return;
+    const remaining = record.items.map(item => ({ ...item, quantity: Math.max(0, item.quantity - (quantities.get(item.productId) || 0)) })).filter(item => item.quantity > 0);
+    if (!record.items.some(item => productIds.has(item.productId))) return;
     const saved = await repository.saveCart({ ...record, items: remaining, expiresAt: expiredAt(cartTtlMs) }, record.version, { session });
     if (!saved) throw conflict('VERSION_CONFLICT');
   }

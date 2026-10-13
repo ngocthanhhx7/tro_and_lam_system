@@ -32,6 +32,8 @@ export default function CartPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [recommendations, setRecommendations] = useState([]);
+  const [selection, setSelection] = useState({ owner: '', ids: [] });
+  const owner = user?.id || 'guest';
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -119,13 +121,20 @@ export default function CartPage() {
 
   const items = cart?.items || [];
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
-  const checkoutAllowed = items.length > 0 && items.every((item) => item.checkoutEligible);
+  const selectedIds = selection.owner === owner ? selection.ids : [];
+  const selectedItems = items.filter(item => selectedIds.includes(item.productId) && item.checkoutEligible);
+  const selectedCount = selectedItems.reduce((count, item) => count + item.quantity, 0);
+  const selectedTotal = selectedItems.reduce((total, item) => total + item.lineTotalVnd, 0);
+  const eligibleIds = items.filter(item => item.checkoutEligible).map(item => item.productId);
+  const allSelected = eligibleIds.length > 0 && eligibleIds.every(id => selectedIds.includes(id));
+  const checkoutAllowed = selectedItems.length > 0 && !pendingId;
+  function toggleItem(id) {
+    setSelection({ owner, ids: selectedIds.includes(id) ? selectedIds.filter(value => value !== id) : [...selectedIds, id] });
+  }
+  function toggleAll() { setSelection({ owner, ids: allSelected ? [] : eligibleIds }); }
 
   return <section className="cart-page" aria-labelledby="cart-title">
     <div className="cart-page__container">
-      <nav className="cart-breadcrumbs" aria-label="Vị trí hiện tại">
-        <Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">Giỏ hàng</span>
-      </nav>
       <div className="cart-page__intro">
         <div>
           <p className="cart-page__eyebrow">TRO &amp; LAM · GỐM CHU ĐẬU</p>
@@ -149,16 +158,19 @@ export default function CartPage() {
 
       {!loading && items.length > 0 && <div className="cart-layout">
         <section className="cart-items" aria-label="Các sản phẩm trong giỏ hàng">
-          <div className="cart-table-header" aria-hidden="true">
+          <div className="cart-table-header">
+            <input className="cart-select" type="checkbox" aria-label="Chọn tất cả sản phẩm" checked={allSelected} onChange={toggleAll} disabled={!eligibleIds.length || Boolean(pendingId)} />
             <span className="cart-table-header__product">Sản phẩm</span>
             <span className="cart-table-header__price">Đơn giá</span>
             <span className="cart-table-header__quantity">Số lượng</span>
             <span className="cart-table-header__total">Thành tiền</span>
+            <span>Thao tác</span>
           </div>
           {cart.warnings.map((warning) => <p className="cart-message cart-message--warning" key={warning.productId}>
             Một sản phẩm không còn được mở bán. Bạn có thể xóa sản phẩm khỏi giỏ.
           </p>)}
           {items.map((item) => <article className="cart-item" key={item.productId}>
+            <input className="cart-select" type="checkbox" aria-label={`Chọn mua ${item.product?.name || 'sản phẩm không còn mở bán'}`} checked={selectedIds.includes(item.productId) && item.checkoutEligible} onChange={() => toggleItem(item.productId)} disabled={!item.checkoutEligible || Boolean(pendingId)} />
             <div className="cart-item__product">
               {item.product?.imageUrl
                 ? <img className="cart-item__image" src={item.product.imageUrl} alt={item.product.name} loading="lazy" />
@@ -169,9 +181,6 @@ export default function CartPage() {
                   ? <Link to={`/san-pham/${encodeURIComponent(item.product.slug)}`}>{item.product.name}</Link>
                   : item.product?.name || 'Sản phẩm không còn mở bán'}</h2>
                 {item.product && <p className="cart-item__sku">Mã sản phẩm: {item.product.sku}</p>}
-                <button className="cart-remove" type="button" onClick={() => removeItem(item)} disabled={pendingId === item.productId}>
-                  <span aria-hidden="true">×</span>{pendingId === item.productId ? 'Đang cập nhật…' : 'Xóa sản phẩm'}
-                </button>
               </div>
             </div>
             <div className="cart-item__unit-price">
@@ -181,26 +190,26 @@ export default function CartPage() {
             <div className="cart-item__quantity-column">
               <span className="cart-mobile-label">Số lượng</span>
               {item.checkoutEligible ? <div className="cart-quantity" aria-label={`Số lượng ${item.product.name}`}>
-                <button type="button" aria-label={`Giảm số lượng ${item.product.name}`} onClick={() => setQuantity(item, item.quantity - 1)} disabled={pendingId === item.productId || item.quantity <= 1}>−</button>
+                <button type="button" aria-label={`Giảm số lượng ${item.product.name}`} onClick={() => setQuantity(item, item.quantity - 1)} disabled={Boolean(pendingId) || item.quantity <= 1}>−</button>
                 <span aria-live="polite">{item.quantity}</span>
-                <button type="button" aria-label={`Tăng số lượng ${item.product.name}`} onClick={() => setQuantity(item, item.quantity + 1)} disabled={pendingId === item.productId || item.quantity >= 99}>+</button>
+                <button type="button" aria-label={`Tăng số lượng ${item.product.name}`} onClick={() => setQuantity(item, item.quantity + 1)} disabled={Boolean(pendingId) || item.quantity >= 99}>+</button>
               </div> : <span>{item.quantity}</span>}
             </div>
             <strong className="cart-item__total">
               <span className="cart-mobile-label">Thành tiền</span>
               {item.lineTotalVnd === null ? 'Cần kiểm tra lại' : money(item.lineTotalVnd)}
             </strong>
+            <div className="cart-item__actions"><button className="cart-remove" type="button" aria-label={`Xóa ${item.product?.name || 'sản phẩm'} khỏi giỏ hàng`} onClick={() => removeItem(item)} disabled={Boolean(pendingId)}>Xóa</button></div>
           </article>)}
         </section>
 
-        <aside className="cart-summary" aria-labelledby="cart-summary-title">
-          <p className="cart-page__eyebrow">TÓM TẮT</p>
-          <h2 id="cart-summary-title">Đơn hàng</h2>
-          <div className="cart-summary__row"><span>{itemCount} sản phẩm</span><strong>{money(cart.subtotalVnd)}</strong></div>
+        <aside className="cart-summary cart-selection-summary" aria-label="Thanh toán sản phẩm đã chọn">
+          <label className="cart-select-all"><input className="cart-select" type="checkbox" checked={allSelected} onChange={toggleAll} disabled={!eligibleIds.length || Boolean(pendingId)} />Chọn tất cả ({eligibleIds.length})</label>
+          <div className="cart-summary__row" aria-live="polite"><span>Tổng cộng ({selectedCount} sản phẩm)</span><strong>{money(selectedTotal)}</strong></div>
           <p className="cart-summary__note">Phí giao hàng và khả năng cung ứng sẽ được xác nhận ở bước tiếp theo.</p>
           {checkoutAllowed
-            ? <Link className="cart-button" to="/thanh-toan">Tiến hành đặt hàng</Link>
-            : <button className="cart-button" type="button" disabled>Chưa thể tiến hành đặt hàng</button>}
+            ? <Link className="cart-button" to="/thanh-toan" state={{ selectedProductIds: selectedItems.map(item => item.productId), cartOwner: owner }}>Mua hàng ({selectedItems.length})</Link>
+            : <button className="cart-button" type="button" disabled>{pendingId ? 'Đang cập nhật…' : 'Chọn sản phẩm để mua'}</button>}
           {!user && <p className="cart-summary__note">Bạn có thể tiếp tục với tư cách khách hoặc <Link to="/dang-nhap">đăng nhập</Link> để đồng bộ giỏ hàng.</p>}
           {user && <p className="cart-summary__note">Giỏ hàng khách đã được gộp vào giỏ tài khoản.</p>}
           <Link className="cart-continue" to="/san-pham"><span aria-hidden="true">←</span> Tiếp tục khám phá sản phẩm</Link>

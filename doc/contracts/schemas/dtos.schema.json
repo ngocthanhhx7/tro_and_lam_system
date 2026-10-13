@@ -500,20 +500,134 @@
       "additionalProperties": false
     },
     "adminVoucherWrite": {
-      "type": "object", "required": ["email", "code", "title", "discountType", "discountValue", "expiresAt"],
+      "type": "object",
+      "required": [
+        "code",
+        "title",
+        "discountType",
+        "discountValue",
+        "expiresAt"
+      ],
       "properties": {
-        "email": { "type": "string", "format": "email", "maxLength": 254 },
-        "code": { "type": "string", "minLength": 3, "maxLength": 40, "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,39}$" },
-        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "discountType": { "$ref": "enums.schema.json#/$defs/voucherDiscountType" },
-        "discountValue": { "type": "integer", "minimum": 1 },
-        "maxDiscountVnd": { "type": "integer", "minimum": 1 },
-        "minSubtotalVnd": { "type": "integer", "minimum": 0 },
-        "expiresAt": { "type": "string", "format": "date-time" }
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "code": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,39}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "discountType": {
+          "$ref": "enums.schema.json#/$defs/voucherDiscountType"
+        },
+        "discountValue": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxDiscountVnd": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minSubtotalVnd": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scope": {
+          "enum": [
+            "customer",
+            "public"
+          ],
+          "type": "string"
+        },
+        "maxRedemptions": {
+          "maximum": 1000000,
+          "type": "integer",
+          "minimum": 1
+        }
       },
       "allOf": [
-        { "if": { "properties": { "discountType": { "const": "percent" } }, "required": ["discountType"] }, "then": { "properties": { "discountValue": { "maximum": 100 } } } },
-        { "if": { "properties": { "discountType": { "const": "fixed" } }, "required": ["discountType"] }, "then": { "not": { "required": ["maxDiscountVnd"] } } }
+        {
+          "if": {
+            "properties": {
+              "discountType": {
+                "const": "percent"
+              }
+            },
+            "required": [
+              "discountType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "discountValue": {
+                "maximum": 100
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "discountType": {
+                "const": "fixed"
+              }
+            },
+            "required": [
+              "discountType"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "maxDiscountVnd"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "const": "public"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "maxRedemptions"
+            ],
+            "not": {
+              "required": [
+                "email"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "email"
+            ],
+            "not": {
+              "required": [
+                "maxRedemptions"
+              ]
+            }
+          }
+        }
       ],
       "additionalProperties": false
     },

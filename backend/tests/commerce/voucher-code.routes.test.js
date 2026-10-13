@@ -15,7 +15,8 @@ test('voucher code lookup requires a customer, CSRF and a strict code body', asy
       req.actor = { id: 'customer-owned-id' }; next();
     },
     csrfProtection: (req, res, next) => req.get('test-csrf') === 'valid' ? next() : res.sendStatus(403),
-  }, service: { resolveCode: async (userId, code) => { calls.push({ userId, code }); return { id: 'voucher-id', code: 'SAVE10' }; } } }));
+  }, service: { resolveCode: async (userId, code) => { calls.push({ userId, code }); return { id: 'voucher-id', code: 'SAVE10' }; },
+    resolvePublicCode: async code => { calls.push({ publicCode: code }); return { id: 'public-voucher-id', code: 'PUBLIC10', scope: 'public' }; } } }));
   app.use((error, _req, res, _next) => res.status(error.status || 500).json({ code: error.code }));
   const path = '/account/vouchers/resolve';
   await request(app).post(path).send({ code: 'SAVE10' }).expect(401);
@@ -28,4 +29,9 @@ test('voucher code lookup requires a customer, CSRF and a strict code body', asy
   const response = await request(app).post(path).set('test-role', 'customer').set('test-csrf', 'valid').send({ code: ' save10 ' }).expect(200);
   assert.equal(response.body.data.code, 'SAVE10');
   assert.deepEqual(calls, [{ userId: 'customer-owned-id', code: ' save10 ' }]);
+  await request(app).post('/vouchers/resolve').send({ code: 'PUBLIC10' }).expect(403);
+  await request(app).post('/vouchers/resolve').set('test-csrf', 'valid').send({ code: 'PUBLIC10', userId: 'other' }).expect(400);
+  const publicResponse = await request(app).post('/vouchers/resolve').set('test-csrf', 'valid').send({ code: 'PUBLIC10' }).expect(200);
+  assert.equal(publicResponse.body.data.scope, 'public');
+  assert.deepEqual(calls.at(-1), { publicCode: 'PUBLIC10' });
 });

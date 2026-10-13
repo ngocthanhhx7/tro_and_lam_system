@@ -6,6 +6,7 @@ import { Order } from './order.model.js';
 import { OrderAccessChallenge } from './order-access-challenge.model.js';
 import { StockReservation } from './stock-reservation.model.js';
 import { Voucher } from './voucher.model.js';
+import { VoucherRedemption } from './voucher-redemption.model.js';
 
 const commerceModels = Object.freeze([
   Inventory,
@@ -16,6 +17,7 @@ const commerceModels = Object.freeze([
   CodCollection,
   OrderAccessChallenge,
   Voucher,
+  VoucherRedemption,
 ]);
 
 export async function ensureCommerceIndexes() {

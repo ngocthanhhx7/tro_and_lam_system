@@ -69,6 +69,18 @@ test('checkout options are readable by a guest without a session or CSRF mutatio
   assert.deepEqual(response.body.data.paymentMethods, ['payos']);
 });
 
+test('code-only progress lookup is unauthenticated and rate limited without calling the order-detail actor resolver', async () => {
+  const data = { code: 'TL-PUBLIC1234', status: 'pending', history: [{ status: 'pending', at: '2026-10-13T00:00:00Z' }] };
+  const { app, calls } = createFixture({ commerceService: { async getPublicOrderProgress(code) { assert.equal(code, data.code); return data; } } });
+  const path = '/api/v1/orders/tracking/TL-PUBLIC1234';
+  const response = await request(app).get(path).expect(200);
+  assert.deepEqual(response.body.data, data);
+  assert.equal(response.headers['cache-control'], 'no-store');
+  for (let index = 1; index < 30; index += 1) await request(app).get(path).expect(200);
+  await request(app).get(path).expect(429);
+  assert.deepEqual(calls, []);
+});
+
 test('guest checkout sets a scoped HttpOnly proof cookie and removes the token from JSON', async () => {
   const { app, calls } = createFixture();
   const response = await request(app).post('/api/v1/orders')

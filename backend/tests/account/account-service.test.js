@@ -231,6 +231,32 @@ test('a catalog item removed from the checkout port remains visible for removal'
   assert.equal(emptied.items.length, 0);
 });
 
+test('cart PUT reuses an owned snapshot, reads product data once, and rejects a stale version', async () => {
+  const { service, repository } = makeService();
+  const guest = { kind: 'guest', guestTokenHash: '1'.repeat(64) };
+  await service.getCart(guest);
+  const snapshot = structuredClone(await service.getGuestCartSnapshot(guest.guestTokenHash));
+  repository.findGuestCart = async () => { throw new Error('Unexpected repeated cart lookup'); };
+  repository.transaction = async () => { throw new Error('Single-document PUT must use atomic CAS'); };
+  const cart = await service.setCartItemQuantity(guest, PRODUCT_A, 2, 0, { guestCartSnapshot: snapshot });
+  assert.equal(cart.items[0].quantity, 2);
+  assert.equal(cart.version, 1);
+  await assert.rejects(service.setCartItemQuantity(guest, PRODUCT_A, 3, 0, { guestCartSnapshot: snapshot }), { code: 'VERSION_CONFLICT' });
+  await assert.rejects(service.setCartItemQuantity({ ...guest, guestTokenHash: '2'.repeat(64) }, PRODUCT_A, 1, 0, { guestCartSnapshot: snapshot }), { status: 403 });
+});
+
+test('committed quantities are subtracted without deleting unpurchased quantities or another owner cart', async () => {
+  const { service, repository } = makeService();
+  const owner = { id: USER_A, role: 'customer' };
+  await service.setCartItemQuantity(owner, PRODUCT_A, 5, 0);
+  await service.setCartItemQuantity(owner, PRODUCT_B, 2, 1);
+  await service.setCartItemQuantity({ id: USER_B, role: 'customer' }, PRODUCT_A, 4, 0);
+  await service.removeCommittedItems(owner, [{ productId: PRODUCT_A, quantity: 2 }]);
+  const cart = await repository.findUserCart(USER_A);
+  assert.deepEqual(cart.items, [{ productId: PRODUCT_A, quantity: 3 }, { productId: PRODUCT_B, quantity: 2 }]);
+  assert.equal((await repository.findUserCart(USER_B)).items[0].quantity, 4);
+});
+
 test('reverse geocoding reports unavailable until a real provider adapter is configured', async () => {
   const { service } = makeService();
   await assert.rejects(service.reverseGeocode({ lat: 21, lng: 105 }), { status: 503, code: 'GEO_UNAVAILABLE' });

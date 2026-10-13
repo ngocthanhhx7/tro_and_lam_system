@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.7.1
+  version: 1.8.0
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -271,6 +271,22 @@ paths:
       tags: [account]
       x-actors: [customer, staff, admin]
       responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /vouchers/resolve:
+    post:
+      operationId: resolvePublicVoucherCode
+      tags: [commerce]
+      x-actors: [guest, customer]
+      description: CSRF-protected lookup of an unexpired public code with remaining uses. Never exposes customer-assigned vouchers and never redeems a code.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [code], properties: { code: { type: string, minLength: 3, maxLength: 40 } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' }, '422': { $ref: '#/components/responses/Error' } }
+  /orders/tracking/{code}:
+    get:
+      operationId: getPublicOrderProgress
+      tags: [commerce]
+      x-actors: [guest, customer]
+      description: Rate-limited code lookup. Returns only code, status, creation/update timestamps and a redacted status timeline. No order ID, recipient, address, payment, line items, shipping tracking number, actor IDs or notes. Full details retain ownership/OTP verification.
+      parameters: [{ name: code, in: path, required: true, schema: { type: string, maxLength: 32 } }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /account/vouchers/resolve:
     post:
       operationId: resolveOwnVoucherCode

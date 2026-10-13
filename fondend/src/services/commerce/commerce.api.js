@@ -1,5 +1,6 @@
 import { getJson, requestJson } from '../httpClient.js';
-import { readCart } from '../account/cartRead.js';
+import { invalidateCartRead, readCart } from '../account/cartRead.js';
+import { publishCartUpdate } from '../account/cartEvents.js';
 import { accountApi } from '../account/account.api.js';
 
 const json = (response) => response.data;
@@ -14,12 +15,16 @@ export const commerceApi = Object.freeze({
   getCheckoutOptions: async () => json(await getJson('/checkout/options')),
   listAddresses: async () => json(await getJson('/account/addresses')),
   quoteCheckout: async (body, { signal } = {}) => json(await requestJson('/checkout/quote', { method: 'POST', body, signal })),
-  createOrder: async (body, key) => json(await requestJson('/orders', {
-    method: 'POST', body, headers: idempotencyHeaders(key),
-  })),
+  createOrder: async (body, key) => {
+    const result = json(await requestJson('/orders', { method: 'POST', body, headers: idempotencyHeaders(key) }));
+    invalidateCartRead();
+    void readCart().then(response => publishCartUpdate(response.data)).catch(() => { /* The order is already committed; a cart refresh failure must not report checkout failure. */ });
+    return result;
+  },
   issueOrderChallenge: async (body) => json(await requestJson('/order-access/challenges', { method: 'POST', body })),
   verifyOrderChallenge: async (body) => json(await requestJson('/order-access/verify', { method: 'POST', body })),
   getOrder: async (id) => json(await getJson(`/orders/${encodeURIComponent(id)}`)),
+  trackOrder: async (code) => json(await getJson(`/orders/tracking/${encodeURIComponent(code.trim().toUpperCase())}`)),
   cancelOrder: async (id, body, key) => json(await requestJson(`/orders/${encodeURIComponent(id)}/cancel`, {
     method: 'POST', body, headers: idempotencyHeaders(key),
   })),

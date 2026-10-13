@@ -86,6 +86,12 @@ export function createCommerceRouter({ ports = {}, config = {} } = {}) {
 
   router.get('/checkout/options', async (_req, res) => sendSuccess(res, await service.getCheckoutOptions()));
 
+  router.get('/orders/tracking/:code', rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false,
+    handler: (_req, _res, next) => next(new ServiceError(429, 'RATE_LIMITED', 'Bạn tra cứu quá nhanh. Hãy thử lại sau một phút.')) }), async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    return sendSuccess(res, await service.getPublicOrderProgress(req.params.code));
+  });
+
   router.post('/checkout/quote', csrf, validateCommerceBody('checkoutQuote'), async (req, res) => {
     return sendSuccess(res, await service.quoteCheckout(await resolveActor(req), req.validatedBody));
   });

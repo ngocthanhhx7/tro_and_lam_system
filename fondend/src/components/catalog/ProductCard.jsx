@@ -14,7 +14,7 @@ export default function ProductCard({ product, headingLevel = 'h2', onCartUpdate
 
   async function addToCart() {
     if (!canAddToCart || cartStatus.state === 'loading') return;
-    setCartStatus({ state: 'loading', message: '' });
+    setCartStatus({ state: 'loading', message: 'Đang thêm vào giỏ…' });
     try {
       const response = await addCartQuantity(product.id, 1);
       onCartUpdated?.(response.data);
@@ -48,9 +48,10 @@ export default function ProductCard({ product, headingLevel = 'h2', onCartUpdate
           title={canAddToCart ? 'Thêm vào giỏ hàng' : 'Sản phẩm hiện chưa thể đặt mua trực tiếp'}
           onClick={addToCart}
           disabled={!canAddToCart || cartStatus.state === 'loading'}
+          aria-busy={cartStatus.state === 'loading'}
         >
           <Icon name="bag" size={20} />
-          <span className="product-card__cart-plus" aria-hidden="true">{cartStatus.state === 'success' ? '✓' : '+'}</span>
+          <span className="product-card__cart-plus" aria-hidden="true">{cartStatus.state === 'loading' ? '…' : cartStatus.state === 'success' ? '✓' : '+'}</span>
         </button>
       </div>
       {cartStatus.message && <p className={`product-card__cart-feedback is-${cartStatus.state}`} role={cartStatus.state === 'error' ? 'alert' : 'status'}>

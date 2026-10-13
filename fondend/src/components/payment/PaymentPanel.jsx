@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { paymentsApi } from '../../services/payments/payments.api.js';
+import { startHostedCheckout } from '../../services/payments/hostedCheckout.js';
 import './payment.css';
 
 function createIdempotencyKey(orderId) {
@@ -27,11 +28,9 @@ export default function PaymentPanel({ orderId, paymentMethod, paymentStatus, or
     setBusy(true);
     setError('');
     try {
-      const response = await paymentsApi.createPaymentAttempt(orderId, requestKey);
-      const createdAttempt = response.data;
-      if (createdAttempt.checkoutUrl && new URL(createdAttempt.checkoutUrl).protocol !== 'https:') {
-        throw new Error('Đường dẫn thanh toán không dùng HTTPS nên đã bị chặn.');
-      }
+      const createdAttempt = await startHostedCheckout({ orderId, requestKey,
+        createAttempt: paymentsApi.createPaymentAttempt,
+        redirect: url => window.location.assign(url) });
       setAttempt(createdAttempt);
     } catch (requestError) {
       setError(requestError.message || 'Không thể tạo liên kết thanh toán. Đơn hàng vẫn được giữ để thử lại.');
@@ -60,13 +59,13 @@ export default function PaymentPanel({ orderId, paymentMethod, paymentStatus, or
     </div>}
     {paymentStatus !== 'paid' && attempt?.checkoutUrl ? <div className="payment-result">
       <p>Liên kết thanh toán đã sẵn sàng. Hoàn tất tại trang PayOS để chúng tôi tự đối soát.</p>
-      <a className="payment-button" href={attempt.checkoutUrl} target="_blank" rel="noopener noreferrer">Mở PayOS</a>
+      <a className="payment-button" href={attempt.checkoutUrl} rel="noopener noreferrer">Tiếp tục thanh toán trên PayOS</a>
       <p className="payment-expiry">Liên kết hết hạn: {new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(attempt.expiresAt))}</p>
     </div> : paymentStatus !== 'paid' && <div className="payment-result">
       {error && <p className="payment-error" role="alert">{error}</p>}
       {!canCreate && <p role="status">Đơn hàng không còn ở trạng thái có thể tạo liên kết mới.</p>}
       <button type="button" className="payment-button" onClick={createAttempt} disabled={busy || !canCreate}>
-        {busy ? 'Đang kết nối PayOS…' : 'Tạo liên kết thanh toán'}
+        {busy ? 'Đang mở trang thanh toán PayOS…' : 'Thanh toán qua PayOS'}
       </button>
     </div>}
   </section>;

@@ -5,7 +5,7 @@ import Icon from '../../../components/catalog/Icon.jsx';
 import { WorkspaceMetric } from '../../../components/workspace/WorkspaceParts.jsx';
 import '../../../components/notifications/operations.css';
 
-const blankForm = () => ({ email: '', code: '', title: '', discountType: 'fixed', discountValue: '', maxDiscountVnd: '', minSubtotalVnd: '', expiresAt: '' });
+const blankForm = () => ({ scope: 'customer', maxRedemptions: '1', email: '', code: '', title: '', discountType: 'fixed', discountValue: '', maxDiscountVnd: '', minSubtotalVnd: '', expiresAt: '' });
 const money = (value) => `${new Intl.NumberFormat('vi-VN').format(value)} ₫`;
 
 function discountLabel(voucher) {
@@ -50,7 +50,7 @@ export default function AdminVouchersPage() {
     setNotice('');
     try {
       const body = {
-        email: form.email,
+        ...(form.scope === 'public' ? { scope: 'public', maxRedemptions: Number(form.maxRedemptions) } : { email: form.email }),
         code: form.code,
         title: form.title,
         discountType: form.discountType,
@@ -61,7 +61,7 @@ export default function AdminVouchersPage() {
       };
       await voucherApi.issue(body);
       setForm(blankForm());
-      setNotice('Voucher đã được cấp cho customer.');
+      setNotice('Voucher đã được tạo theo phạm vi áp dụng đã chọn.');
       setFormOpen(false);
       await load();
     } catch (requestError) {
@@ -88,12 +88,13 @@ export default function AdminVouchersPage() {
 
   return <section className="operations-page">
     <header className="operations-page__heading"><div><p className="operations-eyebrow">TRO &amp; LAM · ƯU ĐÃI</p><h1>Quản lý mã Voucher</h1><p>Quản lý ưu đãi dành cho khách hàng và theo dõi trạng thái sử dụng.</p></div><button className="operations-button" type="button" onClick={() => setFormOpen(!formOpen)}><Icon name={formOpen ? 'close' : 'plus'} size={16} />{formOpen ? 'Đóng biểu mẫu' : 'Cấp voucher mới'}</button></header>
-    {!loading && <div className="operations-metrics"><WorkspaceMetric label="Tổng voucher" icon="ticket" value={items.length} detail="Trong danh sách đã tải" /><WorkspaceMetric label="Khả dụng" icon="gift" value={items.filter((item) => item.status === 'available').length} detail="Có thể áp dụng cho đơn hàng" /><WorkspaceMetric label="Đã sử dụng" icon="receipt" value={items.filter((item) => item.status === 'used').length} detail="Voucher đã được áp dụng" /><WorkspaceMetric label="Đã thu hồi / hết hạn" icon="history" value={items.filter((item) => ['revoked', 'expired'].includes(item.status)).length} detail="Không còn khả dụng" /></div>}
+    {!loading && <div className="operations-metrics"><WorkspaceMetric label="Tổng voucher" icon="ticket" value={items.length} detail="Trong danh sách đã tải" /><WorkspaceMetric label="Khả dụng" icon="gift" value={items.filter((item) => item.status === 'available').length} detail="Có thể áp dụng cho đơn hàng" /><WorkspaceMetric label="Đã sử dụng" icon="receipt" value={items.filter((item) => item.status === 'redeemed').length} detail="Voucher đã được áp dụng" /><WorkspaceMetric label="Đã thu hồi / hết hạn" icon="history" value={items.filter((item) => ['revoked', 'expired'].includes(item.status)).length} detail="Không còn khả dụng" /></div>}
     {error && <div className="operations-error" role="alert"><p>{error}</p><button type="button" onClick={() => void load()}>Tải lại</button></div>}
     {notice && <p className="identity-feedback identity-feedback--success" role="status">{notice}</p>}
     {formOpen && <form className="operations-form" onSubmit={issue}>
       <h2>Cấp voucher</h2>
-      <label>Email khách hàng<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required maxLength={254} autoComplete="email" /></label>
+      <label>Phạm vi áp dụng<select value={form.scope} onChange={event => setForm({ ...form, scope: event.target.value })}><option value="customer">Một customer cụ thể</option><option value="public">Mọi khách hàng, kể cả khách chưa đăng nhập</option></select></label>
+      {form.scope === 'customer' ? <label>Email khách hàng<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required maxLength={254} autoComplete="email" /></label> : <label>Tổng số lượt sử dụng<input type="number" min="1" max="1000000" step="1" value={form.maxRedemptions} onChange={event => setForm({ ...form, maxRedemptions: event.target.value })} required /></label>}
       <div className="operations-form__row">
         <label>Mã voucher<input value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/gu, '').slice(0, 40) })} required minLength={3} maxLength={40} /></label>
         <label>Tên ưu đãi<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required maxLength={120} /></label>
@@ -107,14 +108,14 @@ export default function AdminVouchersPage() {
         <label>Đơn tối thiểu (VND)<input type="number" min="0" step="1" value={form.minSubtotalVnd} onChange={(event) => setForm({ ...form, minSubtotalVnd: event.target.value })} /></label>
         <label>Hạn dùng<input type="datetime-local" value={form.expiresAt} onChange={(event) => setForm({ ...form, expiresAt: event.target.value })} required /></label>
       </div>
-      <p className="operations-note">Giảm giá áp dụng trên tiền hàng; phí giao hàng không đổi. Mỗi voucher dùng một lần. Voucher được trả lại nếu đơn bị hủy trước khi giao.</p>
+      <p className="operations-note">Giảm giá áp dụng trên tiền hàng; phí giao hàng không đổi. Voucher riêng dùng một lần; mã dùng chung có giới hạn tổng lượt do bạn cấu hình, không giới hạn theo tài khoản. Lượt được trả lại nếu đơn bị hủy trước khi giao.</p>
       <button className="operations-button" disabled={busy}>{busy ? 'Đang xử lý…' : 'Cấp voucher'}</button>
     </form>}
-    <div className="operations-toolbar"><label>Tìm voucher<input type="search" placeholder="Mã, tên ưu đãi hoặc email" value={query} onChange={(event) => setQuery(event.target.value)} /></label><label>Trạng thái<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Tất cả</option><option value="available">Khả dụng</option><option value="used">Đã sử dụng</option><option value="reserved">Đang giữ</option><option value="revoked">Đã thu hồi</option><option value="expired">Hết hạn</option></select></label><button className="operations-button operations-button--quiet" type="button" onClick={() => void load()} disabled={loading}>Làm mới</button></div>
+    <div className="operations-toolbar"><label>Tìm voucher<input type="search" placeholder="Mã, tên ưu đãi hoặc email" value={query} onChange={(event) => setQuery(event.target.value)} /></label><label>Trạng thái<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Tất cả</option><option value="available">Khả dụng</option><option value="redeemed">Đã sử dụng</option><option value="reserved">Đang giữ</option><option value="revoked">Đã thu hồi</option><option value="expired">Hết hạn</option></select></label><button className="operations-button operations-button--quiet" type="button" onClick={() => void load()} disabled={loading}>Làm mới</button></div>
     {loading && <p role="status">Đang tải…</p>}
     {!loading && items.length === 0 && <p className="operations-empty">Chưa có voucher nào được cấp.</p>}
     {!loading && items.length > 0 && <div className="operations-table-wrap"><table className="operations-table"><thead><tr><th>Mã Voucher</th><th>Khách hàng</th><th>Mức giảm</th><th>Hạn dùng</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-      <tbody>{items.filter((item) => (!status || item.status === status) && `${item.code} ${item.title} ${item.customer?.email || ''}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))).map((voucher) => <tr key={voucher.id}><td data-label="Mã"><strong>{voucher.code}</strong><small>{voucher.title}</small></td><td data-label="Khách hàng">{voucher.customer?.email || '—'}</td><td data-label="Mức giảm">{discountLabel(voucher)}{voucher.minSubtotalVnd > 0 && <small>Đơn từ {formatMoney(voucher.minSubtotalVnd)}</small>}</td><td data-label="Hạn dùng">{new Date(voucher.expiresAt).toLocaleString('vi-VN')}</td><td data-label="Trạng thái"><span className="workspace-badge">{({ available: 'Khả dụng', used: 'Đã sử dụng', reserved: 'Đang giữ', revoked: 'Đã thu hồi', expired: 'Hết hạn' })[voucher.status] || voucher.status}</span></td><td data-label="Thao tác">{voucher.status === 'available' && <button className="operations-button operations-button--quiet" type="button" disabled={busy} onClick={() => void revoke(voucher)}>Thu hồi</button>}</td></tr>)}</tbody>
+      <tbody>{items.filter((item) => (!status || item.status === status) && `${item.code} ${item.title} ${item.customer?.email || ''}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))).map((voucher) => <tr key={voucher.id}><td data-label="Mã"><strong>{voucher.code}</strong><small>{voucher.title}</small></td><td data-label="Khách hàng">{voucher.scope === 'public' ? 'Mọi khách hàng' : voucher.customer?.email || '—'}{voucher.scope === 'public' && <small>{voucher.redeemedCount} / {voucher.maxRedemptions} lượt đã dùng</small>}</td><td data-label="Mức giảm">{discountLabel(voucher)}{voucher.minSubtotalVnd > 0 && <small>Đơn từ {formatMoney(voucher.minSubtotalVnd)}</small>}</td><td data-label="Hạn dùng">{new Date(voucher.expiresAt).toLocaleString('vi-VN')}</td><td data-label="Trạng thái"><span className="workspace-badge">{({ available: 'Khả dụng', redeemed: 'Đã sử dụng', reserved: 'Đang giữ', revoked: 'Đã thu hồi', expired: 'Hết hạn' })[voucher.status] || voucher.status}</span></td><td data-label="Thao tác">{voucher.status === 'available' && <button className="operations-button operations-button--quiet" type="button" disabled={busy} onClick={() => void revoke(voucher)}>Thu hồi</button>}</td></tr>)}</tbody>
     </table></div>}
   </section>;
 }

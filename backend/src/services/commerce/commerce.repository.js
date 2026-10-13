@@ -55,6 +55,11 @@ export class CommerceRepository {
     return query.exec();
   }
 
+  async findPublicOrderProgress(code) {
+    return this.models.Order.findOne({ code }).select({ _id: 0, code: 1, status: 1, createdAt: 1, updatedAt: 1,
+      'statusHistory.toStatus': 1, 'statusHistory.createdAt': 1 }).lean().exec();
+  }
+
   async findOwnedOrder(actorId, id, { session } = {}) {
     let query = this.models.Order.findOne({ _id: id, userId: actorId });
     if (session) query = query.session(session);

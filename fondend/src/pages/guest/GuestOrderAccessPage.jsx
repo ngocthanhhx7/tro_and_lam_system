@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { commerceApi } from '../../services/commerce/commerce.api.js';
-import { errorText } from '../commerce/commerce.format.js';
+import { errorText, orderStatusLabel } from '../commerce/commerce.format.js';
 import '../commerce/commerce.css';
 
 export default function GuestOrderAccessPage() {
@@ -13,6 +13,19 @@ export default function GuestOrderAccessPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
+  const [progress, setProgress] = useState(null);
+  const [trackingBusy, setTrackingBusy] = useState(false);
+  const [trackingError, setTrackingError] = useState(null);
+
+  async function track(event) {
+    event.preventDefault();
+    setTrackingBusy(true);
+    setTrackingError(null);
+    setProgress(null);
+    try { setProgress(await commerceApi.trackOrder(code)); }
+    catch (requestError) { setTrackingError(requestError); }
+    finally { setTrackingBusy(false); }
+  }
 
   async function requestCode(event) {
     event.preventDefault();
@@ -46,9 +59,16 @@ export default function GuestOrderAccessPage() {
 
   return <section className="commerce-page commerce-narrow">
     <p className="commerce-eyebrow">TRA CỨU ĐƠN HÀNG</p>
-    <h1>Xác minh để xem đơn</h1>
-    <p className="commerce-lede">Mã đơn hàng và số điện thoại không đủ để mở thông tin cá nhân. Mã xác minh chỉ gửi tới email đã dùng khi đặt hàng.</p>
-    {!challengeId ? <form className="commerce-panel commerce-form" onSubmit={requestCode}>
+    <h1>Theo dõi đơn hàng</h1>
+    <p className="commerce-lede">Nhập mã trong email xác nhận để xem tiến trình đơn hàng. Bạn không cần đăng nhập.</p>
+    <form className="commerce-panel commerce-form" onSubmit={track}>
+      <label className="commerce-field" htmlFor="tracking-code"><span>Mã đơn hàng</span><input id="tracking-code" value={code} onChange={event => { setCode(event.target.value.toUpperCase()); setProgress(null); }} placeholder="TL-…" required maxLength={32} autoComplete="off" /></label>
+      <button className="commerce-primary" disabled={trackingBusy}>{trackingBusy ? 'Đang tra cứu…' : 'Tra cứu trạng thái'}</button>
+    </form>
+    {trackingError && <p className="commerce-error" role="alert">{errorText(trackingError, 'Chưa thể tra cứu đơn hàng.')}</p>}
+    {progress && <section className="commerce-panel commerce-timeline" aria-label="Tiến trình đơn hàng"><p className="commerce-eyebrow">{progress.code}</p><h2>{orderStatusLabel[progress.status] || progress.status}</h2><ol>{progress.history.map((item, index) => <li key={`${item.at}-${index}`}><strong>{orderStatusLabel[item.status] || item.status}</strong><time dateTime={item.at}>{new Date(item.at).toLocaleString('vi-VN')}</time></li>)}</ol></section>}
+    <details className="commerce-panel commerce-timeline"><summary>Xác minh email để xem thông tin chi tiết</summary><p className="commerce-note">Địa chỉ, người nhận và chi tiết thanh toán chỉ được mở sau khi xác minh email đặt hàng.</p>
+    {!challengeId ? <form className="commerce-form" onSubmit={requestCode}>
       <label className="commerce-field" htmlFor="order-code"><span>Mã đơn hàng</span><input id="order-code" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required maxLength={32} autoComplete="off" /></label>
       <label className="commerce-field" htmlFor="order-email"><span>Email đặt hàng</span><input id="order-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} autoComplete="email" /></label>
       <button className="commerce-primary" type="submit" disabled={busy}>{busy ? 'Đang gửi yêu cầu…' : 'Gửi mã xác minh'}</button>
@@ -60,6 +80,7 @@ export default function GuestOrderAccessPage() {
     </form>}
     {error && <p className="commerce-error" role="alert">{errorText(error, 'Không thể xác minh đơn hàng.')}</p>}
     <p className="commerce-note">Không thấy email? Kiểm tra thư rác hoặc thử lại sau. Yêu cầu xác minh được giới hạn để bảo vệ hộp thư.</p>
+    </details>
     <Link to="/">Về trang chủ</Link>
   </section>;
 }

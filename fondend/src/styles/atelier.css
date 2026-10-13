@@ -125,7 +125,7 @@
 .public-site :is(.support-card,.cart-item,.cart-summary,.cart-empty,.identity-card,.commerce-card,.payment-panel) { border-radius: 2px; box-shadow: none; border-color: #dedbd0; }
 .public-site :is(input,select,textarea) { border-radius: 0; }
 .public-site :is(.cart-button,.support-button,.identity-button,.commerce-button) { border-radius: 0; font-size: 13px; font-weight: 500; }
-.public-site :is(.cart-page,.commerce-page,.identity-page) { width: min(100% - 80px,1320px); margin-inline: auto; padding-block: 50px 80px; }
+.public-site :is(.commerce-page,.identity-page) { width: min(100% - 80px,1320px); margin-inline: auto; padding-block: 50px 80px; }
 .public-site .cart-empty { padding: 65px 30px; }
 .public-site .support-page--contact { width: min(100% - 80px,1320px); padding: 35px 0 85px; }
 .support-page--contact .support-intro { padding: 30px 0 35px; border-bottom: 1px solid #d7d8ce; }

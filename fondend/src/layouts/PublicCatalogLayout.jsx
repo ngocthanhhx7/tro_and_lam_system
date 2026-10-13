@@ -66,6 +66,7 @@ const pageMetadata = {
   },
   '/gio-hang': { title: 'Giỏ hàng | TRO & LAM', description: 'Kiểm tra các sản phẩm đã thêm vào giỏ hàng TRO & LAM.' },
   '/thanh-toan': { title: 'Thanh toán | TRO & LAM', description: 'Xem lại thông tin và tiếp tục quy trình thanh toán của TRO & LAM.' },
+  '/tra-cuu-don-hang': { title: 'Theo dõi đơn hàng | TRO & LAM', description: 'Tra cứu tiến trình đơn hàng TRO & LAM bằng mã đơn, không cần đăng nhập.' },
   '/tai-khoan': { title: 'Tài khoản | TRO & LAM', description: 'Đăng nhập hoặc quản lý tài khoản TRO & LAM.' },
 };
 function Brand() {
@@ -85,6 +86,9 @@ export default function PublicCatalogLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [preview, setPreview] = useState(null);
+  const previewOwner = user?.id || 'guest';
+  const previewItems = preview?.owner === previewOwner ? preview.cart.items || [] : [];
   const { pathname } = useLocation();
   const menuDialog = useRef(null);
   const menuButton = useRef(null);
@@ -96,11 +100,15 @@ export default function PublicCatalogLayout() {
     const handleCartUpdate = (event) => {
       receivedCartUpdate = true;
       setCartCount(event.detail?.count || 0);
+      if (event.detail?.cart) setPreview({ owner: user?.id || 'guest', cart: event.detail.cart });
     };
     window.addEventListener(CART_UPDATED_EVENT, handleCartUpdate);
     accountApi.getCart()
       .then((response) => {
-        if (active && !receivedCartUpdate) setCartCount(getCartItemCount(response?.data));
+        if (active && !receivedCartUpdate) {
+          setCartCount(getCartItemCount(response?.data));
+          setPreview({ owner: user?.id || 'guest', cart: response.data });
+        }
       })
       .catch(() => { if (active && !receivedCartUpdate) setCartCount(0); });
     return () => {
@@ -134,7 +142,7 @@ export default function PublicCatalogLayout() {
         <nav className="catalog-nav" aria-label="Điều hướng chính">{links.map((link) => link.to === '/san-pham'
           ? <div className="nav-products" key={link.to}><NavLink to={link.to} className={isCollection ? 'active' : undefined}>Sản phẩm</NavLink><details ref={productMenu} onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); } }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}><summary aria-label="Mở các dòng sản phẩm"><Icon name="chevron" size={15} /></summary><div className="product-dropdown">{collections.map((item) => <Link key={item.to} to={item.to} onClick={() => { productMenu.current.open = false; }}>{item.label}<Icon name="arrow" size={16} /></Link>)}</div></details></div>
           : <NavLink key={link.to} to={link.to} end={link.to === '/'}>{link.label}</NavLink>)}</nav>
-        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><HeaderAccountMenu /><Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link>{user && user.role !== 'customer' && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
+        <div className="catalog-header__actions"><button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button><HeaderAccountMenu /><div className="header-cart-preview"><Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'} aria-describedby="cart-preview-title"><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link><div className="header-cart-preview__panel"><p id="cart-preview-title">Sản phẩm trong giỏ</p>{previewItems.length ? <ul>{previewItems.slice(-5).reverse().map(item => <li key={item.productId}><Link to={item.product?.slug ? `/san-pham/${encodeURIComponent(item.product.slug)}` : '/gio-hang'}>{item.product?.imageUrl && <img src={item.product.imageUrl} alt="" width="52" height="52" />}<span>{item.product?.name || 'Sản phẩm không còn mở bán'}<small>Số lượng: {item.quantity}</small></span></Link><strong>{item.product?.priceVnd ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(item.product.priceVnd) : '—'}</strong></li>)}</ul> : <p className="header-cart-preview__empty">{preview ? 'Giỏ hàng đang trống.' : 'Đang tải giỏ hàng…'}</p>}<div className="header-cart-preview__footer"><span>{previewItems.length} loại sản phẩm</span><Link to="/gio-hang">Xem giỏ hàng</Link></div></div></div>{user && user.role !== 'customer' && <LogoutButton variant="public" destination="/dang-nhap" />}</div>
         <button ref={menuButton} className="menu-toggle" aria-label="Mở điều hướng" aria-expanded={menuOpen} aria-haspopup="dialog" onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>
       </div>
       {searchOpen && <div id="header-search-panel" className="header-search-panel" onKeyDown={(event) => { if (event.key === 'Escape') setSearchOpen(false); }}><HeaderSearch onSubmitted={() => setSearchOpen(false)} /></div>}

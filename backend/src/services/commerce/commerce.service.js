@@ -235,9 +235,9 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     }
     let voucher;
     if (voucherId) {
-      if (!actor?.id || actor.role !== 'customer') fail(403, 'FORBIDDEN', 'Chỉ customer mới có thể sử dụng voucher');
+      if (actor?.id && actor.role !== 'customer') fail(403, 'FORBIDDEN', 'Vai trò này không được sử dụng voucher');
       if (typeof ports.vouchers?.quote !== 'function') fail(503, 'DATABASE_UNAVAILABLE', 'Kho voucher chưa sẵn sàng');
-      voucher = await ports.vouchers.quote(actor.id, voucherId, subtotalVnd, { session });
+      voucher = await ports.vouchers.quote(actor?.id, voucherId, subtotalVnd, { session });
     }
     const discountVnd = voucher?.discountVnd || 0;
     const totalVnd = subtotalVnd - discountVnd + shippingFeeVnd;
@@ -391,7 +391,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           items.map(({ productId, quantity }) => ({ productId, quantity })), orderId, { session, expiresAt },
         );
         const voucherSnapshot = input.voucherId
-          ? await ports.vouchers.redeem(actor.id, input.voucherId, orderId, totals.subtotalVnd, { session })
+          ? await ports.vouchers.redeem(actor?.id, input.voucherId, orderId, totals.subtotalVnd, { session })
           : undefined;
         const order = await repository.createOrder({
           _id: orderId,
@@ -436,12 +436,13 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           guestAccess = { token: proof.token, expiresAt: proof.expiresAt };
         }
         const safeResponse = {
-          order: { id: idOf(order), code: order.code, status: order.status, paymentStatus: order.paymentStatus, totalVnd: order.totalVnd },
+          order: { id: idOf(order), code: order.code, status: order.status, paymentMethod: order.paymentMethod, paymentStatus: order.paymentStatus, totalVnd: order.totalVnd },
           payment: input.paymentMethod === 'payos'
             ? { status: 'unavailable', retryable: true }
             : { status: 'pending', retryable: false },
           ...(guestAccess ? { guestAccess: { expiresAt: guestAccess.expiresAt.toISOString() } } : {}),
         };
+        if (ports.cart?.removeCommittedItems) await ports.cart.removeCommittedItems(actor, items, { session });
         await ports.outbox.appendOutbox({
           eventKey: `order.created:${idOf(order)}`, type: 'order.created',
           aggregateType: 'order', aggregateId: idOf(order), aggregateVersion: order.version,
@@ -488,6 +489,15 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
       if (order) return publicOrder(order);
     }
     fail(404, 'NOT_FOUND', 'Không tìm thấy đơn hàng');
+  }
+
+  async function getPublicOrderProgress(value) {
+    const code = typeof value === 'string' ? value.trim().toUpperCase() : '';
+    if (code.length > 32 || !/^TL-[A-Z0-9-]{4,29}$/u.test(code)) fail(404, 'NOT_FOUND', 'Không tìm thấy trạng thái của mã đơn này');
+    const order = await repository.findPublicOrderProgress(code);
+    if (!order) fail(404, 'NOT_FOUND', 'Không tìm thấy trạng thái của mã đơn này');
+    return { code: order.code, status: order.status, createdAt: order.createdAt, updatedAt: order.updatedAt,
+      history: (order.statusHistory || []).map(row => ({ status: row.toStatus, at: row.createdAt })) };
   }
 
   async function getPaymentContext(actor, id, { session } = {}) {
@@ -1119,6 +1129,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
     quoteCheckout,
     createOrder,
     getOwnedOrder,
+    getPublicOrderProgress,
     getPaymentContext,
     listOwnOrders,
     listStaffOrders,

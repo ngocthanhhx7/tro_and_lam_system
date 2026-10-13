@@ -804,6 +804,9 @@ test('payment context returns the exact reservation expiry only to its owner or 
   const guest = { actorKey: 'guest-payment-context-token-123456789' };
   const created = await service.createOrder(guest, { ...checkoutInput(), paymentMethod: 'payos' }, 'payment-context-create-key-123456');
   const orderId = created.order.id;
+  assert.equal(created.order.paymentMethod, 'payos', 'checkout response must activate the frontend payment panel');
+  const replayed = await service.createOrder(guest, { ...checkoutInput(), paymentMethod: 'payos' }, 'payment-context-create-key-123456');
+  assert.equal(replayed.order.paymentMethod, 'payos');
   const reservation = repository.reservations.get(orderId);
   assert.ok(reservation.expiresAt instanceof Date);
 

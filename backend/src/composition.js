@@ -246,6 +246,7 @@ export async function createDomainComposition(env) {
       shipping: shippingPort,
       outbox: operationsPorts,
       address: accountService,
+      cart: accountService,
       payment: paymentBridge,
       identity: commerceIdentity,
       refunds: cancellationRefundPort,

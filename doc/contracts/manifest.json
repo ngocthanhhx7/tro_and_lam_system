@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.7.1",
+  "contractVersion": "1.8.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -13,30 +13,85 @@
     "doc/contracts/schemas/dtos.schema.json",
     "doc/contracts/schemas/enums.schema.json"
   ],
-  "coordinatorDecisions": ["DEC-16", "DEC-17", "DEC-18", "DEC-19", "DEC-20", "DEC-21", "DEC-22", "DEC-23", "DEC-24", "DEC-25", "DEC-26", "DEC-27", "DEC-28", "DEC-29", "DEC-30", "DEC-31", "DEC-33", "DEC-34"],
+  "coordinatorDecisions": [
+    "DEC-16",
+    "DEC-17",
+    "DEC-18",
+    "DEC-19",
+    "DEC-20",
+    "DEC-21",
+    "DEC-22",
+    "DEC-23",
+    "DEC-24",
+    "DEC-25",
+    "DEC-26",
+    "DEC-27",
+    "DEC-28",
+    "DEC-29",
+    "DEC-30",
+    "DEC-31",
+    "DEC-33",
+    "DEC-34",
+    "DEC-35"
+  ],
   "amendments": [
+    {
+      "changes": [
+        "GET /orders/tracking/{code} exposes only redacted progress with a 30/minute IP limit. Full order details still require owner or verified email proof.",
+        "POST /vouchers/resolve resolves public vouchers only. Admin voucher write adds scope=public with a configured maxRedemptions; customer vouchers remain bound to userId.",
+        "Order creation deducts committed cart quantities inside its transaction exactly once; public voucher usage is transactional and restored by cancellation."
+      ],
+      "id": "DEC-35",
+      "date": "2026-10-13",
+      "reason": "Owner requested selected-item guest checkout, public code-only order progress and vouchers for unauthenticated shoppers.",
+      "consumers": [
+        "P03",
+        "P05",
+        "customer frontend",
+        "admin vouchers"
+      ],
+      "migration": "Add voucher_redemptions unique orderId index. Existing vouchers retain customer scope; no public code or discount is seeded."
+    },
     {
       "id": "DEC-34",
       "date": "2026-10-13",
       "reason": "Owner requested query optimization across all flows. Avoid unnecessary merge requests while preserving guest-cart login merge.",
-      "changes": ["GET /cart adds guestMergeRequired, true only for a customer session with a guest-cart cookie. The client retains CSRF-protected POST /cart/merge when required; checkout also handles required merge."],
-      "consumers": ["P03", "P05", "cart frontend"],
+      "changes": [
+        "GET /cart adds guestMergeRequired, true only for a customer session with a guest-cart cookie. The client retains CSRF-protected POST /cart/merge when required; checkout also handles required merge."
+      ],
+      "consumers": [
+        "P03",
+        "P05",
+        "cart frontend"
+      ],
       "migration": "None; the hint is additive. Prices, ownership, merge tombstones and versions remain authoritative server-side."
     },
     {
       "id": "DEC-33",
       "date": "2026-10-13",
       "reason": "Owner requested entering voucher codes directly at checkout alongside wallet selection.",
-      "changes": ["POST /account/vouchers/resolve resolves a customer-owned available, unexpired typed code without redeeming it. Checkout continues to validate voucher conditions and one-use redemption."],
-      "consumers": ["P05", "checkout frontend"],
+      "changes": [
+        "POST /account/vouchers/resolve resolves a customer-owned available, unexpired typed code without redeeming it. Checkout continues to validate voucher conditions and one-use redemption."
+      ],
+      "consumers": [
+        "P05",
+        "checkout frontend"
+      ],
       "migration": "None; existing vouchers retain ownership and discount policies."
     },
     {
       "id": "DEC-31",
       "date": "2026-10-13",
       "reason": "The owner requested working checkout and editable shipping fees; checkout must display actual available payment methods before creating an order.",
-      "changes": ["GET /checkout/options exposes public checkout availability, paymentMethods and shippingZones.", "A single '*' province name denotes the owner-configured Vietnam-wide shipping fallback; specific province fees take priority."],
-      "consumers": ["P05", "P09", "PUB-02"],
+      "changes": [
+        "GET /checkout/options exposes public checkout availability, paymentMethods and shippingZones.",
+        "A single '*' province name denotes the owner-configured Vietnam-wide shipping fallback; specific province fees take priority."
+      ],
+      "consumers": [
+        "P05",
+        "P09",
+        "PUB-02"
+      ],
       "migration": "Configure business shippingZones, codEnabled and checkoutLimits through the audited settings service; no invented default fee."
     },
     {
@@ -47,7 +102,10 @@
         "GET /products adds optional saleMode (existing enum) and available (boolean) query filters.",
         "PATCH /admin/products/{id} now references the existing ProductPatch DTO with required expectedVersion; POST remains ProductWrite."
       ],
-      "consumers": ["P04", "P05"],
+      "consumers": [
+        "P04",
+        "P05"
+      ],
       "migration": "None; query filters are additive and expectedVersion uses the existing product version field."
     },
     {
@@ -57,7 +115,10 @@
       "changes": [
         "Add MEDIA_UNAVAILABLE to the existing API error code vocabulary for HTTP 503 media storage failures."
       ],
-      "consumers": ["P04", "POST /admin/media clients"],
+      "consumers": [
+        "P04",
+        "POST /admin/media clients"
+      ],
       "migration": "None; the existing error envelope and route remain unchanged."
     },
     {
@@ -67,7 +128,9 @@
       "changes": [
         "GET /admin/audit-logs adds optional from and to query parameters with date-time format."
       ],
-      "consumers": ["P09"],
+      "consumers": [
+        "P09"
+      ],
       "migration": "None; the route and authorization remain unchanged."
     },
     {
@@ -77,7 +140,10 @@
       "changes": [
         "BusinessSettingsWrite.values allows only shippingZones, codEnabled, checkoutLimits, and supportWindows with array/boolean/object/object value types."
       ],
-      "consumers": ["P09", "P05"],
+      "consumers": [
+        "P09",
+        "P05"
+      ],
       "migration": "None; actual zone, fee, limit, and support-window values remain owner-configured."
     },
     {
@@ -87,7 +153,10 @@
       "changes": [
         "Add bounded text-only content block variants and item schemas for story sections, media, motifs, product IDs, and page blocks."
       ],
-      "consumers": ["P08", "P10"],
+      "consumers": [
+        "P08",
+        "P10"
+      ],
       "migration": "None; existing content must be validated before publication."
     },
     {
@@ -97,7 +166,9 @@
       "changes": [
         "Return lowStock as null and show an unconfigured state until a future approved threshold exists; do not report an invented zero count."
       ],
-      "consumers": ["P09"],
+      "consumers": [
+        "P09"
+      ],
       "migration": "None; no threshold setting or inventory field is added."
     },
     {
@@ -107,7 +178,10 @@
       "changes": [
         "Add the internal P08 getPublishedStoryById(storyId, { session }) port; it returns the existing story DTO only for published records and preserves the referenced record locale."
       ],
-      "consumers": ["P08", "P04"],
+      "consumers": [
+        "P08",
+        "P04"
+      ],
       "migration": "None; this is an internal read port with no stored-data change."
     },
     {
@@ -118,7 +192,10 @@
         "P02 exposes the existing proof issuer plus internal proof authentication, scoped middleware, and order-id revocation methods; P05 owns code/email challenge matching, OTP verification, and the existing public guest access operations.",
         "P05 stores the guest proof in a dedicated HttpOnly cookie name separate from the appeal credential."
       ],
-      "consumers": ["P02", "P05"],
+      "consumers": [
+        "P02",
+        "P05"
+      ],
       "migration": "None; the existing restricted_proofs model, scopes, and public API contract are unchanged."
     },
     {
@@ -128,7 +205,9 @@
       "changes": [
         "P05 persists one immutable full-balance COD collection per order and atomically commits it with Order paid status and amount; partial capture is not enabled."
       ],
-      "consumers": ["P05"],
+      "consumers": [
+        "P05"
+      ],
       "migration": "Create the additive cod_collections collection/index; existing Orders are unaffected."
     },
     {
@@ -138,7 +217,9 @@
       "changes": [
         "PATCH /account/addresses/{id} references the existing AddressPatch DTO; the DTO is exposed as an OpenAPI component."
       ],
-      "consumers": ["P03"],
+      "consumers": [
+        "P03"
+      ],
       "migration": "None; no route or stored field changes."
     },
     {
@@ -148,7 +229,10 @@
       "changes": [
         "checkoutLimits allows only positive integer maxPendingCodOrders; absence means COD checkout is disabled, with no invented default."
       ],
-      "consumers": ["P09", "P05"],
+      "consumers": [
+        "P09",
+        "P05"
+      ],
       "migration": "None; owners configure this value through existing business settings."
     },
     {
@@ -159,7 +243,10 @@
         "shippingZones items contain exactly id, provinceNames, and non-negative integer feeVnd; configured province names are unique across zones after case, Vietnamese diacritic, and whitespace normalization.",
         "Checkout quotes only an exact normalized recipient province match from configured zones; missing, unmatched, malformed, or ambiguous data remains unavailable and no fee is inferred."
       ],
-      "consumers": ["P05", "P09"],
+      "consumers": [
+        "P05",
+        "P09"
+      ],
       "migration": "None; owners must review and enter actual zones and VND fees before shipping quotes or checkout become available."
     },
     {
@@ -172,7 +259,12 @@
         "Admins issue and revoke one-use customer vouchers with a configured fixed VND or percentage amount, optional cap/minimum, and expiry. Checkout prices and redeems server-side in the order transaction; a canceled pre-shipment order restores a still-valid voucher.",
         "Orders retain a voucher discount snapshot; voucher issue adds an in-app promotion notification and an audit record."
       ],
-      "consumers": ["P02", "P05", "P09", "customer/admin frontend"],
+      "consumers": [
+        "P02",
+        "P05",
+        "P09",
+        "customer/admin frontend"
+      ],
       "migration": "Create the additive vouchers collection and indexes. Existing users and orders require no rewrite."
     },
     {
@@ -184,7 +276,10 @@
         "The response includes the equal-duration immediately preceding comparison period and aligned daily series; refunds remain separate from gross collected amounts.",
         "Required inclusive from/to bounds are limited to 367 Vietnam calendar dates; zero-activity days are explicit and unavailable or inconsistent ledger data is an API error."
       ],
-      "consumers": ["P09", "admin dashboard API clients"],
+      "consumers": [
+        "P09",
+        "admin dashboard API clients"
+      ],
       "migration": "None; the response is additive and uses existing payment-event and COD-collection ledgers."
     },
     {
@@ -196,7 +291,10 @@
         "A shared responsive admin shell wraps existing admin route fragments; role and capability authorization remain enforced by their existing guards.",
         "The shell navigation points only to existing admin destinations; it does not define new routes or substitute mock metrics or business data."
       ],
-      "consumers": ["admin frontend", "identity frontend"],
+      "consumers": [
+        "admin frontend",
+        "identity frontend"
+      ],
       "migration": "None; this is a client-side route composition and navigation change."
     },
     {
@@ -208,7 +306,11 @@
         "The opaque token is stored as a hash and delivered through the existing encrypted mail outbox; the response does not contain it and the audit reason is redacted.",
         "A persistent per-target cooldown applies. The request consumes prior pending reset links but does not change credentials, status, auth version, or sessions; the normal reset completion flow remains authoritative."
       ],
-      "consumers": ["P02", "admin identity frontend", "admin API clients"],
+      "consumers": [
+        "P02",
+        "admin identity frontend",
+        "admin API clients"
+      ],
       "migration": "None; the cooldown timestamp uses the existing identity guard collection and reset challenges use the existing auth challenge collection."
     }
   ],
@@ -217,8 +319,8 @@
     "runtime": "Node 24.21.0",
     "result": {
       "openapiVersion": "3.1.0",
-      "paths": 111,
-      "operations": 131,
+      "paths": 113,
+      "operations": 133,
       "dtoSchemas": 67,
       "enums": 25,
       "dtoFixtures": 30

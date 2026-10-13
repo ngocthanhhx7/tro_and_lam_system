@@ -1,5 +1,6 @@
 import { getJson, requestJson } from '../httpClient.js';
 import { publishCartUpdate } from '../account/cartEvents.js';
+import { readCart } from '../account/cartRead.js';
 
 export function productListPath(filters = {}) {
   const query = new URLSearchParams();
@@ -27,7 +28,7 @@ export async function submitQuoteRequest(input) {
 }
 
 export async function addCartQuantity(productId, quantity) {
-  const cart = await getJson('/cart');
+  const cart = await readCart();
   const existing = (cart?.data?.items || []).find((item) => item.productId === productId || item.product?.id === productId);
   const nextQuantity = (existing?.quantity || 0) + quantity;
   if (nextQuantity > 99) {

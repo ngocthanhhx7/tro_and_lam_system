@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import {
   clearRetryableCheckoutKey,
@@ -27,6 +27,7 @@ function messageFor(error, fallback) {
 
 export default function CheckoutPage() {
   const { user, loading: authLoading, errorCode: authErrorCode } = useAuth();
+  const location = useLocation();
   const [cart, setCart] = useState(null);
   const [checkoutOptions, setCheckoutOptions] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -132,7 +133,13 @@ export default function CheckoutPage() {
     return () => { live = false; scope.invalidate(); };
   }, [authLoading, authErrorCode, load]);
 
-  const items = useMemo(() => Array.isArray(cart?.items) ? cart.items : [], [cart]);
+  const items = useMemo(() => {
+    const rows = Array.isArray(cart?.items) ? cart.items : [];
+    const selected = location.state?.selectedProductIds;
+    if (!Array.isArray(selected)) return rows;
+    if (location.state.cartOwner !== (user?.id || 'guest')) return [];
+    return rows.filter(item => selected.includes(cartProductId(item)));
+  }, [cart, location.state, user?.id]);
   const selectedAddressId = addressChoice === 'manual' ? '' : addressChoice;
   const requestBody = useMemo(() => ({
     items: items.map((item) => ({ productId: cartProductId(item), quantity: item.quantity })),
@@ -165,10 +172,10 @@ export default function CheckoutPage() {
   async function applyVoucher() {
     const isCurrent = loadScope.current.capture();
     setVoucherError('');
-    if (user?.role !== 'customer') { setVoucherError('Đăng nhập tài khoản khách hàng để sử dụng voucher.'); return; }
+    if (user && user.role !== 'customer') { setVoucherError('Vai trò này không được sử dụng voucher.'); return; }
     setApplyingVoucher(true);
     try {
-      const response = await voucherApi.resolveCode(voucherCode);
+      const response = await (user ? voucherApi.resolveCode(voucherCode) : voucherApi.resolvePublicCode(voucherCode));
       if (!isCurrent()) return;
       setVoucherId(response.data.id);
       setVoucherCode(response.data.code);
@@ -214,12 +221,12 @@ export default function CheckoutPage() {
     const order = confirmation.order;
     return <section className="commerce-page commerce-confirmation">
       <p className="commerce-eyebrow">ĐƠN HÀNG ĐÃ ĐƯỢC TIẾP NHẬN</p>
-      <h1>Cảm ơn bạn đã đặt hàng</h1>
+      <h1>{(order.paymentMethod || paymentMethod) === 'payos' ? 'Tiếp tục thanh toán qua PayOS' : 'Cảm ơn bạn đã đặt hàng'}</h1>
       <p>Mã đơn <strong>{order.code}</strong>. Trạng thái hiện tại: <strong>{order.status}</strong>.</p>
       <p>Tổng tiền do hệ thống xác nhận: <strong>{formatMoney(order.totalVnd)}</strong>.</p>
       <PaymentPanel
         orderId={order.id}
-        paymentMethod={order.paymentMethod}
+        paymentMethod={order.paymentMethod || paymentMethod}
         paymentStatus={order.paymentStatus}
         orderStatus={order.status}
         autoCreate
@@ -239,9 +246,9 @@ export default function CheckoutPage() {
   </section>;
 
   if (items.length === 0) return <section className="commerce-page">
-    <p className="commerce-eyebrow">CHECKOUT</p><h1>Giỏ hàng đang trống</h1>
-    <p>Thêm sản phẩm vào giỏ để nhận báo giá giao hàng từ hệ thống.</p>
-    <Link className="commerce-primary" to="/san-pham">Xem sản phẩm</Link>
+    <p className="commerce-eyebrow">CHECKOUT</p><h1>Chưa có sản phẩm để thanh toán</h1>
+    <p>Quay lại giỏ hàng và chọn các sản phẩm bạn muốn mua.</p>
+    <Link className="commerce-primary" to="/gio-hang">Chọn sản phẩm trong giỏ</Link>
   </section>;
 
   const selectedAddress = addresses.find((address) => recordId(address) === selectedAddressId);
@@ -294,7 +301,7 @@ export default function CheckoutPage() {
             {voucherId && <button type="button" className="commerce-secondary" disabled={applyingVoucher || busy !== ''} onClick={() => { setVoucherId(''); setVoucherCode(''); setVoucherError(''); }}>Bỏ voucher</button>}
           </div>
           {voucherError && <small role="alert">{voucherError}</small>}
-          {!user && <small>Đăng nhập để áp dụng voucher dành cho tài khoản của bạn.</small>}
+          {!user && <small>Bạn có thể dùng mã ưu đãi áp dụng cho mọi khách hàng. Voucher cấp riêng cần đăng nhập đúng tài khoản.</small>}
         </div>
         {user?.role === 'customer' && <label className="commerce-field" htmlFor="checkout-voucher"><span>Hoặc chọn từ ví voucher</span>
           <select id="checkout-voucher" value={voucherId} disabled={applyingVoucher || busy !== ''} onChange={(event) => { setVoucherId(event.target.value); setVoucherCode(vouchers.find(voucher => voucher.id === event.target.value)?.code || ''); setVoucherError(''); }}>
@@ -328,7 +335,7 @@ export default function CheckoutPage() {
         })}</ul>
         {quote?.warnings?.length > 0 && <div className="commerce-error" role="alert"><strong>Chưa đủ tồn kho</strong><p>Giỏ hàng cần được cập nhật trước khi đặt.</p></div>}
         <dl className="commerce-totals">
-          <div><dt>Tạm tính</dt><dd>{formatMoney(quote?.subtotalVnd ?? cart.subtotalVnd)}</dd></div>
+          <div><dt>Tạm tính</dt><dd>{formatMoney(quote?.subtotalVnd ?? items.reduce((total, item) => total + (item.lineTotalVnd || 0), 0))}</dd></div>
           <div><dt>Giảm giá voucher</dt><dd>{quote ? `−${formatMoney(quote.discountVnd || 0)}` : '—'}</dd></div>
           <div><dt>Phí giao hàng</dt><dd>{quote ? formatMoney(quote.shippingFeeVnd) : 'Chưa xác định'}</dd></div>
           <div className="commerce-total"><dt>Tổng cộng</dt><dd>{quote ? formatMoney(quote.totalVnd) : '—'}</dd></div>
