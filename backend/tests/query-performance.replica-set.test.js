@@ -42,6 +42,14 @@ test('optimized queries retain published-category, cart-index and session revoca
     const relatedSource = { _id: new mongoose.Types.ObjectId(), line: 'lifestyle', slug: 'related-source', sku: 'RELATED-SOURCE' };
     const relatedFixtures = Array.from({ length: 8 }, (_, index) => ({ _id: new mongoose.Types.ObjectId(), slug: `related-${index}`, sku: `RELATED-${index}`, line: 'lifestyle', status: 'published', categoryId: categories[index === 0 ? 1 : 0]._id, createdAt: new Date(2026, 0, index + 1) }));
     await CatalogProduct.collection.insertMany([relatedSource, ...relatedFixtures]);
+    const publishedPage = await catalogRepository.listPublishedProductPage({ page: 1, limit: 3, sort: 'newest' });
+    assert.equal(publishedPage.total, 8);
+    assert.equal(publishedPage.items.length, 3);
+    assert.ok(publishedPage.items.every(row => String(row.categoryId) === String(categories[0]._id) && !row._publishedCategory));
+    const secondPage = await catalogRepository.listPublishedProductPage({ page: 2, limit: 3, sort: 'newest', categoryId: String(categories[0]._id) });
+    assert.equal(secondPage.total, 8);
+    assert.equal(secondPage.items.length, 3);
+    assert.ok(secondPage.items.every(row => !publishedPage.items.some(first => String(first._id) === String(row._id))));
     const related = await catalogRepository.listPublishedRelatedProducts(relatedSource);
     assert.equal(related.length, 4);
     assert.ok(related.every(row => String(row.categoryId) === String(categories[0]._id) && String(row._id) !== String(relatedSource._id)));

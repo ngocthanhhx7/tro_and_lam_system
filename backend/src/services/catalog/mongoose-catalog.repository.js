@@ -131,20 +131,24 @@ export function createMongooseCatalogRepository({
     },
 
     async listPublishedProductPage(filters, { session } = {}) {
-      const categoryIds = filters.categoryId
-        ? await withSession(Category.distinct('_id', { _id: filters.categoryId, status: 'published' }), session)
-        : await publishedCategoryIds(Category, session);
-      if (!categoryIds.length) return { items: [], total: 0 };
-      const conditions = { ...queryText(filters), categoryId: { $in: categoryIds } };
-      if (filters.categoryId) conditions.categoryId = filters.categoryId;
-      const countQuery = withSession(Product.countDocuments(conditions), session);
-      const listQuery = withSession(Product.find(conditions)
-        .sort(sortFor(filters.sort))
-        .skip((filters.page - 1) * filters.limit)
-        .limit(filters.limit)
-        .lean(), session);
-      const [items, total] = await Promise.all([listQuery, countQuery]);
-      return { items, total };
+      const conditions = queryText(filters);
+      // Aggregation does not apply Mongoose's ObjectId casting.
+      if (filters.categoryId) conditions.categoryId = new mongoose.Types.ObjectId(filters.categoryId);
+      const [page] = await withSession(Product.aggregate([
+        { $match: conditions },
+        { $sort: sortFor(filters.sort) },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        { $facet: {
+          items: [
+            { $skip: (filters.page - 1) * filters.limit },
+            { $limit: filters.limit },
+            { $project: { _publishedCategory: 0 } },
+          ],
+          total: [{ $count: 'value' }],
+        } },
+      ]), session);
+      return { items: page?.items || [], total: page?.total[0]?.value || 0 };
     },
 
     async listPublishedRelatedProducts(product, { session } = {}) {
