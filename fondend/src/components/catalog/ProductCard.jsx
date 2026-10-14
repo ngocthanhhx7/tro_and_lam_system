@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import { addCartQuantity, formatVnd } from '../../services/catalog/catalogApi.js';
+import { productImageProps } from '../../services/catalog/productImage.js';
 
 export default function ProductCard({ product, headingLevel = 'h2', onCartUpdated }) {
   const [cartStatus, setCartStatus] = useState({ state: 'idle', message: '' });
@@ -27,7 +28,7 @@ export default function ProductCard({ product, headingLevel = 'h2', onCartUpdate
   return <article className="product-card">
     <Link className="product-card__image" to={`/san-pham/${encodeURIComponent(product.slug)}`} aria-label={`Xem ${product.name}`}>
       {image
-        ? <img src={image.url} alt={image.alt || product.name} width="640" height="520" loading="lazy" />
+        ? <img {...productImageProps(image.url, { sizes: '(max-width: 600px) 45vw, (max-width: 1000px) 40vw, 320px' })} alt={image.alt || product.name} width="640" height="520" loading="lazy" />
         : <span className="product-card__image-empty">Ảnh sản phẩm đang chờ cập nhật</span>}
       {quoteOnly && <span className="product-card__tag">Tư vấn theo yêu cầu</span>}
     </Link>

@@ -69,6 +69,17 @@ test('optimized queries retain published-category, cart-index and session revoca
     assert.deepEqual(orderSummary(ownOrders.items[0]), orderSummary(ownedOrder));
     assert.equal(ownOrders.items[0].recipientSnapshot, undefined);
     assert.equal(ownOrders.items[0].itemsSnapshot[0].sku, undefined);
+    await Order.collection.insertMany([
+      { ...ownedOrder, _id: new mongoose.Types.ObjectId(), code: 'LOCAL-DELIVERED-OWN', status: 'delivered', createdAt: new Date(Date.now() + 1000) },
+      { ...ownedOrder, _id: new mongoose.Types.ObjectId(), userId: new mongoose.Types.ObjectId(), code: 'LOCAL-DELIVERED-OTHER', status: 'delivered' },
+    ]);
+    const delivered = await commerceRepository.listOwnedOrders(String(user._id), { status: 'delivered', page: 1, limit: 1 });
+    assert.equal(delivered.total, 1);
+    assert.equal(delivered.items[0].code, 'LOCAL-DELIVERED-OWN');
+    assert.equal(delivered.items[0].guestAccessTokenHash, undefined);
+    const ownedSecondPage = await commerceRepository.listOwnedOrders(String(user._id), { page: 2, limit: 1 });
+    assert.equal(ownedSecondPage.total, 2);
+    assert.equal(ownedSecondPage.items[0].code, 'LOCAL-PROJECTION');
     const staffOrders = await commerceRepository.listStaffOrders({ page: 1, limit: 10 });
     const staffOrder = staffOrders.items.find(row => row.code === ownedOrder.code);
     assert.equal(staffOrder.recipientSnapshot.recipientName, 'Local owner');

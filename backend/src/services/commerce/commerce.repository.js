@@ -79,12 +79,17 @@ export class CommerceRepository {
   }
 
   async listOwnedOrders(actorId, { status, page, limit }) {
-    const filter = { userId: actorId, ...(status ? { status } : {}) };
-    const [items, total] = await Promise.all([
-      this.models.Order.find(filter).select(ORDER_SUMMARY_FIELDS).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
-      this.models.Order.countDocuments(filter).exec(),
-    ]);
-    return { items, total };
+    const filter = { userId: new mongoose.Types.ObjectId(actorId), ...(status ? { status } : {}) };
+    const projection = Object.fromEntries(ORDER_SUMMARY_FIELDS.split(' ').map(field => [field, 1]));
+    const [result] = await this.models.Order.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $facet: {
+        items: [{ $skip: (page - 1) * limit }, { $limit: limit }, { $project: projection }],
+        total: [{ $count: 'value' }],
+      } },
+    ]).exec();
+    return { items: result?.items || [], total: result?.total[0]?.value || 0 };
   }
 
   async listStaffOrders({ status, paymentStatus, queue, from, to, q, page, limit, sort = 'oldest' }) {

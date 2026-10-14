@@ -8,6 +8,7 @@ import { errorHandler, notFound } from './middlewares/error.middleware.js';
 import { requestContext } from './middlewares/request-context.middleware.js';
 import { isDatabaseReady as defaultReadiness } from './config/database.js';
 import { ServiceError } from './utils/serviceError.js';
+import { createProductImageRouter } from './services/catalog/product-image-router.js';
 
 function normalizeOrigins(corsOrigin) {
   const entries = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
@@ -47,6 +48,7 @@ export function createApp({
   }));
   app.use(`${API_PREFIX}/health`, createHealthRouter(isDatabaseReady));
   if (mediaStaticDirectory) {
+    app.use('/media/products', createProductImageRouter(mediaStaticDirectory));
     app.use('/media/products', express.static(mediaStaticDirectory, {
       dotfiles: 'deny',
       fallthrough: true,

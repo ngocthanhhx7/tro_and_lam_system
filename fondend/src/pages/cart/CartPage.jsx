@@ -1,3 +1,4 @@
+import { productImageProps } from '../../services/catalog/productImage.js';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
@@ -172,7 +173,7 @@ export default function CartPage() {
             <input className="cart-select" type="checkbox" aria-label={`Chọn mua ${item.product?.name || 'sản phẩm không còn mở bán'}`} checked={selectedIds.includes(item.productId) && item.checkoutEligible} onChange={() => toggleItem(item.productId)} disabled={!item.checkoutEligible || Boolean(pendingId)} />
             <div className="cart-item__product">
               {item.product?.imageUrl
-                ? <img className="cart-item__image" src={item.product.imageUrl} alt={item.product.name} loading="lazy" />
+                ? <img className="cart-item__image" {...productImageProps(item.product.imageUrl, { width: 160, sizes: '120px' })} alt={item.product.name} loading="lazy" />
                 : <div className="cart-item__image cart-item__image--empty" aria-hidden="true">TRO &amp; LAM</div>}
               <div className="cart-item__details">
                 <p className="cart-item__line">{item.product?.line === 'lifestyle' ? 'Lifestyle Line' : item.product ? 'Diplomacy Line' : 'Sản phẩm không còn mở bán'}</p>

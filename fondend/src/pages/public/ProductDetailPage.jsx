@@ -7,6 +7,7 @@ import { getListingProductBySlug } from '../catalog/productListingData.js';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { getProductImageSource } from '../../utils/productMedia.js';
 import { setPageIndexability, setPageMetadata } from '../../utils/pageMetadata.js';
+import { productImageProps } from '../../services/catalog/productImage.js';
 import './product-detail.css';
 
 const PublicProductReviews = lazy(() => import('../support/CustomerReviewsPage.jsx')
@@ -136,11 +137,11 @@ export default function ProductDetailPage() {
     <div className="product-detail__grid">
       <div className="product-gallery">
         <div className="product-gallery__main">
-          {images.length ? <img src={images[selectedImage]?.url} alt={images[selectedImage]?.alt || product.name} width="900" height="760" fetchPriority="high" /> : <div className="product-gallery__empty"><span aria-hidden="true">◌</span><p>Ảnh sản phẩm đang chờ cập nhật</p></div>}
+          {images.length ? <img {...productImageProps(images[selectedImage]?.url, { width: 960, sizes: '(max-width: 720px) 95vw, 50vw' })} alt={images[selectedImage]?.alt || product.name} width="900" height="760" fetchPriority="high" /> : <div className="product-gallery__empty"><span aria-hidden="true">◌</span><p>Ảnh sản phẩm đang chờ cập nhật</p></div>}
         </div>
         {images.length > 1 && <div className="product-gallery__controls" aria-label="Thư viện ảnh sản phẩm">
           <button className="product-gallery__arrow" type="button" onClick={() => selectAdjacentImage(-1)} aria-label="Ảnh trước"><span aria-hidden="true">←</span></button>
-          <div className="product-gallery__thumbs" aria-label="Chọn ảnh sản phẩm">{images.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={selectedImage === index ? 'is-selected' : ''} onClick={() => setSelectedImageState({ slug, index })} aria-label={`Xem ảnh ${index + 1}: ${image.alt || product.name}`} aria-pressed={selectedImage === index}><img src={image.url} alt="" width="112" height="96" loading="lazy" /></button>)}</div>
+          <div className="product-gallery__thumbs" aria-label="Chọn ảnh sản phẩm">{images.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={selectedImage === index ? 'is-selected' : ''} onClick={() => setSelectedImageState({ slug, index })} aria-label={`Xem ảnh ${index + 1}: ${image.alt || product.name}`} aria-pressed={selectedImage === index}><img {...productImageProps(image.url, { width: 160, sizes: '112px' })} alt="" width="112" height="96" loading="lazy" /></button>)}</div>
           <button className="product-gallery__arrow" type="button" onClick={() => selectAdjacentImage(1)} aria-label="Ảnh tiếp theo"><span aria-hidden="true">→</span></button>
         </div>}
         {selectedImageSource && <div className="product-gallery__media-note" aria-live="polite"><img src="/assets/editorial/lotus-line-ornament.svg" alt="" width="48" height="32" /><p>{selectedImageSource.disclosure}</p></div>}

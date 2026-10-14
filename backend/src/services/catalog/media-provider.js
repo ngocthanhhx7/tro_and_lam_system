@@ -42,6 +42,10 @@ export function createLocalMediaProvider({ storageDir, publicBaseUrl } = {}) {
       if (typeof storageKey !== 'string' || !/^[0-9a-f-]{36}\.(?:jpg|png|webp)$/u.test(storageKey)) return;
       try { await unlink(join(storageDir, storageKey)); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
+      for (const width of [160, 320, 640, 960, 1280]) {
+        try { await unlink(join(storageDir, 'thumbs', 'v1', String(width), `${storageKey}.webp`)); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+      }
     },
   });
 }
