@@ -27,6 +27,12 @@ test('local media provider stores an image under an opaque key and serves then r
   assert.match(response.headers['content-type'], /^image\/png/u);
   assert.deepEqual(response.body, buffer);
 
+  // A new process/release opens the same durable directory without losing uploads.
+  const restartedApp = createApp({ mediaStaticDirectory: storageDir });
+  assert.deepEqual((await request(restartedApp).get(stored.publicUrl)).body, buffer);
+  assert.equal((await request(restartedApp).get('/media/products/.env')).status, 404);
+  assert.equal(response.headers['x-content-type-options'], 'nosniff');
+
   await provider.remove('../outside.png');
   await provider.remove(stored.storageKey);
   assert.deepEqual(await readdir(storageDir), []);

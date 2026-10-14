@@ -135,15 +135,19 @@ export function validateEnv(source) {
   if (!['disabled', 'photon'].includes(geocodingProvider)) throw new Error('GEOCODING_PROVIDER chỉ nhận disabled/photon');
 
   const mediaStorageDriver = source.MEDIA_STORAGE_DRIVER || (nodeEnv === 'development' ? 'local' : 'disabled');
-  if (!['local', 'disabled'].includes(mediaStorageDriver)) throw new Error('MEDIA_STORAGE_DRIVER chỉ nhận local/disabled');
+  if (!['local', 'filesystem', 'disabled'].includes(mediaStorageDriver)) throw new Error('MEDIA_STORAGE_DRIVER chỉ nhận local/filesystem/disabled');
   if (nodeEnv === 'production' && mediaStorageDriver === 'local') {
     throw new Error('MEDIA_STORAGE_DRIVER=local chỉ dùng cho phát triển cục bộ; production cần kho media bền vững được duyệt');
   }
   const mediaStoragePath = resolve(source.MEDIA_STORAGE_PATH || '.data/media/products');
-  const mediaPublicBaseUrl = source.MEDIA_PUBLIC_BASE_URL || (nodeEnv === 'development' && mediaStorageDriver === 'local'
+  if (mediaStorageDriver === 'filesystem' && nodeEnv === 'production'
+    && source.MEDIA_STORAGE_PATH !== '/var/lib/tro-lam/media/products') {
+    throw new Error('MEDIA_STORAGE_PATH production phải là /var/lib/tro-lam/media/products, nằm ngoài bản phát hành');
+  }
+  const mediaPublicBaseUrl = source.MEDIA_PUBLIC_BASE_URL || (mediaStorageDriver === 'filesystem' || (nodeEnv === 'development' && mediaStorageDriver === 'local')
     ? '/media/products'
     : '');
-  if (mediaStorageDriver === 'local') {
+  if (['local', 'filesystem'].includes(mediaStorageDriver)) {
     if (mediaPublicBaseUrl !== '/media/products') throw new Error('MEDIA_PUBLIC_BASE_URL của kho media cục bộ phải là /media/products');
   }
 

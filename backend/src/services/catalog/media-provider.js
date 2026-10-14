@@ -17,7 +17,7 @@ export function createUnavailableMediaProvider() {
 
 const IMAGE_EXTENSIONS = Object.freeze({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' });
 
-/** Persistent filesystem storage for a single-machine development environment. */
+/** Filesystem storage; production configuration uses a directory outside releases. */
 export function createLocalMediaProvider({ storageDir, publicBaseUrl } = {}) {
   if (typeof storageDir !== 'string' || !storageDir.trim()) throw new TypeError('A media storage directory is required');
   if (typeof publicBaseUrl !== 'string' || !publicBaseUrl.startsWith('/') || publicBaseUrl.startsWith('//')
@@ -29,7 +29,7 @@ export function createLocalMediaProvider({ storageDir, publicBaseUrl } = {}) {
 
   return Object.freeze({
     configured: true,
-    state: 'local-development',
+    state: 'filesystem',
     async upload({ buffer, mimeType }) {
       const extension = IMAGE_EXTENSIONS[mimeType];
       if (!Buffer.isBuffer(buffer) || buffer.length === 0 || !extension) throw new TypeError('Unsupported media file');

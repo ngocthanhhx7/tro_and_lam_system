@@ -175,7 +175,7 @@ export async function createDomainComposition(env) {
       },
     },
     auditPort: operationsPorts,
-    mediaProvider: env.mediaStorageDriver === 'local'
+    mediaProvider: ['local', 'filesystem'].includes(env.mediaStorageDriver)
       ? createLocalMediaProvider({ storageDir: env.mediaStoragePath, publicBaseUrl: env.mediaPublicBaseUrl })
       : createUnavailableMediaProvider(),
   });

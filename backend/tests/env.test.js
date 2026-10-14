@@ -83,6 +83,22 @@ test('local media storage validates a public base URL and driver setting', () =>
   assert.throws(() => validateEnv({ ...valid, SUPPORT_STORAGE_DRIVER: 's3' }), /SUPPORT_STORAGE_DRIVER/u);
 });
 
+test('production filesystem media requires the persistent directory outside releases', () => {
+  const configured = {
+    ...valid, NODE_ENV: 'production', CORS_ORIGIN: 'https://store.example',
+    CSRF_SECRET: 'a'.repeat(48), PUBLIC_WEB_URL: 'https://store.example',
+    OUTBOX_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    MEDIA_STORAGE_DRIVER: 'filesystem',
+  };
+  for (const path of [undefined, '.data/media/products', '/opt/tro-lam/current/backend/media', '/var/lib/tro-lam/media/products/../private']) {
+    assert.throws(() => validateEnv({ ...configured, MEDIA_STORAGE_PATH: path }), /MEDIA_STORAGE_PATH/u);
+  }
+  const persistent = { ...configured, MEDIA_STORAGE_PATH: '/var/lib/tro-lam/media/products' };
+  assert.equal(validateEnv(persistent).mediaStorageDriver, 'filesystem');
+  assert.equal(validateEnv(persistent).mediaPublicBaseUrl, '/media/products');
+  assert.throws(() => validateEnv({ ...persistent, MEDIA_PUBLIC_BASE_URL: '/private' }), /MEDIA_PUBLIC_BASE_URL/u);
+});
+
 test('provider config stays disabled until complete credentials are supplied', () => {
   const smtp = validateEnv({
     ...valid,

@@ -10,7 +10,7 @@ try {
   const composition = await createDomainComposition(env);
   const server = createApp({
     ...env,
-    mediaStaticDirectory: env.mediaStorageDriver === 'local' ? env.mediaStoragePath : undefined,
+    mediaStaticDirectory: ['local', 'filesystem'].includes(env.mediaStorageDriver) ? env.mediaStoragePath : undefined,
     domainRouters: composition.domainRouters,
   }).listen(env.port, env.listenHost, () => {
     console.log(`TRO & LAM API listening on port ${env.port}`);
