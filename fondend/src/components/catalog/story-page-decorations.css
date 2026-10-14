@@ -1,0 +1,46 @@
+.story-brand :is(.story-brand__hero, .story-brand__origin, .heritage-film, .story-brand__philosophy, .story-brand__today, .story-brand__mission, .story-brand__values) {
+  position: relative;
+  isolation: isolate;
+}
+
+.story-brand :is(.story-brand__hero, .story-brand__origin, .heritage-film, .story-brand__philosophy, .story-brand__today, .story-brand__mission, .story-brand__values, .story-brand__closing) > div:not(.story-ornament-layer) {
+  position: relative;
+  z-index: 1;
+}
+
+.story-brand .story-ornament-layer[data-story-section] {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.story-brand .story-ornament-layer[data-story-section="mission"] {
+  z-index: 2;
+}
+
+.story-motif {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.story-motif--light img {
+  filter: grayscale(1) invert(1);
+}
+
+.story-brand .story-brand__philosophy::after {
+  content: none;
+}
+
+.story-brand :is(.story-brand__hero-copy, .story-brand__origin-copy, .story-brand__philosophy-grid, .story-brand__today-copy, .story-brand__steps, .story-brand__values-layout) :is(h1, h2, h3, .eyebrow, strong) {
+  color: #082b46;
+}
+
+.story-brand :is(.story-brand__hero-copy, .story-brand__origin-copy, .story-brand__philosophy-grid, .story-brand__today-copy, .story-brand__steps, .story-brand__values-layout) p:not(.eyebrow) {
+  color: #172b3b;
+}
+
+.story-brand .story-brand__value-name span {
+  color: #314556;
+}

@@ -69,9 +69,9 @@
 .collection-story__copy .text-link { margin-top: 12px; }
 .atelier-featured { border-top: 1px solid #dedbd0; }
 .atelier-featured .product-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
-.product-card { border: 0; background: transparent; }
+.product-card { border: 1px solid #e2e5de; border-radius: 24px; background: #fff; }
 .product-card__image { background: #ece8dc; aspect-ratio: 4/5; min-height: 0; }
-.product-card__body { padding: 19px 0; }
+.product-card__body { padding: 19px; }
 .product-card__body h2 { font-size: 21px; }
 .product-card__bottom { align-items: center; }
 .product-card__bottom .text-link { border: 0; }
@@ -93,7 +93,7 @@
 .heritage-film .text-link { color: #faf5e7; border-color: #ffffff50; }
 .closing-note { background: var(--brand-ivory); text-align: center; padding-block: 95px; }
 .catalog-footer { background: #092b37; color: #d3dedb; border: 0; }
-.footer-invitation, .footer-columns, .footer-bottom { width: min(100% - 120px,1180px); margin: auto; }
+.footer-invitation, .footer-columns, .footer-bottom { width: min(100% - 80px,1320px); margin: auto; }
 .footer-invitation { padding: 50px 0; display: flex; align-items: center; justify-content: space-between; gap: 32px; border-bottom: 1px solid #ffffff25; }
 .footer-invitation .eyebrow { color: #c8ad77; }
 .footer-invitation h2 { font-size: 28px; color: #f9f3e5; margin: 10px 0 0; }
@@ -157,7 +157,7 @@
   .catalog-header__actions { gap: 0; }
   .catalog-header__actions a, .catalog-header__actions button { width: 38px; min-width: 38px; }
   .public-site .section-wrap, .atelier-section, .atelier-hero__content, .public-site :is(.cart-page,.commerce-page,.identity-page), .public-site .support-page--contact { width: calc(100% - 48px); }
-  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 80px); }
+  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 48px); }
   .atelier-hero__bottom { left: 24px; right: 24px; }
   .footer-columns { gap: 25px; }
   .atelier-featured .product-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -185,7 +185,7 @@
   .catalog-header__actions a, .catalog-header__actions button { min-width: 36px; width: 36px; }
   .menu-toggle { width: 36px; min-width: 36px; }
   .public-site .section-wrap, .atelier-section, .atelier-hero__content, .public-site :is(.cart-page,.commerce-page,.identity-page), .public-site .support-page--contact { width: calc(100% - 32px); }
-  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 40px); }
+  .footer-invitation, .footer-columns, .footer-bottom { width: calc(100% - 32px); }
   .atelier-section { padding-block: 52px; }
   .atelier-hero { min-height: 640px; }
   .atelier-hero::after { background: linear-gradient(90deg,#14211ec9,#14211e65); }
@@ -209,7 +209,7 @@
   .atelier-section h2 { font-size: 33px; }
   .atelier-featured .product-grid { gap: 18px; }
   .product-card__body h2 { font-size: 19px; }
-  .product-card__body { padding: 14px 0; }
+  .product-card__body { padding: 14px; }
   .product-card__bottom { align-items: start; }
   .product-card__image { min-height: 0; }
   .heritage-film__copy { padding: 35px 22px 45px; }

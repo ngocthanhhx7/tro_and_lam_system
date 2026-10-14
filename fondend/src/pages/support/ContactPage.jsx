@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supportApi } from '../../services/support/support.api.js';
+import EditorialPageMotif from '../../components/catalog/EditorialPageMotif.jsx';
 import './support.css';
 
 const INITIAL_FORM = { name: '', email: '', phone: '', company: '', quantity: '', message: '', consent: false };
@@ -13,7 +14,6 @@ export default function ContactPage({ corporate = false }) {
   const location = useLocation();
   const productId = new URLSearchParams(location.search).get('productId') || undefined;
   const kind = corporate ? 'corporate' : productId ? 'quote' : 'general';
-  const title = corporate ? 'Quà tặng dành cho tổ chức' : productId ? 'Trao đổi về sản phẩm' : 'Liên hệ TRO & LAM';
 
   async function submit(event) {
     event.preventDefault();
@@ -40,20 +40,9 @@ export default function ContactPage({ corporate = false }) {
   }
 
   return <section className="support-page support-page--contact">
-    <nav className="support-breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{title}</span></nav>
-    <div className="support-intro support-intro--split">
-      <div>
-        <p className="support-eyebrow">TRO &amp; LAM · GỐM TRONG ĐỜI SỐNG</p>
-        <h1>{title}</h1>
-        <p>{corporate
-          ? 'Chia sẻ mục đích, số lượng dự kiến và thời gian cần nhận để đội ngũ xem xét yêu cầu quà tặng văn hóa.'
-          : productId ? 'Gửi câu hỏi hoặc yêu cầu báo giá cho sản phẩm đang xem. Thông tin được chuyển tới đội ngũ tiếp nhận.'
-            : 'Gửi câu hỏi về sản phẩm, câu chuyện hoặc dịch vụ. Đội ngũ sẽ tiếp nhận theo thông tin bạn cung cấp.'}</p>
-      </div>
-      <aside className="support-note"><p>Một món gốm cho riêng bạn, hay một món quà dành tặng? Hãy chia sẻ dịp sử dụng và điều bạn đang tìm kiếm.</p></aside>
-    </div>
-
-    <form className="support-card support-form" onSubmit={submit}>
+    <form className="support-card support-form motif-pane" onSubmit={submit}>
+      <EditorialPageMotif motif="bamboo" opacity={.12} align="left" />
+      <EditorialPageMotif motif="heritageGate" opacity={.12} align="right" />
       <div className="support-form__grid">
         <label className="support-field">Họ và tên <span aria-hidden="true">*</span>
           <input name="name" autoComplete="name" maxLength="120" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />

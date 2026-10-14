@@ -137,7 +137,6 @@ export default function CartPage() {
     <div className="cart-page__container">
       <div className="cart-page__intro">
         <div>
-          <p className="cart-page__eyebrow">TRO &amp; LAM · GỐM CHU ĐẬU</p>
           <h1 id="cart-title">Giỏ hàng của bạn</h1>
           <p>Kiểm tra những sản phẩm bạn đã chọn trước khi tiếp tục.</p>
         </div>

@@ -303,7 +303,7 @@
 .catalog-results__top { display: flex; min-height: 43px; align-items: start; justify-content: space-between; gap: 16px; color: var(--text-secondary); font-size: 0.8rem; }
 .catalog-results__top p { margin: 0; }
 .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-.product-card { min-width: 0; padding: 0; overflow: hidden; border: 1px solid rgb(18 63 86 / 10%); background: #fff; }
+.product-card { min-width: 0; padding: 0; overflow: hidden; border: 1px solid rgb(18 63 86 / 10%); border-radius: 24px; background: #fff; }
 .product-card__image { position: relative; display: grid; min-height: 250px; aspect-ratio: 1.2 / 1; overflow: hidden; place-items: center; background: #ecece5; text-decoration: none; }
 .product-card__image img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 300ms ease; }
 .product-card:hover .product-card__image img { transform: scale(1.025); }

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import Icon from '../../components/catalog/Icon.jsx';
 import { HeritageFilm } from '../../components/catalog/EditorialMedia.jsx';
+import StoryPageDecorations from '../../components/catalog/StoryPageDecorations.jsx';
+import CoreValuesShowcase from '../../components/catalog/CoreValuesShowcase.jsx';
 import './story-brand.css';
 
 const storySteps = [
@@ -26,62 +28,53 @@ const values = [
 
 function StoryImage({ src, alt, className, caption, loading = 'lazy' }) {
   return <figure className={`story-brand__image ${className}`}>
-    <img src={src} alt={alt} loading={loading} decoding="async" width="1024" height="1024" />
+    <img src={src} alt={alt} loading={loading} decoding="async" width="1122" height="1402" />
     {caption && <figcaption>{caption}</figcaption>}
   </figure>;
 }
 
 function MissionVision() {
   return <section className="story-brand__section story-brand__mission" aria-label="Sứ mệnh và tầm nhìn">
-    <div className="story-brand__mission-image" aria-hidden="true">
-      <img src="/assets/products/owner-provided/binh-phu-quy.webp" alt="" loading="lazy" decoding="async" />
-    </div>
     <div className="story-brand__container">
       <div className="story-brand__mission-columns">
-        <section aria-labelledby="story-mission-title">
-          <p className="eyebrow">GÌN GIỮ VÀ PHÁT HUY</p>
-          <h2 id="story-mission-title">Sứ mệnh</h2>
-          <p>Tro &amp; Lam gìn giữ và phát huy giá trị gốm Chu Đậu qua những sản phẩm phù hợp với nhu cầu và phong cách sống hiện đại.</p>
-          <p>Kỹ nghệ thủ công truyền thống gặp gỡ thiết kế, NFC và những lựa chọn bao bì thân thiện với môi trường, để mỗi lần trao tặng mở ra một trải nghiệm mới.</p>
-        </section>
-        <section aria-labelledby="story-vision-title">
-          <p className="eyebrow">ĐƯỜNG DÀI PHÍA TRƯỚC</p>
-          <h2 id="story-vision-title">Tầm nhìn</h2>
-          <p>Tro &amp; Lam hướng tới trở thành thương hiệu gốm Chu Đậu mang bản sắc Việt, kết nối thủ công truyền thống, thiết kế đương đại và công nghệ hiện đại.</p>
-          <ol className="story-brand__timeline">
-            {milestones.map((milestone) => <li key={milestone.year}>
-              <span>{milestone.year}</span>
-              <p>{milestone.text}</p>
-            </li>)}
-          </ol>
-        </section>
+        <article className="story-brand__mission-card story-brand__mission-card--mission" aria-labelledby="story-mission-title">
+          <div className="story-brand__mission-copy">
+            <span className="story-brand__mission-number" aria-hidden="true">01</span>
+            <h2 id="story-mission-title">Sứ mệnh</h2>
+            <p>Tro &amp; Lam gìn giữ và phát huy giá trị gốm Chu Đậu qua những sản phẩm phù hợp với nhu cầu và phong cách sống hiện đại.</p>
+            <p>Kỹ nghệ thủ công truyền thống gặp gỡ thiết kế, NFC và những lựa chọn bao bì thân thiện với môi trường, để mỗi lần trao tặng mở ra một trải nghiệm mới.</p>
+          </div>
+          <StoryImage
+            className="story-brand__mission-photo"
+            src="/assets/editorial/lifestyle-slides/dinnerware.webp"
+            alt="Bộ đồ ăn gốm Chu Đậu với họa tiết xanh trong không gian ấm áp."
+          />
+        </article>
+        <article className="story-brand__mission-card story-brand__mission-card--vision" aria-labelledby="story-vision-title">
+          <div className="story-brand__mission-copy">
+            <span className="story-brand__mission-number" aria-hidden="true">02</span>
+            <h2 id="story-vision-title">Tầm nhìn</h2>
+            <p>Tro &amp; Lam hướng tới trở thành thương hiệu gốm Chu Đậu mang bản sắc Việt, kết nối thủ công truyền thống, thiết kế đương đại và công nghệ hiện đại.</p>
+            <ol className="story-brand__timeline">
+              {milestones.map((milestone) => <li key={milestone.year}>
+                <span>{milestone.year}</span>
+                <p>{milestone.text}</p>
+              </li>)}
+            </ol>
+          </div>
+          <StoryImage
+            className="story-brand__mission-photo"
+            src="/assets/editorial/diplomacy-slides/binh-thien-nga.webp"
+            alt="Bình Thiên Nga gốm Chu Đậu được trưng bày trong không gian nghệ thuật."
+          />
+        </article>
       </div>
     </div>
   </section>;
 }
 
 function CoreValues() {
-  return <section className="story-brand__section story-brand__values" aria-labelledby="story-values-title">
-    <div className="story-brand__container story-brand__values-layout">
-      <div className="story-brand__values-intro">
-        <p className="eyebrow">04 — GIÁ TRỊ CỐT LÕI</p>
-        <h2 id="story-values-title">Những giá trị<br />chúng tôi gìn giữ.</h2>
-        <StoryImage
-          className="story-brand__values-image"
-          src="/assets/products/owner-provided/binh-giot-ngoc-01.webp"
-          alt="Bình Giọt Ngọc với họa tiết xanh lam, ảnh sản phẩm do chủ dự án cung cấp."
-        />
-      </div>
-      <ol className="story-brand__value-list">
-        {values.map((value) => <li key={value.number}>
-          <span className="story-brand__value-number">{value.number}</span>
-          <div className="story-brand__value-name"><h3>{value.name}</h3><span>{value.vietnamese}</span></div>
-          <p>{value.description}</p>
-          <span className="story-brand__value-arrow" aria-hidden="true">→</span>
-        </li>)}
-      </ol>
-    </div>
-  </section>;
+  return <CoreValuesShowcase values={values} />;
 }
 
 export default function StoryBrandPage() {
@@ -96,8 +89,8 @@ export default function StoryBrandPage() {
         </div>
         <StoryImage
           className="story-brand__hero-image"
-          src="/assets/products/owner-provided/hoa-lam-ty-ba-pair.webp"
-          alt="Ảnh chung của bình Hoa Lam và Tỳ Bà với hoa văn lam, do chủ dự án cung cấp."
+          src="/assets/editorial/story/binh-giot-ngoc-phuc.webp"
+          alt="Bình Giọt Ngọc trang trí chữ Phúc trong không gian ánh vàng."
           loading="eager"
         />
       </div>
@@ -107,9 +100,8 @@ export default function StoryBrandPage() {
       <div className="story-brand__container story-brand__origin-grid">
         <StoryImage
           className="story-brand__origin-image"
-          src="/assets/photography/chu-dau-heritage.jpg"
-          alt="Hiện vật bình gốm hoa lam Chu Đậu thuộc Bảo tàng Lịch sử Việt Nam."
-          caption="Hiện vật gốm Chu Đậu · Bảo tàng Lịch sử Việt Nam."
+          src="/assets/editorial/diplomacy-slides/binh-thien-nga.webp"
+          alt="Bình Thiên Nga gốm Chu Đậu trong không gian ánh vàng."
         />
         <div className="story-brand__origin-copy">
           <p className="eyebrow">01 — KHỞI NGUỒN</p>
@@ -150,8 +142,8 @@ export default function StoryBrandPage() {
         </div>
         <StoryImage
           className="story-brand__today-image"
-          src="/assets/products/owner-provided/hu-tra-chim-lac.webp"
-          alt="Hũ trà gốm hoa văn chim lạc, ảnh sản phẩm do chủ dự án cung cấp."
+          src="/assets/editorial/lifestyle-slides/tea-jar.webp"
+          alt="Hộp trà gốm hoa văn chim Lạc trong không gian ánh vàng."
         />
        </div>
        <ol className="story-brand__steps" aria-label="Những lớp chuyện có thể khám phá qua NFC">
@@ -175,5 +167,6 @@ export default function StoryBrandPage() {
         <Link className="text-link" to="/san-pham">Khám phá sản phẩm <Icon name="arrow" size={18} /></Link>
       </div>
     </section>
+    <StoryPageDecorations />
   </div>;
 }

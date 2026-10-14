@@ -38,7 +38,7 @@ export default function CustomerAccountOverviewPage() {
 
   return <section className="customer-overview">
     <header className="customer-overview__heading">
-      <p className="customer-overview__eyebrow">KHÔNG GIAN CỦA BẠN</p>
+      <p className="customer-overview__eyebrow"></p>
       <h1>Tài khoản của tôi</h1>
       <p>Xin chào {user?.name}. Theo dõi đơn hàng và những cập nhật mới nhất tại đây.</p>
     </header>

@@ -2,9 +2,29 @@ import { Link } from 'react-router-dom';
 import Icon from '../../components/catalog/Icon.jsx';
 import { media } from '../../constants/editorialMedia.js';
 import StoryBrandPage from './StoryBrandPage.jsx';
+import EditorialPageMotif from '../../components/catalog/EditorialPageMotif.jsx';
+import AboutProductMarquee from '../../components/catalog/AboutProductMarquee.jsx';
 
 export function AboutPage() {
-  return <><section className="page-masthead"><p className="eyebrow">VỀ TRO & LAM</p><h1>Hành trình đến gần hơn với gốm.</h1><p>Gốm Chu Đậu cho không gian sống, cho những điều thân thuộc và cho những dịp trao tặng.</p></section><section className="editorial-intro atelier-section"><div><p className="eyebrow">MỘT HÀNH TRÌNH ĐANG TIẾP NỐI</p><h2>Đưa gốm đến gần<br />hơn với mỗi ngày.</h2><p>TRO & LAM kể câu chuyện về gốm Chu Đậu qua những điều gần gũi: một góc trà, một vật phẩm cho không gian sống, hay món quà dành cho dịp cần sự trân trọng.</p><p>Hai dòng Lifestyle và Diplomacy mở ra hai cách khám phá. Hãy bắt đầu từ điều bạn đang tìm kiếm.</p><Link className="text-link" to="/san-pham">Tìm món gốm của bạn <Icon name="arrow" size={18} /></Link></div><figure className="editorial-intro__image"><img src={media.hands} alt="Bàn tay tạo hình gốm trên bàn xoay — ảnh minh họa nghề gốm" loading="lazy" /><figcaption>Ảnh nghề gốm · Earl Wilcox / Unsplash</figcaption></figure></section><section className="journey-links atelier-section" aria-label="Hai dòng sản phẩm TRO & LAM"><article><span className="value-number">01 / LIFESTYLE</span><h2>Gốm trong đời sống</h2><p>Lư xông trầm mini, hũ trà và bộ chén độc ẩm là những gợi ý cho không gian sống và góc trà.</p><Link className="text-link" to="/bo-suu-tap/lifestyle">Khám phá Lifestyle <Icon name="arrow" size={18} /></Link></article><article><span className="value-number">02 / DIPLOMACY</span><h2>Gốm trao tặng</h2><p>Khám phá các dáng bình trong dòng Diplomacy và gửi yêu cầu tư vấn cho dịp tặng của bạn.</p><Link className="text-link" to="/bo-suu-tap/diplomacy">Khám phá Diplomacy <Icon name="arrow" size={18} /></Link></article></section></>;
+  return <div className="about-page">
+    <section className="page-masthead motif-pane">
+      <EditorialPageMotif motif="swallowBlossoms" opacity={.14} align="right" />
+      <h1>Hành trình đến gần hơn với gốm.</h1>
+      <p>Gốm Chu Đậu cho không gian sống, cho những điều thân thuộc và cho những dịp trao tặng.</p>
+    </section>
+    <section className="editorial-intro atelier-section">
+      <div className="motif-pane">
+        <EditorialPageMotif motif="pavilion" opacity={.17} />
+        <p className="eyebrow">MỘT HÀNH TRÌNH ĐANG TIẾP NỐI</p>
+        <h2>Đưa gốm đến gần<br />hơn với mỗi ngày.</h2>
+        <p>TRO &amp; LAM kể câu chuyện về gốm Chu Đậu qua những điều gần gũi: một góc trà, một vật phẩm cho không gian sống, hay món quà dành cho dịp cần sự trân trọng.</p>
+        <p>Hai dòng Lifestyle và Diplomacy mở ra hai cách khám phá. Hãy bắt đầu từ điều bạn đang tìm kiếm.</p>
+        <Link className="text-link" to="/san-pham">Tìm món gốm của bạn <Icon name="arrow" size={18} /></Link>
+      </div>
+      <figure className="editorial-intro__image"><img src={media.hands} alt="Bàn tay tạo hình gốm trên bàn xoay — ảnh minh họa nghề gốm" loading="lazy" /></figure>
+    </section>
+    <AboutProductMarquee />
+  </div>;
 }
 export function StoriesLandingPage() {
   return <StoryBrandPage />;

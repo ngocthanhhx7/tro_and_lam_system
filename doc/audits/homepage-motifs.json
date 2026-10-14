@@ -1,0 +1,315 @@
+{
+  "date": "2026-10-14",
+  "reference_image": "codex-clipboard-c65e6add-230b-4af0-aefb-2db2f2d13c24.png",
+  "lifestyle_highlights_reference_image": "codex-clipboard-17c9858b-7e03-44c0-a389-fe4e3034521f.png",
+  "whole_artwork_reference_image": "codex-clipboard-876e9b0a-b66f-46a7-b997-8ad89c50e461.png",
+  "text_overlay_reference_image": "codex-clipboard-5bbca82f-6e41-45c4-b5c1-5735edf6bc1f.png",
+  "page_reference_image": "codex-clipboard-06ce8c22-2744-436a-83ae-d6345ad73289.png",
+  "inventory": [
+    {
+      "file": "Họa tiết 1.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 32.89,
+      "partial_alpha_percent": 67.07,
+      "bytes": 3325537,
+      "classification": "Hoa sen, la sen va nu sen",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "daf258e11cd3272cf50ef7e3ead2d2876bee3f69593e40fd475812167a762463",
+      "asset": "lotus",
+      "placements": [
+        "Lifestyle: large pale background inside the copy column, behind the text",
+        "Lifestyle highlights: full lotus cluster behind the left descriptions",
+        "Featured: left outer margin",
+        "Closing CTA: right side and mobile bottom corner"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 2.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 54.37,
+      "partial_alpha_percent": 45.52,
+      "bytes": 2147876,
+      "classification": "Chim hac va may cuon",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "0a93270f6f89be868baf8a3ff507be2d4585375a354d809639313b3f4af14b00",
+      "asset": "crane-clouds",
+      "placements": [
+        "Hero: cloud fragment",
+        "Lifestyle/Diplomacy: cloud fragments",
+        "Lifestyle highlights: cloud fragment at the left heading",
+        "Featured and video: cloud fragments",
+        "Closing CTA: crane on left"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 3.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 52.98,
+      "partial_alpha_percent": 46.96,
+      "bytes": 2390883,
+      "classification": "Tre truc va da",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "a41832a35e43f61a9fd2f4b749d05493f4e4b833e43790c609eaf47a69dded98",
+      "asset": "bamboo",
+      "placements": ["Diplomacy highlights: full bamboo artwork behind the left descriptions"],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 4.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 27.69,
+      "partial_alpha_percent": 72.25,
+      "bytes": 3125072,
+      "classification": "Hoa van trong dong, chim cach dieu va vanh tron",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "e8446ba98b9e0f6d2186a6a4c28ab6f8b0a5f1e87ae37d5adf87b2475d808c2e",
+      "asset": "dong-son-drum",
+      "placements": [
+        "Lifestyle: cropped left edge",
+        "Diplomacy: cropped right edge",
+        "Footer: faint right corner"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 5.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 58.93,
+      "partial_alpha_percent": 41.06,
+      "bytes": 1885022,
+      "classification": "Thap co, mat nuoc va phong canh",
+      "used": false
+    },
+    {
+      "file": "Họa tiết 6.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 39.54,
+      "partial_alpha_percent": 60.42,
+      "bytes": 3033829,
+      "classification": "Cong kien truc co, hoa la va may",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "0ae533a28a0f1cfd4958e2663d7c2bac984a98d3a90d2d2e17f3a1a6eb4c81c6",
+      "asset": "heritage-gate",
+      "placements": ["Diplomacy highlights: full gate artwork at the right, up to 440px on desktop, 320px on tablet and 224px on mobile"],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 7.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 44.87,
+      "partial_alpha_percent": 55.11,
+      "bytes": 2619032,
+      "classification": "Dinh/chua, hoa sen va mat nuoc",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "ceded1faf75b6faa30ff2bccf0474e50d10e115c819682e555c1684cc9fe7208",
+      "asset": "lakeside-pavilion",
+      "placements": [
+        "Lifestyle highlights: enlarged full artwork at the right, up to 440px on desktop, 320px on tablet and 224px on mobile"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 8.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 62.4,
+      "partial_alpha_percent": 37.54,
+      "bytes": 1929654,
+      "classification": "Chim tren canh hoa",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "23c6745e0c160249c4026a0260f93b9815109967348fe74f0ba621f602dcc94a",
+      "asset": "bird-blossoms",
+      "placements": [
+        "Diplomacy: large pale background inside the copy column, behind the text",
+        "Footer: left corner"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 9.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 52.59,
+      "partial_alpha_percent": 47.36,
+      "bytes": 2339657,
+      "classification": "Chim en va canh hoa",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "a31712882cdd5e49c10127eb309887f559486cb4bdd99377b71970655b70e406",
+      "asset": "swallow-blossoms",
+      "placements": [
+        "Hero: right edge",
+        "Featured: right outer margin"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "Họa tiết 10.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 45.74,
+      "partial_alpha_percent": 54.17,
+      "bytes": 2675368,
+      "classification": "Ca chep, hoa sen va song nuoc",
+      "used": false
+    },
+    {
+      "file": "Họa tiết 11.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 53.25,
+      "partial_alpha_percent": 46.71,
+      "bytes": 2194652,
+      "classification": "Thuyen, hoa sen va song nuoc",
+      "used": true,
+      "original_copy_identical": true,
+      "sha256": "d275a5f6c2875f9694fe6e4537a15e03799a0bafaafc9437eea0e696b39d5e7a",
+      "asset": "river-lotus",
+      "placements": [
+        "Small water fragments at section boundaries",
+        "Video and CTA: bottom padding"
+      ],
+      "alpha_preserved": true
+    },
+    {
+      "file": "a7a6da4f-ad23-45b6-b5b3-ddbff7ed6e8f.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "ratio": 1.0,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_percent": 41.52,
+      "partial_alpha_percent": 58.48,
+      "bytes": 2804853,
+      "classification": "Nui non, ruong bac thang va phong canh Viet",
+      "used": false
+    }
+  ],
+  "implementation": "Absolute decoration windows in each existing section. Lifestyle and Diplomacy copy and highlights backdrops use square windows matching the entire artwork, with no cropping. Their size fits the available column/gutter space and section height, avoiding product photos and viewport edges. Other decorations still avoid text and controls. No content or section dimensions are changed. Decoration layers remain absolute regardless of stylesheet loading order.",
+  "copy_colors": {
+    "headings_and_emphasis": "#082b46",
+    "body": "#172b3b",
+    "link_border": "#173e57"
+  },
+  "lifestyle_highlights": {
+    "pavilion_max_size_px": { "desktop": 440, "tablet": 320, "mobile": 224 },
+    "left_artwork": ["lotus", "crane-clouds fragment"],
+    "placement": "Pale backdrops behind existing descriptions; complete pavilion and lotus artwork without cropping, no layout changes."
+  },
+  "diplomacy_highlights": {
+    "right_artwork": "Họa tiết 6.png / heritage-gate",
+    "left_artwork": "Họa tiết 3.png / bamboo",
+    "gate_max_size_px": { "desktop": 440, "tablet": 320, "mobile": 224 },
+    "bamboo_max_size_px": { "desktop": 380, "tablet": 280, "mobile": 200 },
+    "placement": "Pale backdrops behind existing descriptions; both artworks displayed in full without layout changes."
+  },
+  "cropping": "Lifestyle and Diplomacy copy backdrops are displayed in full. Cloud/water fragments and perimeter motifs retain the reference design's intentional cropping. Original PNGs remain byte-identical. WebP variants preserve alpha.",
+  "responsive": {
+    "desktop": ">=1200px: large copy-column backdrops at 22% opacity, plus perimeter motifs and whitespace fragments",
+    "tablet": "768-1199px: copy-column backdrops at 16% opacity; large margin decorations are omitted",
+    "mobile": "<768px: copy-column backdrops at 12% opacity, small water fragments and one small CTA lotus; no large drums"
+  },
+  "differences_from_reference": [
+    "Existing hero video, content widths, product counts and section order are preserved.",
+    "Perimeter motif density decreases when the existing page margins are too narrow; copy-column artwork remains visible.",
+    "Use the supplied crane instead of generating a phoenix; waves/clouds are cropped from supplied motifs."
+  ],
+  "validation_artifact": "reference-ornaments/diplomacy-highlights-validation.json"
+}

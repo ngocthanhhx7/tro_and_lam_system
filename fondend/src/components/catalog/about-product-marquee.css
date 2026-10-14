@@ -1,0 +1,95 @@
+.about-product-marquee {
+  --about-marquee-gap: clamp(12px, 1.5vw, 22px);
+  --about-marquee-speed: 78s;
+  margin-top: clamp(38px, 6vw, 84px);
+  padding: clamp(18px, 2.2vw, 30px) 0;
+  overflow: hidden;
+  border-block: 1px solid #dedbd0;
+}
+
+.about-product-marquee__viewport {
+  width: 100%;
+  overflow: hidden;
+}
+
+.about-product-marquee__track,
+.about-product-marquee__group {
+  display: flex;
+  width: max-content;
+}
+
+.about-product-marquee__track {
+  animation: about-product-marquee-scroll var(--about-marquee-speed) linear infinite;
+  will-change: transform;
+}
+
+.about-product-marquee__group {
+  flex: 0 0 auto;
+  gap: var(--about-marquee-gap);
+  padding-right: var(--about-marquee-gap);
+}
+
+.about-product-marquee__card {
+  position: relative;
+  flex: 0 0 clamp(210px, 22vw, 316px);
+  width: clamp(210px, 22vw, 316px);
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  overflow: hidden;
+  background: #e9e3d6;
+}
+
+.about-product-marquee__card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-product-marquee__card figcaption {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 30px 16px 15px;
+  color: #fffaf0;
+  background: linear-gradient(transparent, rgb(8 28 32 / 78%));
+  font-family: var(--font-heading);
+  font-size: clamp(16px, 1.45vw, 20px);
+  line-height: 1.2;
+}
+
+.about-product-marquee:hover .about-product-marquee__track,
+.about-product-marquee:focus-within .about-product-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes about-product-marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+
+@media (max-width: 640px) {
+  .about-product-marquee {
+    --about-marquee-speed: 64s;
+  }
+
+  .about-product-marquee__card {
+    flex-basis: min(72vw, 284px);
+    width: min(72vw, 284px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-product-marquee__viewport {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .about-product-marquee__track {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .about-product-marquee__group[aria-hidden='true'] {
+    display: none;
+  }
+}

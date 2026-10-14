@@ -1,0 +1,53 @@
+.public-site:has(.atelier-hero) section:is(.home-product-line, .atelier-featured, .closing-note) {
+  overflow: visible;
+}
+
+.public-site:has(.atelier-hero) .heritage-film {
+  position: relative;
+  isolation: isolate;
+}
+
+.public-site:has(.atelier-hero) .heritage-film > :not(.home-ornament-layer) {
+  position: relative;
+  z-index: 1;
+}
+
+.public-site:has(.atelier-hero) :is(.atelier-hero, .home-product-line, .atelier-featured, .heritage-film, .closing-note, .catalog-footer) > .home-ornament-layer[data-section] {
+  position: absolute;
+  z-index: 0;
+  overflow: clip;
+  pointer-events: none;
+  user-select: none;
+}
+
+.home-motif-window {
+  position: absolute;
+  overflow: clip;
+  pointer-events: none;
+  user-select: none;
+}
+
+.home-motif-window__image {
+  position: absolute;
+}
+
+.home-motif-window--light .decorative-motif img {
+  filter: grayscale(1) invert(1);
+}
+
+/* Dark ink keeps the copy legible over the pale ceramic artwork. */
+.public-site:has(.atelier-hero) .home-product-line :is(h2, h3, h4, .eyebrow, .text-link, strong) {
+  color: #082b46;
+}
+
+.public-site:has(.atelier-hero) .home-product-line p:not(.eyebrow) {
+  color: #172b3b;
+}
+
+.public-site:has(.atelier-hero) .home-product-line .text-link {
+  border-color: #173e57;
+}
+
+.public-site:has(.atelier-hero) footer.catalog-footer::after {
+  content: none;
+}
