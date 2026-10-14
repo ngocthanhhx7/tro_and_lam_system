@@ -39,3 +39,13 @@ Explain ban đầu của lookup giỏ theo token chọn COLLSCAN dù đã có pa
 ## Giới hạn còn lại
 
 Độ trễ VPS–Atlas vẫn tồn tại; cần kiểm tra vùng cluster từ cấu hình nhà cung cấp trước khi quy nguyên nhân cho vùng đặt database. Tìm kiếm contains/regex và offset ở trang rất sâu cần benchmark riêng khi catalogue/dữ liệu tăng; không tự đổi sang text-search hoặc cursor vì có thể đổi kết quả/contract. Cảnh báo tồn dùng phép trừ nên không giả định index productId sẽ hỗ trợ điều kiện available. Chưa thực hiện load test lớn hay giao dịch thanh toán thực trên production.
+
+## Đo danh sách sản phẩm ngày 2026-10-14
+
+Trước tối ưu, GET sản phẩm trên loopback VPS mất 723 ms. Service ở kết nối đã khởi tạo mất 728–732 ms: distinct danh mục, aggregate đếm, find sản phẩm và find tồn kho; ba pha chờ nối tiếp. Mỗi lượt mạng tới Atlas khoảng 167–189 ms. Không suy luận vùng Atlas từ thời gian này.
+
+Commit 2ef79de thay đọc danh mục + count + rows bằng một aggregate match/sort/lookup/facet, rồi đọc tồn kho mới như trước. Sau tối ưu, service đã khởi tạo mất 339–394 ms với hai command; HTTP loopback sau warm-up mất 395–403 ms. Lần đầu helper tạo composition/kết nối mới mất khoảng 3 giây, không trộn số này vào thời gian request của process API đang chạy. HTTPS từ máy người dùng vẫn đo 1,39–1,53 giây so với 1,56–1,62 giây trước đó; lợi ích ở backend không đồng nghĩa toàn trang nhanh theo cùng tỷ lệ.
+
+Explain của đúng aggregate mới dùng status_1 cho match sản phẩm và _id_ với IndexedLoopJoin cho danh mục; SORT vẫn trong bộ nhớ. Với 8 sản phẩm, cursor execution 1 ms, 16 docs/keys examined gồm cả lookup. Chưa benchmark catalog lớn hoặc mọi tổ hợp filter; không thêm index hoặc hint chỉ vì thấy SORT trên mẫu nhỏ. Hồi quy local xác nhận danh mục draft bị loại, tổng và phân trang đúng, categoryId chuỗi được cast đúng và metadata lookup không xuất hiện trong DTO.
+
+Ảnh sản phẩm đang dùng PNG gốc khoảng 2,3–2,7 MB, rộng 1122 px trong thẻ rộng khoảng 280 px; phần ảnh cần thumbnail/WebP responsive riêng. Không đổi ảnh gốc, quyền, cache giá/tồn hay auth để tăng tốc. Hai URL ảnh 404 trong báo cáo không còn file trên VPS, nhưng lần kiểm tra trang hiện tại có đủ 8 ảnh và không có ảnh hỏng. Auth/me 401 của khách chưa đăng nhập là phản hồi bảo mật dự kiến.
