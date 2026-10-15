@@ -54,6 +54,24 @@ test('greeting receives an immediate local welcome without catalog, Gemini, or h
   assert.deepEqual((await repository.inspect(result.conversationId)).messagesRedacted.map(({ role }) => role), ['user', 'assistant']);
 });
 
+test('capability and thank-you questions are conversational without catalog or provider calls', async () => {
+  for (const message of ['bạn có thể làm gì nào', 'Men giúp mình được những gì?', 'bạn làm được những gì vậy', 'ban co the lam gi', 'Men là ai?', 'Cảm ơn Men nhé!']) {
+    const { service, calls } = harness();
+    const result = await service.sendMessage({ actor: GUEST, input: { message } });
+    assert.equal(result.handoffSuggested, false, message);
+    assert.deepEqual(calls, [], message);
+    assert.equal(result.usage.remaining, 9);
+    assert.doesNotMatch(result.reply, /công khai đã được duyệt|Gemini/u);
+    assert.match(result.reply, /Men/u);
+  }
+});
+
+test('capability wording with a product request still retrieves approved product context', async () => {
+  const { service, calls } = harness();
+  await service.sendMessage({ actor: GUEST, input: { message: 'bạn có thể làm gì với hũ trà Lam Viên, chất liệu thế nào?' } });
+  assert.ok(calls.some(call => call.operation === 'catalog.search'));
+});
+
 test('persists only redacted conversation messages and retrieves published product/story citations', async () => {
   const { service, repository, calls } = harness();
   const result = await service.sendMessage({
@@ -154,7 +172,7 @@ test('disabled provider answers from published catalog facts and never fabricate
 
   assert.equal(providerCalls, 0);
   assert.equal(result.handoffSuggested, true);
-  assert.match(result.reply, /Gemini đang tạm thời chưa khả dụng/u);
+  assert.match(result.reply, /Men chưa tư vấn chi tiết được lúc này/u);
   assert.match(result.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
   assert.equal(result.sources.length, 2);
 });
@@ -179,7 +197,7 @@ test('provider timeout, exhausted daily token budget and per-owner rate limit fa
   const timeoutResult = await timed.service.sendMessage({ actor: USER, input: { message: 'Hũ trà', consent: true } });
   assert.equal(timeoutCalls, 1);
   assert.equal(timeoutResult.handoffSuggested, true);
-  assert.match(timeoutResult.reply, /Gemini đang tạm thời chưa khả dụng/u);
+  assert.match(timeoutResult.reply, /Men chưa tư vấn chi tiết được lúc này/u);
   assert.match(timeoutResult.reply, /Hũ trà Lam Viên — 640\.000 VND/u);
 
   let budgetCalls = 0;
