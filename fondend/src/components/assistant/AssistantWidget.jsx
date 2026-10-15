@@ -93,14 +93,14 @@ function AssistantConversation() {
       onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}>
       <header className="assistant-widget__header">
         <img className="assistant-widget__avatar" src={MASCOT} alt="" width="52" height="52" />
-        <div><p className="assistant-widget__eyebrow">TRO &amp; LAM · TRỢ LÝ GỐM</p><h2 id={`${panelId}-title`}>Men đây, bạn ơi!</h2><span>Một chút tư vấn, một món gốm ưng ý 🌿</span></div>
+        <div><p className="assistant-widget__eyebrow">TRO &amp; LAM · TRỢ LÝ GỐM</p><h2 id={`${panelId}-title`}>Men đây, bạn ơi! 🌿</h2></div>
         <button type="button" className="assistant-widget__close" aria-label="Đóng trợ lý" onClick={() => setOpen(false)}><Icon name="close" size={18} /></button>
       </header>
-      <div className="assistant-widget__usage"><span>Đồng hành cùng bạn mỗi ngày</span><strong aria-live="polite">{usage ? `${usage.remaining}/${usage.limit} lượt còn lại` : '10 câu hỏi / ngày'}</strong></div>
+      <div className="assistant-widget__usage"><span>Hôm nay</span><strong aria-live="polite">{usage ? `${usage.remaining}/${usage.limit} lượt còn lại` : '10 câu hỏi / ngày'}</strong></div>
       <div ref={scroll} className="assistant-widget__messages" role="log" aria-label="Cuộc trò chuyện với Men" aria-live="polite"
         onScroll={event => { const el = event.currentTarget; followMessages.current = el.scrollHeight - el.clientHeight - el.scrollTop < 80; }}>
-        {!messages.length && <div className="assistant-widget__welcome"><img src={MASCOT} alt="Men, tinh linh gốm Chu Đậu" width="80" height="80" />
-          <h3>Chào bạn, mình là Men ✨</h3><p>Chọn gốm, tìm hiểu hoa văn hay hỏi cách đặt hàng — mình ở đây để giúp bạn.</p>
+        {!messages.length && <div className="assistant-widget__welcome">
+          <p>Bạn cần chọn gốm hay hỗ trợ đặt hàng? Mình giúp bạn nhé ✨</p>
           <div className="assistant-widget__suggestions">{SUGGESTIONS.map(text => <button type="button" key={text} disabled={pending || exhausted || (!usage && !usageError)} onClick={() => sendMessage(text)}>{text}<Icon name="arrow" size={15} /></button>)}</div>
         </div>}
         {messages.map(item => <article key={item.id} className={`assistant-widget__message assistant-widget__message--${item.role}`}>
