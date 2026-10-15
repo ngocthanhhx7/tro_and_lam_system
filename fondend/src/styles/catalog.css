@@ -5,6 +5,14 @@
   background: var(--brand-ivory);
 }
 
+/* A convenience deterrent, not download protection: public image URLs remain public. */
+.public-site img {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

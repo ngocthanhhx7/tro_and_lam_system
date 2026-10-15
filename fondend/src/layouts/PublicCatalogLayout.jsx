@@ -135,7 +135,12 @@ export default function PublicCatalogLayout() {
     setPageMetadata(metadata);
   }, [pathname, isCollection]);
   function closeMenu() { setMenuOpen(false); menuButton.current?.focus(); }
-  return <div className="public-site">
+  return <div className="public-site" onContextMenuCapture={(event) => {
+    // Deter casual image saving without disabling menus on text, links or forms.
+    if (event.target instanceof Element && event.target.closest('img, picture')) event.preventDefault();
+  }} onDragStartCapture={(event) => {
+    if (event.target instanceof Element && event.target.closest('img, picture')) event.preventDefault();
+  }}>
     <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
     <div className="brand-ribbon">TỪ ĐẤT VÀ LỬA, GỬI MỘT SẮC LAM</div>
     <header className="catalog-header">
