@@ -71,7 +71,7 @@ const pageMetadata = {
   '/tai-khoan': { title: 'Tài khoản | TRO & LAM', description: 'Đăng nhập hoặc quản lý tài khoản TRO & LAM.' },
 };
 function Brand() {
-  return <Link className="catalog-brand" to="/" aria-label="TRO & LAM — trang chủ"><img src="/assets/logo/logo-160.webp" alt="" width="54" height="54" /><span><strong>TRO & LAM</strong><small>GỐM CHU ĐẬU</small></span></Link>;
+  return <Link className="catalog-brand" to="/" aria-label="TRO & LAM — trang chủ"><img src="/images/logo/brand-160.webp" srcSet="/images/logo/brand-160.webp 160w, /images/logo/brand-320.webp 320w" sizes="54px" alt="" width="54" height="54" /><span><strong>TRO & LAM</strong><small>GỐM CHU ĐẬU</small></span></Link>;
 }
 function HeaderSearch({ mobile = false, onSubmitted }) {
   const navigate = useNavigate();
