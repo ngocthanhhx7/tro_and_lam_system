@@ -1,3 +1,4 @@
+import { loginDestination } from '../../services/identity/navigation.js';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { identityApi } from '../../services/identity/identity.api.js';
@@ -19,12 +20,7 @@ function Field({ label, name, type = 'text', value, onChange, autoComplete, requ
   return <label className="identity-field" htmlFor={`identity-${name}`}><span>{label}</span><input id={`identity-${name}`} name={name} type={type} value={value} onChange={onChange} autoComplete={autoComplete} required={required} minLength={minLength} maxLength={maxLength} /></label>;
 }
 
-function workspaceHome(role) {
-  if (role === 'customer') return '/tai-khoan';
-  if (role === 'staff') return '/staff';
-  if (role === 'admin') return '/admin';
-  return '/dang-nhap';
-}
+const workspaceHome = loginDestination;
 
 export function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });

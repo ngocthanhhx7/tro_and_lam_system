@@ -1,7 +1,12 @@
-import { requestJson } from '../httpClient.js';
+import { getJson, requestJson } from '../httpClient.js';
+
+export async function getAssistantUsage({ signal } = {}) {
+  const response = await getJson('/assistant/usage', { signal });
+  return response?.data;
+}
 
 export async function sendAssistantMessage({ conversationId, message }, { signal } = {}) {
-  const body = { message, consent: true };
+  const body = { message };
   if (conversationId) body.conversationId = conversationId;
   const response = await requestJson('/assistant/messages', { method: 'POST', body, signal });
   return response?.data;

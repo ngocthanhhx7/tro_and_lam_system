@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: TRO & LAM API
-  version: 1.8.0
+  version: 1.9.0
   description: |
     Contract frozen from doc/planning/04-data-model.md and 05-api-contracts.md.
     All application routes use /api/v1. Health probes keep the scaffold response
@@ -554,6 +554,13 @@ paths:
       tags: [account]
       x-actors: [customer, staff, admin]
       responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /assistant/usage:
+    get:
+      operationId: getAssistantDeviceUsage
+      tags: [assistant]
+      x-actors: [guest, customer, staff, admin]
+      description: Remaining messages for this HttpOnly browser device cookie. Ten per day, resetting at midnight Asia/Ho_Chi_Minh; no conversation or account details returned.
+      responses: { '200': { $ref: '#/components/responses/Success' }, '503': { $ref: '#/components/responses/Error' } }
   /assistant/messages:
     post:
       operationId: sendAssistantMessage

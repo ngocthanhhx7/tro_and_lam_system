@@ -61,7 +61,8 @@ async function login(page, user) {
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   if (user.role === 'customer') {
-    await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/u);
+    await expect(page.locator('.catalog-header')).toBeVisible();
   } else if (user.role === 'staff') {
     await expect(page.getByRole('heading', { name: 'Bảng công việc', level: 1, exact: true })).toBeVisible();
   } else if (user.role === 'admin') {
@@ -604,7 +605,6 @@ test('guest assistant gives a truthful no-context reply and offers a human hando
   await page.locator('.assistant-widget__launcher').click();
   const form = page.locator('.assistant-widget__form');
   await form.locator('textarea').fill('P11 browser test: how do I find published product information?');
-  await form.locator('input[type="checkbox"]').check();
   const responsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/assistant/messages'));
   await form.locator('button[type="submit"]').click();
   const response = await responsePromise;
@@ -614,7 +614,7 @@ test('guest assistant gives a truthful no-context reply and offers a human hando
   expect(result.reply).toMatch(/^Mình chưa tìm thấy thông tin công khai đã được duyệt/iu);
   expect(result.sources).toEqual([]);
   expect(result.handoffSuggested).toBe(true);
-  await expect(page.locator('.assistant-widget__message--assistant p')).toHaveText(result.reply);
+  await expect(page.locator('.assistant-widget__message--assistant .assistant-markdown')).toContainText(result.reply);
   await expect(page.locator('.assistant-widget__sources')).toHaveCount(0);
   await expect(page.locator('.assistant-widget__link-button')).toBeVisible();
 
@@ -647,7 +647,6 @@ test('guest assistant answers a product price question from the published catalo
     await page.locator('.assistant-widget__launcher').click();
     const form = page.locator('.assistant-widget__form');
     await form.locator('textarea').fill('Hũ trà có giá bao nhiêu?');
-    await form.locator('input[type="checkbox"]').check();
     const responsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/assistant/messages'));
     await form.locator('button[type="submit"]').click();
     const response = await responsePromise;
@@ -663,7 +662,7 @@ test('guest assistant answers a product price question from the published catalo
       href: `/san-pham/${ASSISTANT_PRODUCT.slug}`,
     });
     expect(result.handoffSuggested).toBe(true);
-    await expect(page.locator('.assistant-widget__message--assistant p')).toHaveText(result.reply);
+    await expect(page.locator('.assistant-widget__message--assistant .assistant-markdown')).toContainText(result.reply);
     await expect(page.locator('.assistant-widget__sources').getByRole('link', { name: ASSISTANT_PRODUCT.name }))
       .toHaveAttribute('href', `/san-pham/${ASSISTANT_PRODUCT.slug}`);
     await expect(page.locator('.assistant-widget__link-button')).toBeVisible();
@@ -2638,8 +2637,8 @@ test('customer logout revokes the server session and clears the browser cookie',
   await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
   const logoutResponse = await logoutResponsePromise;
   expect(logoutResponse.status()).toBe(204);
-  await expect(page).toHaveURL(/\/dang-nhap$/u);
-  await expect(page.getByRole('heading', { name: 'Đăng nhập', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect(page.locator('.catalog-header')).toBeVisible();
   expect((await context.cookies()).some((cookie) => cookie.name === sessionCookieName)).toBe(false);
 
   const identityAfterLogout = await browserApi(page, '/api/v1/auth/me');

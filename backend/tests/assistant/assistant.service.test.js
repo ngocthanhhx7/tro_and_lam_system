@@ -4,7 +4,7 @@ import { ASSISTANT_GREETING_REPLY, createAssistantService } from '../../src/assi
 import { createAssistantTranscriptPort } from '../../src/assistant/assistant.ports.js';
 import { MemoryAssistantRepository, GUEST, USER, publishedProduct, publishedStory } from './assistant.test-helpers.js';
 
-function harness({ provider, products, story, config = {}, now = () => new Date('2026-10-06T00:00:00.000Z') } = {}) {
+function harness({ provider, products, story, customerCarePort, config = {}, now = () => new Date('2026-10-06T00:00:00.000Z') } = {}) {
   const repository = new MemoryAssistantRepository();
   const calls = [];
   const productPort = {
@@ -31,6 +31,7 @@ function harness({ provider, products, story, config = {}, now = () => new Date(
     productPort,
     contentPort,
     aiProvider,
+    customerCarePort,
     now,
     config: { aiDailyBudget: 20000, aiTimeoutMs: 100, ...config },
   });
@@ -204,4 +205,58 @@ test('only published stories and server-generated source URLs are returned', asy
   const result = await service.sendMessage({ actor: USER, input: { message: 'products', consent: true } });
   assert.deepEqual(result.sources.map(({ href }) => href), ['/san-pham/safe-product']);
   assert.equal(result.sources.some(({ href }) => href.includes('javascript:')), false);
+});
+
+test('same device shares ten daily turns across login identities and new conversations', async () => {
+  const { service } = harness({ config: { assistantRateLimit: 100 } });
+  const device = 'd'.repeat(64);
+  for (let index = 0; index < 10; index += 1) {
+    const actor = index % 2 ? { ...USER, assistantDeviceHash: device } : { ...GUEST, assistantDeviceHash: device };
+    const result = await service.sendMessage({ actor, input: { message: 'Xin chào' } });
+    assert.equal(result.usage.remaining, 9 - index);
+  }
+  await assert.rejects(service.sendMessage({ actor: { ...USER, assistantDeviceHash: device }, input: { message: 'Xin chào' } }), error => error.code === 'AI_DAILY_LIMIT');
+  const other = await service.sendMessage({ actor: { ...USER, assistantDeviceHash: 'e'.repeat(64) }, input: { message: 'Xin chào' } });
+  assert.equal(other.usage.remaining, 9);
+});
+
+test('own orders and public order progress are handled without sending private data to Gemini', async () => {
+  let providerCalls = 0;
+  let owner;
+  const { service } = harness({
+    provider: { async reply() { providerCalls++; throw new Error('Must not send orders to provider'); } },
+    customerCarePort: {
+      async listOwnOrders(actor) { owner = actor.id; return { items: [{ code: 'TL-LOCAL-01', status: 'delivered', recipientSnapshot: { phone: 'PRIVATE' } }] }; },
+      async getPublicOrderProgress(code) { assert.equal(code, 'TL-LOCAL-01'); return { status: 'shipping', recipientSnapshot: { phone: 'PRIVATE' } }; },
+    },
+  });
+  const own = await service.sendMessage({ actor: USER, input: { message: 'Xem đơn hàng của tôi' } });
+  assert.equal(owner, USER.id);
+  assert.match(own.reply, /Đã giao/u);
+  assert.equal(own.reply.includes('PRIVATE'), false);
+  const progress = await service.sendMessage({ actor: GUEST, input: { message: 'Theo dõi đơn TL-LOCAL-01' } });
+  assert.match(progress.reply, /Đang giao/u);
+  assert.equal(progress.reply.includes('PRIVATE'), false);
+  assert.equal(providerCalls, 0);
+});
+
+test('customer care context only exposes public checkout options and has a usable provider-unavailable fallback', async () => {
+  const { service, calls } = harness({
+    provider: { async reply() { throw new Error('Offline'); } },
+    customerCarePort: { async getCheckoutOptions() { return { checkoutConfigured: true, paymentMethods: ['cod','payos'], shippingZones: [{ id: 'internal', provinceNames: ['Hà Nội'], feeVnd: 12345 }], privateApiKey: 'SECRET' }; } },
+  });
+  const result = await service.sendMessage({ actor: GUEST, input: { message: 'Phí giao hàng và thanh toán thế nào?' } });
+  assert.match(result.reply, /12\.345/u);
+  assert.match(result.reply, /PayOS/u);
+  assert.equal(result.reply.includes('SECRET'), false);
+  assert.equal(calls.some(call => call.operation === 'catalog.search'), false);
+});
+
+test('private order replies are excluded from subsequent Gemini history', async () => {
+  const { service, calls } = harness({ customerCarePort: { async listOwnOrders() { return { items: [{ code: 'TL-PRIVATE-123', status: 'delivered' }] }; } } });
+  const first = await service.sendMessage({ actor: USER, input: { message: 'Đơn hàng của tôi' } });
+  await service.sendMessage({ actor: USER, input: { conversationId: first.conversationId, message: 'Tìm hũ trà' } });
+  const provider = calls.find(call => call.operation === 'provider.reply');
+  assert.deepEqual(provider.input.history, []);
+  assert.equal(JSON.stringify(provider.input).includes('PRIVATE'), false);
 });

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { ServiceError, notFound } from '../utils/serviceError.js';
 import { redactSensitiveText, safeSlug } from './assistant.security.js';
 import { validateAssistantMessage } from './assistant.validators.js';
+import { createMemoryAssistantDailyUsage } from './assistant.usage.js';
 
 const CONVERSATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_HISTORY = 8;
@@ -18,7 +19,7 @@ const CATALOG_QUERY_STOP_WORDS = new Set([
 export const ASSISTANT_UNAVAILABLE_REPLY = 'Trợ lý tự động hiện chưa sẵn sàng. Bạn có thể tiếp tục xem danh mục hoặc yêu cầu nhân viên hỗ trợ.';
 export const ASSISTANT_NO_CONTEXT_REPLY = 'Mình chưa tìm thấy thông tin công khai đã được duyệt cho câu hỏi này. Mình có thể chuyển bạn tới nhân viên hỗ trợ.';
 export const ASSISTANT_RETRIEVAL_REPLY = 'Danh mục và câu chuyện đang tạm thời chưa truy cập được. Bạn có thể thử lại hoặc yêu cầu nhân viên hỗ trợ.';
-export const ASSISTANT_GREETING_REPLY = 'Xin chào! Mình có thể giúp bạn tìm sản phẩm ở Lifestyle Line, Diplomacy Line hoặc đọc những câu chuyện gốm đã công bố. Bạn đang quan tâm điều gì?';
+export const ASSISTANT_GREETING_REPLY = 'Chào bạn, mình là **Men**, tinh linh gốm của TRO & LAM nè! 🌿 Mình có thể giúp bạn chọn gốm, tìm hiểu hoa văn, cách đặt hàng và tra cứu đơn. Hôm nay mình tìm món gốm nào cùng bạn nhỉ?';
 
 function idOf(value) {
   return String(value?._id ?? value?.id ?? value ?? '');
@@ -67,6 +68,13 @@ function catalogSearchQuery(message) {
 }
 
 function catalogFallbackReply(approvedContext) {
+  const care = approvedContext.find(item => item.type === 'customer-care');
+  if (care) {
+    const methods = care.paymentMethods.map(method => method === 'cod' ? 'COD (thanh toán khi nhận hàng)' : 'PayOS (quét QR)').join(' hoặc ');
+    const fees = care.shippingZones.filter(zone => Number.isSafeInteger(zone.feeVnd)).slice(0, 5)
+      .map(zone => `- ${(zone.provinceNames || []).includes('*') ? 'Toàn quốc' : (zone.provinceNames || []).join(', ') || 'Vùng giao hàng được cấu hình'}: **${new Intl.NumberFormat('vi-VN').format(zone.feeVnd)} đ**`).join('\n');
+    return `Men gửi bạn thông tin đang có nhé 🌿\n\n${methods ? `- Thanh toán: **${methods}**.\n` : '- Thanh toán đang chờ cửa hàng cấu hình.\n'}${fees ? `- Phí theo vùng:\n${fees}\n` : ''}- Bạn có thể mua không cần đăng nhập và **nhập mã voucher tại thanh toán**.\n\nPhí cuối cùng và điều kiện mã sẽ được hệ thống kiểm tra theo địa chỉ, giỏ hàng của bạn. Với PayOS, tiếp tục sang trang thanh toán để quét QR nhé.`;
+  }
   const products = approvedContext
     .filter((item) => item?.type === 'product' && typeof item.product?.name === 'string')
     .slice(0, MAX_PRODUCTS)
@@ -202,6 +210,8 @@ export function createAssistantService({
   productPort,
   contentPort,
   aiProvider,
+  customerCarePort,
+  dailyUsage = createMemoryAssistantDailyUsage(),
   usageGuard = makeInMemoryUsageGuard(),
   now = () => new Date(),
   config = {},
@@ -243,12 +253,13 @@ export function createAssistantService({
     return { available: true, products, stories };
   }
 
-  async function appendMessage(conversationId, owner, role, content, at) {
+  async function appendMessage(conversationId, owner, role, content, at, providerVisible = true) {
     const expiresAt = new Date(at.getTime() + ttlMs);
     const updated = await assistantRepository.append(conversationId, owner, {
       role,
       content: boundedText(content, 4000),
       createdAt: at,
+      providerVisible,
     }, { expiresAt, consentAt: at, at });
     if (!updated) throw notFound();
     return updated;
@@ -268,20 +279,49 @@ export function createAssistantService({
       conversation = await assistantRepository.findOwned(request.conversationId, owner, at);
       if (!conversation) throw notFound();
       previousMessages = (conversation.messagesRedacted || []).slice(-MAX_HISTORY)
-        .filter((item) => ['user', 'assistant'].includes(item.role))
+        .filter((item) => item.providerVisible !== false && ['user', 'assistant'].includes(item.role))
         .map((item) => ({ role: item.role, text: boundedText(item.content, 4000) }));
-    } else {
+    }
+    const usage = await dailyUsage.consume(actor?.assistantDeviceHash || ownerKey(owner), at);
+    if (!conversation) {
       conversation = await assistantRepository.create(owner, { expiresAt: new Date(at.getTime() + ttlMs), consentAt: at });
     }
     const conversationId = idOf(conversation);
     if (!/^[a-f\d]{24}$/i.test(conversationId)) throw new ServiceError(503, 'AI_UNAVAILABLE', 'Không thể lưu cuộc trò chuyện an toàn');
 
-    await appendMessage(conversationId, owner, 'user', redactSensitiveText(request.message), at);
+    const orderQuestion = /đơn\s*(hàng)?|theo\s*dõi|giao\s*hàng.*đến/iu.test(request.message);
+    await appendMessage(conversationId, owner, 'user', redactSensitiveText(request.message), at, !orderQuestion);
 
     if (isGreeting(request.message)) {
       const reply = ASSISTANT_GREETING_REPLY;
       await appendMessage(conversationId, owner, 'assistant', reply, dateOf(now()));
-      return { conversationId, reply, sources: [], handoffSuggested: false };
+      return { conversationId, reply, sources: [], handoffSuggested: false, usage };
+    }
+
+    // Account/order information stays on the server: never send it to Gemini.
+    if (orderQuestion) {
+      const labels = { pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', processing: 'Đang xử lý', preparing: 'Đang chuẩn bị', shipping: 'Đang giao', shipped: 'Đang giao', delivered: 'Đã giao', cancelled: 'Đã hủy', returned: 'Đã hoàn trả', return_requested: 'Yêu cầu trả hàng' };
+      const code = request.message.toUpperCase().match(/\bTL-[A-Z0-9-]{4,29}\b/u)?.[0];
+      let reply;
+      let sources = [{ type: 'guide', id: 'order-tracking', title: 'Theo dõi đơn hàng', href: '/tra-cuu-don-hang' }];
+      try {
+        if (code && customerCarePort?.getPublicOrderProgress) {
+          const order = await customerCarePort.getPublicOrderProgress(code);
+          reply = `Mình kiểm tra được rồi nè 📦 Trạng thái hiện tại: **${labels[order.status] || 'Đang cập nhật'}**.\n\nBạn mở trang theo dõi bên dưới để xem tiến trình mới nhất nhé. Đây là trạng thái đơn, chưa phải xác nhận thanh toán.`;
+        } else if (actor?.role === 'customer' && /của\s*(tôi|mình|em)|đơn\s*(hàng)?\s*(tôi|mình)|gần\s*đây/iu.test(request.message) && customerCarePort?.listOwnOrders) {
+          const orders = await customerCarePort.listOwnOrders(actor, { page: 1, limit: 3 });
+          reply = orders.items.length ? `Mình tìm thấy các đơn gần đây của bạn nè 📦\n\n${orders.items.map(order => `- **${order.code}**: ${labels[order.status] || 'Đang cập nhật'}`).join('\n')}\n\nBạn mở Đơn mua để xem chi tiết nhé.` : 'Bạn chưa có đơn hàng nào trong tài khoản này. Mình cùng chọn một món gốm ưng ý nhé? 🌿';
+          sources = [{ type: 'guide', id: 'own-orders', title: 'Đơn mua của tôi', href: '/tai-khoan/don-hang' }];
+        } else if (/tra\s*cứu|theo\s*dõi|đơn\s*(hàng)?\s*(tôi|mình)|của\s*(tôi|mình)/iu.test(request.message)) {
+          reply = 'Bạn gửi **mã đơn bắt đầu bằng TL-** hoặc mở trang Theo dõi đơn hàng bên dưới nhé 📦 Không cần gửi địa chỉ, số điện thoại hay thông tin thanh toán đâu nè.';
+        }
+      } catch (error) {
+        reply = error?.status === 404 ? 'Mình chưa tìm thấy mã đơn này. Bạn kiểm tra lại mã trong email xác nhận, hoặc mở trang theo dõi bên dưới nhé 📦' : 'Mình chưa kiểm tra được đơn lúc này. Bạn mở trang theo dõi hoặc nhờ nhân viên hỗ trợ nhé.';
+      }
+      if (reply) {
+        await appendMessage(conversationId, owner, 'assistant', reply, dateOf(now()), false);
+        return { conversationId, reply, sources, handoffSuggested: false, usage };
+      }
     }
 
     let reply = ASSISTANT_UNAVAILABLE_REPLY;
@@ -289,7 +329,20 @@ export function createAssistantService({
     let providerUsed = false;
     let retrieval;
     try {
-      retrieval = await retrieveApprovedContext(request.message);
+      const careQuestion = /ship|giao\s*hàng|vận\s*chuyển|thanh\s*toán|payos|cod|voucher|đặt\s*hàng|mua\s*hàng/iu.test(request.message);
+      if (careQuestion) {
+        const options = await customerCarePort?.getCheckoutOptions?.();
+        retrieval = { available: true, products: [], stories: [], care: {
+          type: 'customer-care',
+          checkoutConfigured: options?.checkoutConfigured === true,
+          paymentMethods: (options?.paymentMethods || []).filter(method => ['cod', 'payos'].includes(method)),
+          shippingZones: (options?.shippingZones || []).slice(0, 63).map(zone => ({ provinceNames: zone.provinceNames, feeVnd: zone.feeVnd })),
+          instructions: 'Khách có thể mua không cần đăng nhập. Chọn sản phẩm và số lượng ở giỏ, điền địa chỉ và nhập mã voucher tại thanh toán. Ví voucher chỉ dành cho tài khoản đăng nhập. Phí và điều kiện mã được kiểm tra tự động trước khi tạo đơn. Nếu chọn PayOS, tiếp tục tới trang thanh toán để quét QR; chỉ xác nhận thanh toán khi hệ thống đối soát thành công. Không cam kết thời gian giao hay chính sách đổi trả chưa được cung cấp.',
+        } };
+      } else {
+        retrieval = await retrieveApprovedContext(request.message);
+        if (!retrieval.products.length && !retrieval.stories.length && /tư\s*vấn|chọn|gợi\s*ý|quà|bộ\s*sưu\s*tập/iu.test(request.message)) retrieval = await retrieveApprovedContext('');
+      }
     } catch {
       retrieval = null;
     }
@@ -299,6 +352,7 @@ export function createAssistantService({
       const usableProducts = retrieval.products.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
       const usableStories = retrieval.stories.filter((item) => /^[a-f\d]{24}$/i.test(item.id) && safeSlug(item.slug));
       const approvedContext = [...usableProducts, ...usableStories].map((item) => item.context);
+      if (retrieval.care) approvedContext.push(retrieval.care);
       sources = publishedSources(usableProducts, usableStories);
       if (approvedContext.length === 0) {
         reply = ASSISTANT_NO_CONTEXT_REPLY;
@@ -336,6 +390,7 @@ export function createAssistantService({
       reply,
       sources,
       handoffSuggested: shouldSuggestHandoff(request.message, !providerUsed),
+      usage,
     };
   }
 

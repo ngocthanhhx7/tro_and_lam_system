@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import './logout.css';
 
 export default function LogoutButton({ destination = '/', variant = 'public', onSuccess }) {
   const { logout } = useAuth();
-  const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
 
@@ -14,9 +12,12 @@ export default function LogoutButton({ destination = '/', variant = 'public', on
     setPending(true);
     setError('');
     try {
-      await logout();
-      onSuccess?.();
-      navigate(destination, { replace: true });
+      await logout(() => {
+        onSuccess?.();
+        // A fresh document also clears in-memory account/chat state and avoids
+        // a protected route's queued redirect winning over the logout destination.
+        window.location.replace(destination);
+      });
     } catch {
       setError('Chưa thể đăng xuất. Hãy thử lại khi kết nối ổn định.');
     } finally {

@@ -55,9 +55,11 @@ export function AuthProvider({ children }) {
     return () => { live = false; };
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (beforeClear) => {
     await identityApi.logout();
     clearCsrfToken();
+    // Navigate in the same update as clearing auth, before a protected route can redirect.
+    beforeClear?.();
     setUser(null);
     setErrorCode(null);
   }, [setUser]);

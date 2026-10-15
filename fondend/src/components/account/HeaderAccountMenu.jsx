@@ -82,7 +82,7 @@ export default function HeaderAccountMenu() {
       </div>
       <Link className="header-account-menu__item" to="/tai-khoan/don-hang" onClick={closeMenu}>Đơn mua</Link>
       <Link className="header-account-menu__item" to="/tai-khoan/voucher" onClick={closeMenu}>Kho voucher</Link>
-      <div className="header-account-menu__logout"><LogoutButton variant="account-menu" destination="/dang-nhap" onSuccess={closeMenu} /></div>
+      <div className="header-account-menu__logout"><LogoutButton variant="account-menu" destination="/" onSuccess={closeMenu} /></div>
     </div>}
   </div>;
 }

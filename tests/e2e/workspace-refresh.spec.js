@@ -84,8 +84,8 @@ for (const role of ['admin', 'staff']) {
     await context.clearCookies({ name: 'tl_csrf' });
     await page.getByRole('button', { name: 'Mở menu tài khoản', exact: true }).click();
     await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
-    await expect(page).toHaveURL(`${WEB_ORIGIN}/dang-nhap`);
-    await expect(page.getByRole('heading', { name: 'Đăng nhập', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(`${WEB_ORIGIN}/`);
+    await expect(page.locator('.catalog-header')).toBeVisible();
     expect((await page.request.get(`${WEB_ORIGIN}/api/v1/auth/me`)).status()).toBe(401);
     await page.goto(`/${role}`);
     await expect(page).toHaveURL(`${WEB_ORIGIN}/dang-nhap`);

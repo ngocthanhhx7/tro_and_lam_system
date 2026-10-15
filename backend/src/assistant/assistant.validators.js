@@ -14,7 +14,7 @@ export function validateAssistantMessage(value) {
   if (typeof value.message !== 'string') throw invalid('message');
   const message = value.message.normalize('NFKC').trim();
   if (!message || message.length > 5000) throw invalid('message', 'Nội dung cần từ 1 đến 5000 ký tự');
-  if (value.consent !== true) throw invalid('consent', 'Bạn cần đồng ý trước khi gửi câu hỏi');
+  if (value.consent !== undefined && value.consent !== true) throw invalid('consent');
   if (value.conversationId !== undefined
     && (typeof value.conversationId !== 'string' || !CONVERSATION_ID.test(value.conversationId))) {
     throw invalid('conversationId');

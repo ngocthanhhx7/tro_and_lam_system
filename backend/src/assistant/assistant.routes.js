@@ -8,6 +8,7 @@ import { createAssistantRepository } from './assistant.repository.js';
 import { AiConversation } from './assistant.models.js';
 import { createAssistantService } from './assistant.service.js';
 import { validateAssistantMessage } from './assistant.validators.js';
+import { createAssistantDailyUsage } from './assistant.usage.js';
 
 const GUEST_COOKIE_NAME = 'tl_assistant_guest';
 const GUEST_TOKEN = /^[A-Za-z0-9_-]{43}$/u;
@@ -31,7 +32,7 @@ function issueGuestCookie(req, res, { identity, config }) {
     token = randomBytes(32).toString('base64url');
     const apiPath = identity.settings.cookiePath || '/api/v1';
     const path = config.assistantGuestCookiePath || `${apiPath.replace(/\/$/u, '')}/assistant`;
-    const maxAge = Math.floor((config.aiConversationTtlMs || 30 * 24 * 60 * 60 * 1000) / 1000);
+    const maxAge = 365 * 24 * 60 * 60;
     appendSetCookie(res, serializeCookie(cookieName, token, {
       httpOnly: true,
       secure: identity.settings.secureCookies,
@@ -55,6 +56,7 @@ export function createAssistantRouter({ ports = {}, config = {} } = {}) {
     throw new TypeError('P10 router requires P02 CSRF and optional session authentication');
   }
   const assistantRepository = ports.assistantRepository || createAssistantRepository({ Conversation: ports.models?.AiConversation || AiConversation });
+  const dailyUsage = ports.assistantDailyUsage || createAssistantDailyUsage();
   const provider = Object.hasOwn(ports, 'aiProvider')
     ? ports.aiProvider
     : createGeminiProvider({
@@ -69,18 +71,27 @@ export function createAssistantRouter({ ports = {}, config = {} } = {}) {
     contentPort: ports.publishedContentPort,
     aiProvider: provider,
     usageGuard: ports.assistantUsageGuard,
+    dailyUsage,
+    customerCarePort: ports.customerCarePort,
     now: ports.now,
     config,
   });
   const router = express.Router();
 
+  router.get('/assistant/usage', asyncRoute(async (req, res) => {
+    const deviceHash = issueGuestCookie(req, res, { identity, config });
+    res.set('Cache-Control', 'no-store');
+    return sendSuccess(res, await dailyUsage.get(deviceHash, ports.now?.() || new Date()));
+  }));
+
   router.post('/assistant/messages', identity.csrfProtection, optionalPrincipal(identity), asyncRoute(async (req, res) => {
     const input = validateAssistantMessage(req.body);
-    const actor = req.actor || {
+    const deviceHash = issueGuestCookie(req, res, { identity, config });
+    const actor = { ...(req.actor || {
       kind: 'guest',
       role: 'guest',
-      assistantGuestHash: issueGuestCookie(req, res, { identity, config }),
-    };
+      assistantGuestHash: deviceHash,
+    }), assistantDeviceHash: deviceHash };
     res.set('Cache-Control', 'no-store');
     return sendSuccess(res, await service.sendMessage({ actor, input }));
   }));

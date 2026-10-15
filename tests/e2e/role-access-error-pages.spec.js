@@ -8,7 +8,7 @@ async function login(page, user) {
   await page.getByLabel('Email', { exact: true }).fill(user.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page).toHaveURL(`${WEB_ORIGIN}${user.role === 'customer' ? '/tai-khoan' : `/${user.role}`}`);
+  await expect(page).toHaveURL(`${WEB_ORIGIN}${user.role === 'customer' ? '/' : `/${user.role}`}`);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
 

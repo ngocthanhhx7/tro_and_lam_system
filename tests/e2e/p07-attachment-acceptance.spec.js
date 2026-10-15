@@ -39,7 +39,8 @@ async function login(page, user) {
   await page.getByLabel('Email', { exact: true }).fill(user.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(P07_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page.getByRole('heading', { name: user.role === 'customer' ? 'Tài khoản của tôi' : 'Bảng công việc', level: 1, exact: true })).toBeVisible();
+  if (user.role === 'customer') await expect(page).toHaveURL(/\/$/u);
+  else await expect(page.getByRole('heading', { name: 'Bảng công việc', level: 1, exact: true })).toBeVisible();
 }
 
 async function withP07Database(callback) {

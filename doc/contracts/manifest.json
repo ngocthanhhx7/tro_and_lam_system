@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.8.0",
+  "contractVersion": "1.9.0",
   "createdAt": "2026-10-06",
   "baselineCommit": "48e4b3bc8914dd17233ec16fb24976f0c4728500",
   "sourceCommit": "cb4aee630d954667f25d86825db8cd5dcf9db6b8",
@@ -32,7 +32,8 @@
     "DEC-31",
     "DEC-33",
     "DEC-34",
-    "DEC-35"
+    "DEC-35",
+    "DEC-36"
   ],
   "amendments": [
     {
@@ -312,6 +313,22 @@
         "admin API clients"
       ],
       "migration": "None; the cooldown timestamp uses the existing identity guard collection and reset challenges use the existing auth challenge collection."
+    },
+    {
+      "id": "DEC-36",
+      "date": "2026-10-15",
+      "reason": "Owner requested mascot assistant, no main message consent checkbox, ten questions per device per day, safe rich replies, and role-specific login/home logout.",
+      "changes": [
+        "AssistantMessage requires only message; legacy consent=true remains accepted. GET /assistant/usage is device-only and no-store.",
+        "Atomic ai_daily_usage counts ten questions per Vietnam calendar day using a random HttpOnly browser cookie, independent of user and conversation. Deleting cookies or using another browser creates another device.",
+        "Only public catalog/story and checkout options go to Gemini. Own orders and public code-only progress are read by existing commerce ports, handled locally without forwarding order or recipient data to Gemini."
+      ],
+      "consumers": [
+        "P10",
+        "identity navigation",
+        "assistant frontend"
+      ],
+      "migration": "Create ai_daily_usage expiry TTL index. Retain existing conversations and original mascot source assets."
     }
   ],
   "validation": {
@@ -319,8 +336,8 @@
     "runtime": "Node 24.21.0",
     "result": {
       "openapiVersion": "3.1.0",
-      "paths": 113,
-      "operations": 133,
+      "paths": 114,
+      "operations": 134,
       "dtoSchemas": 67,
       "enums": 25,
       "dtoFixtures": 30

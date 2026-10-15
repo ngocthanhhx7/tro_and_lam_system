@@ -41,7 +41,8 @@ async function login(page) {
   await page.getByLabel('Email', { exact: true }).fill(P03_BROWSER_CUSTOMER.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect(page.locator('.catalog-header')).toBeVisible();
 }
 
 test.beforeAll(async () => {

@@ -91,7 +91,7 @@ export default function AdminLayout({ children }) {
           {accountOpen && <div id="workspace-account-panel" className="admin-layout__account-panel" aria-label="Menu tài khoản">
             <strong>Trung tâm tài khoản</strong><small>{user?.email}</small>
             <Link to={`${home}/account/profile`} onClick={closeMenus}><Icon name="user" size={17} />Hồ sơ</Link><Link to={`${home}/account/password`} onClick={closeMenus}><Icon name="lock" size={17} />Đổi mật khẩu</Link>
-            <LogoutButton variant="account-menu" destination="/dang-nhap" onSuccess={closeMenus} />
+            <LogoutButton variant="account-menu" destination="/" onSuccess={closeMenus} />
           </div>}
         </div>
       </header>

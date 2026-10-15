@@ -264,6 +264,11 @@ export async function createDomainComposition(env) {
       identityMiddleware: identity,
       catalogPort: catalogService,
       publishedContentPort,
+      customerCarePort: {
+        getCheckoutOptions: () => commerceService.getCheckoutOptions(),
+        getPublicOrderProgress: code => commerceService.getPublicOrderProgress(code),
+        listOwnOrders: (actor, filters) => commerceService.listOwnOrders(actor, filters),
+      },
     },
     config,
   });

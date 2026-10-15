@@ -71,7 +71,7 @@ export default function BlockedAppealPage() {
   async function logout() {
     try {
       await run(() => identityApi.logout());
-      navigate('/dang-nhap', { replace: true });
+      navigate('/', { replace: true });
     } catch { /* The request hook retains the error for the form. */ }
   }
 

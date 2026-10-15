@@ -14,7 +14,7 @@ export default function IdentityRouteGuard({ roles, children, hideWorkspaceSessi
     {workspaceHome && !hideWorkspaceSession && <div className="identity-workspace-session" role="group" aria-label="Phiên làm việc">
       <Link className="identity-workspace-session__home" to={workspaceHome}>{user.role === 'admin' ? 'TRO & LAM · Quản trị' : 'TRO & LAM · Vận hành'}</Link>
       <span className="identity-workspace-session__user">{user.name}</span>
-      <LogoutButton variant="workspace" destination="/dang-nhap" />
+      <LogoutButton variant="workspace" destination="/" />
     </div>}
     {children}
   </>;
