@@ -1,3 +1,5 @@
+import { beginStartupRequest } from '../utils/startupLoader.js';
+
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -58,6 +60,15 @@ export function clearCsrfToken() {
 }
 
 export async function requestJson(path, options = {}) {
+  const complete = beginStartupRequest();
+  try {
+    return await sendRequestJson(path, options);
+  } finally {
+    complete();
+  }
+}
+
+async function sendRequestJson(path, options = {}) {
   const { signal, headers: inputHeaders, body: inputBody, ...rest } = options;
   const method = (rest.method || 'GET').toUpperCase();
   const headers = new Headers(inputHeaders);

@@ -86,8 +86,12 @@ export default function NotificationsPage() {
         <div><p className="operations-eyebrow">Tài khoản</p><h1>Thông báo</h1><p>Chỉ bạn có thể xem và cập nhật trạng thái đã đọc.</p></div>
         <button type="button" className="operations-button operations-button--quiet" onClick={markAllRead} disabled={loading || !items.some((item) => !item.readAt)}>Đánh dấu tất cả đã đọc</button>
       </header>
-      <div className="operations-toolbar">
-        <div className="notification-category-tabs" role="group" aria-label="Nhóm thông báo">{categories.map((item) => <button key={item.value || 'all'} type="button" className={category === item.value ? 'is-active' : ''} aria-pressed={category === item.value} onClick={() => { setCategory(item.value); setPage(1); }}>{item.label}</button>)}</div>
+      <div className="operations-toolbar notification-toolbar">
+        <label className="notification-category-filter">Loại thông báo
+          <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}>
+            {categories.map((item) => <option key={item.value || 'all'} value={item.value}>{item.label}</option>)}
+          </select>
+        </label>
         <label><input type="checkbox" checked={unreadOnly} onChange={(event) => { setUnreadOnly(event.target.checked); setPage(1); }} /> Chỉ hiện chưa đọc</label>
         <button type="button" className="operations-button operations-button--quiet" onClick={() => load(page, unreadOnly, category)} disabled={loading}>Làm mới</button>
       </div>

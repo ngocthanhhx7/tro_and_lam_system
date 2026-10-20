@@ -15,12 +15,13 @@ const products = [
   { src: '/assets/editorial/about-marquee/ceramic-plate.webp', alt: 'Đĩa gốm trang trí hoa lam trong không gian ánh vàng', label: 'Đĩa gốm' },
   { src: '/assets/editorial/about-marquee/tea-jar.webp', alt: 'Hộp trà gốm với họa tiết chim Lạc trong không gian ánh vàng', label: 'Hộp trà gốm' },
 ];
+const marqueeProducts = [...products, products[0]];
 
 function ProductGroup({ decorative = false }) {
   return (
     <div className="about-product-marquee__group" aria-hidden={decorative || undefined}>
-      {products.map((product) => (
-        <figure className="about-product-marquee__card" key={product.src}>
+      {marqueeProducts.map((product, index) => (
+        <figure className="about-product-marquee__card" key={`${product.src}-${index}`}>
           <img src={product.src} alt={decorative ? '' : product.alt} loading="lazy" decoding="async" />
           <figcaption>{product.label}</figcaption>
         </figure>

@@ -35,7 +35,6 @@ export default function CatalogHomePage() {
       <div className="atelier-hero__bottom"><span>NẾP GỐM XƯA. NHỊP SỐNG MỚI.</span><a href="#loi-ngo">Chậm lại để cảm nhận <Icon name="chevron" size={16} /></a></div>
     </section>
     <section className="collection-story home-product-line atelier-section" id="loi-ngo" aria-labelledby="home-lifestyle-title">
-      <ProductLineSlideshow slides={lifestyleSlides} label="Lifestyle" />
       <div className="collection-story__copy">
         <p className="eyebrow">DÒNG SẢN PHẨM LIFESTYLE</p>
         <h2 id="home-lifestyle-title">Lifestyle – Tinh hoa gốm Việt trong cuộc sống</h2>
@@ -44,6 +43,7 @@ export default function CatalogHomePage() {
         <p className="home-product-line__motto"><strong>Tinh tế trong thiết kế – Bền đẹp trong sử dụng – Đậm đà bản sắc Việt.</strong></p>
         <Link className="text-link" to="/bo-suu-tap/lifestyle">Khám phá Lifestyle <Icon name="arrow" size={18} /></Link>
       </div>
+      <ProductLineSlideshow slides={lifestyleSlides} label="Lifestyle" />
       <div className="home-product-line__highlights" aria-labelledby="home-lifestyle-products">
         <h3 id="home-lifestyle-products">Các sản phẩm tiêu biểu</h3>
         <ol className="home-product-line__products">
@@ -64,7 +64,6 @@ export default function CatalogHomePage() {
       </div>
     </section>
     <section className="collection-story collection-story--reverse home-product-line atelier-section" aria-labelledby="home-diplomacy-title">
-      <ProductLineSlideshow slides={diplomacySlides} label="Diplomacy" />
       <div className="collection-story__copy">
         <p className="eyebrow">DÒNG SẢN PHẨM DIPLOMACY</p>
         <h2 id="home-diplomacy-title">Diplomacy – Tinh hoa gốm sứ Việt Nam</h2>
@@ -72,6 +71,7 @@ export default function CatalogHomePage() {
         <p>Không chỉ mang giá trị nghệ thuật và lịch sử, từng họa tiết trên sản phẩm còn gửi gắm những thông điệp ý nghĩa về <strong>phú quý, thịnh vượng, thành công, hạnh phúc và sự hòa hợp</strong>. Đây là dòng sản phẩm gốm sứ cao cấp, tôn vinh tinh hoa văn hóa Việt và thích hợp làm quà tặng trang trọng.</p>
         <Link className="text-link" to="/bo-suu-tap/diplomacy">Khám phá Diplomacy <Icon name="arrow" size={18} /></Link>
       </div>
+      <ProductLineSlideshow slides={diplomacySlides} label="Diplomacy" />
       <div className="home-product-line__highlights" aria-labelledby="home-diplomacy-products">
         <h3 id="home-diplomacy-products">Các sản phẩm tiêu biểu</h3>
         <ol className="home-product-line__products">

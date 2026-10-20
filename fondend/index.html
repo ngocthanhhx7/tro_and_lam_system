@@ -16,9 +16,20 @@
     <meta name="twitter:title" content="Gốm Chu Đậu | TRO & LAM" />
     <meta name="twitter:description" content="Khám phá các gợi ý gốm Chu Đậu cho không gian sống và dịp trao tặng." />
     <title>TRO & LAM</title>
+    <link rel="stylesheet" href="/src/styles/startup-loader.css" />
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="site-is-loading">
+    <div id="startup-loader" class="startup-loader" role="status" aria-live="polite" aria-label="TRO & LAM đang tải nội dung">
+      <div class="startup-loader__content">
+        <img class="startup-loader__logo" src="/images/logo/brand-160.webp" alt="" width="88" height="88" fetchpriority="high" />
+        <p class="startup-loader__name">TRO &amp; LAM</p>
+        <p class="startup-loader__origin">GỐM CHU ĐẬU</p>
+        <div class="startup-loader__track" aria-hidden="true"><span></span></div>
+        <p class="startup-loader__tagline">GIỮ NÉT XƯA. CHẠM HÔM NAY.</p>
+        <span class="startup-loader__status">Welcom to website of Tro &amp; Lam</span>
+      </div>
+    </div>
+    <div id="root" inert aria-busy="true"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

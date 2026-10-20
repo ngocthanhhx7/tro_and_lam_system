@@ -19,7 +19,10 @@ const sections = [
   ] },
   { name: 'today', host: '.story-brand__today', items: [
     { pane: '.story-brand__today-copy', motif: 'birdBlossoms', max: 560, opacity: .17 },
-    { pane: '.story-brand__steps li:last-child', motif: 'riverLotus', max: 190, opacity: .12 },
+    { pane: '.story-brand__steps li:nth-child(1)', motif: 'drum', max: 190, opacity: .12, fitPane: true },
+    { pane: '.story-brand__steps li:nth-child(2)', motif: 'lotus', max: 190, opacity: .12, fitPane: true },
+    { pane: '.story-brand__steps li:nth-child(3)', motif: 'bamboo', max: 190, opacity: .12, fitPane: true },
+    { pane: '.story-brand__steps li:last-child', motif: 'riverLotus', max: 190, opacity: .12, fitPane: true },
   ] },
   { name: 'mission', host: '.story-brand__mission', items: [
     { pane: '.story-brand__mission-card--mission .story-brand__mission-copy', motif: 'bamboo', max: 280, opacity: .055 },
@@ -57,7 +60,7 @@ function measureDecorations() {
       const element = item.pane === section.host ? host : host.querySelector(item.pane);
       if (!element) continue;
       const pane = relative(element);
-      const maximum = Math.min(item.max * scale, pane.w * .96, pane.h + (mobile ? 0 : 160), bounds.width - 24, bounds.height - 24);
+      const maximum = Math.min(item.max * scale, pane.w * .96, pane.h + (mobile || item.fitPane ? 0 : 160), bounds.width - 24, bounds.height - 24);
       // Fit a complete square image in the section; never crop it or cover a photo.
       for (const factor of [1, .94, .88, .8, .7, .6, .5]) {
         const size = maximum * factor;

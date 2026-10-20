@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import Icon from './Icon.jsx';
 import './quick-contact.css';
 
@@ -32,7 +33,13 @@ function ContactIcon({ name }) {
   return <Icon name={name} size={22} />;
 }
 
+function subscribeToScroll(onChange) {
+  window.addEventListener('scroll', onChange, { passive: true });
+  return () => window.removeEventListener('scroll', onChange);
+}
+
 export function QuickContactLinks() {
+  const hasScrolled = useSyncExternalStore(subscribeToScroll, () => window.scrollY > 0, () => false);
   return (
     <nav className="quick-contact" aria-label="Liên hệ nhanh">
       {quickContacts.map((contact) => (
@@ -48,11 +55,11 @@ export function QuickContactLinks() {
           <span className="quick-contact__label" aria-hidden="true">{contact.label}</span>
         </a>
       ))}
-      <button className="quick-contact__link quick-contact__link--top" type="button" aria-label="Lên đầu trang"
+      {hasScrolled && <button className="quick-contact__link quick-contact__link--top" type="button" aria-label="Lên đầu trang"
         onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>
         <span className="quick-contact__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6M12 8v12" /></svg></span>
         <span className="quick-contact__label" aria-hidden="true">Lên đầu trang</span>
-      </button>
+      </button>}
     </nav>
   );
 }

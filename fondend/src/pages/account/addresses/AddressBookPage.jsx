@@ -41,8 +41,6 @@ export default function AddressBookPage() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [notice, setNotice] = useState('');
-  const [geoBusy, setGeoBusy] = useState(false);
-  const [geoError, setGeoError] = useState('');
   const [keepLocation, setKeepLocation] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState(null);
 
@@ -82,7 +80,6 @@ export default function AddressBookPage() {
     setForm({ ...EMPTY_FORM });
     setCapturedLocation(null);
     setKeepLocation(false);
-    setGeoError('');
   }
 
   function editAddress(address) {
@@ -90,55 +87,8 @@ export default function AddressBookPage() {
     setForm(addressForm(address));
     setCapturedLocation(address.location || null);
     setKeepLocation(Boolean(address.location));
-    setGeoError('');
     setNotice('');
     document.getElementById('address-form-title')?.focus();
-  }
-
-  async function suggestAddress() {
-    setGeoError('');
-    setNotice('');
-    if (!navigator.geolocation) {
-      setGeoError('Thiết bị này không hỗ trợ định vị. Bạn có thể điền địa chỉ bên dưới.');
-      return;
-    }
-    if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-      setGeoError('Định vị cần kết nối HTTPS. Bạn vẫn có thể nhập địa chỉ thủ công.');
-      return;
-    }
-    setGeoBusy(true);
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const location = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracyMeters: position.coords.accuracy,
-        capturedAt: new Date(position.timestamp || Date.now()).toISOString(),
-        source: 'browser',
-      };
-      setCapturedLocation(location);
-      try {
-        const response = await accountApi.reverseGeocode({ lat: location.lat, lng: location.lng });
-        const suggestion = response.data.suggestedAddress;
-        setForm((current) => ({
-          ...current,
-          ...suggestion,
-          countryCode: 'VN',
-        }));
-        setNotice('Địa chỉ gợi ý đã được điền. Hãy kiểm tra số nhà, người nhận và số điện thoại trước khi lưu.');
-      } catch (geoRequestError) {
-        setGeoError(messageFor(geoRequestError));
-      } finally {
-        setGeoBusy(false);
-      }
-    }, (geoPositionError) => {
-      const text = geoPositionError.code === geoPositionError.PERMISSION_DENIED
-        ? 'Bạn đã từ chối quyền vị trí. Hãy nhập địa chỉ thủ công bên dưới.'
-        : geoPositionError.code === geoPositionError.TIMEOUT
-          ? 'Thiết bị chưa trả vị trí kịp thời. Hãy thử lại hoặc nhập địa chỉ thủ công.'
-          : 'Không lấy được vị trí hiện tại. Hãy nhập địa chỉ thủ công.';
-      setGeoError(text);
-      setGeoBusy(false);
-    }, { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 });
   }
 
   async function submit(event) {
@@ -225,11 +175,6 @@ export default function AddressBookPage() {
       <section className="address-card" aria-labelledby="address-form-title">
         <h2 id="address-form-title" tabIndex="-1">{editingId ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới'}</h2>
         <p className="address-card__hint">Các trường có dấu * cần được điền để giao hàng.</p>
-        <button className="address-button address-button--soft" type="button" onClick={suggestAddress} disabled={geoBusy}>
-          {geoBusy ? 'Đang lấy gợi ý…' : 'Dùng vị trí hiện tại'}
-        </button>
-        <p className="address-card__hint">Chỉ lấy vị trí sau khi bạn bấm nút và cho phép định vị. Tọa độ được làm tròn tới khoảng 100 m rồi gửi tới Photon để gợi ý địa chỉ. Hãy kiểm tra lại số nhà và tên đường; bạn luôn có thể nhập tay.</p>
-        {geoError && <p className="address-alert address-alert--error" role="status">{geoError}</p>}
         <form className="address-form" onSubmit={submit}>
           <AddressField label="Tên gợi nhớ" name="label" value={form.label} onChange={updateField} maxLength={80} error={fieldErrors.label} />
           <AddressField label="Người nhận" name="recipientName" value={form.recipientName} onChange={updateField} required autoComplete="name" maxLength={100} error={fieldErrors.recipientName} />
@@ -253,7 +198,7 @@ export default function AddressBookPage() {
           </label>
           {notice && <p className="address-alert address-alert--success" role="status">{notice}</p>}
           <div className="address-form__actions">
-            <button className="address-button" type="submit" disabled={saving || geoBusy}>{saving ? 'Đang lưu…' : 'Lưu địa chỉ'}</button>
+            <button className="address-button" type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu địa chỉ'}</button>
             {editingId && <button className="address-button address-button--soft" type="button" onClick={resetForm} disabled={saving}>Hủy chỉnh sửa</button>}
           </div>
         </form>

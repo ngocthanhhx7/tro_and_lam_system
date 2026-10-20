@@ -23,8 +23,6 @@
 .header-search-panel .site-search { width: min(100%, 720px); margin: auto; }
 .site-search button { display: grid; place-items: center; }
 .mobile-menu { background: #fcfaf4; }
-.mobile-collections { padding: 0 0 12px 16px; }
-.mobile-menu .mobile-collections a { font-size: 12px; min-height: 42px; color: var(--text-secondary); border: 0; }
 .mobile-menu nav .active { color: #765c2e; }
 .menu-signoff { margin-top: 35px; font-family: var(--font-heading); color: var(--text-secondary); }
 .public-site h1, .public-site h2, .public-site h3 { letter-spacing: -.035em; }

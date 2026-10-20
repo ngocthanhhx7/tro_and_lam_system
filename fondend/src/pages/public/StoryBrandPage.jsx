@@ -83,7 +83,7 @@ export default function StoryBrandPage() {
       <div className="story-brand__hero-grid">
         <div className="story-brand__hero-copy">
           <p className="eyebrow">CÂU CHUYỆN TRO &amp; LAM</p>
-          <h1 id="story-brand-title">Từ đất Việt,<br />một câu chuyện<br />được kể bằng gốm.</h1>
+          <h1 id="story-brand-title">Từ đất Việt, một câu chuyện được kể bằng gốm.</h1>
           <p>Tro &amp; Lam được hình thành từ tình yêu với quê hương và mong muốn đưa giá trị của gốm Chu Đậu đến gần hơn với đời sống hiện đại.</p>
           <p>Phía sau mỗi nét men, hoa văn và dáng gốm là câu chuyện về đất, con người và văn hóa Việt Nam.</p>
         </div>
@@ -107,7 +107,7 @@ export default function StoryBrandPage() {
           <p className="eyebrow">01 — KHỞI NGUỒN</p>
           <h2 id="story-origin-title">Từ một miền đất,<br />đến một niềm tự hào.</h2>
           <p>Phong lớn lên ở Nam Sách, Hải Dương, trong những câu chuyện về quê hương và làng nghề gốm Chu Đậu. Càng tìm hiểu về gốm, anh càng nhận ra phía sau nét men, hoa văn và dáng gốm là những câu chuyện về đất, con người và kỹ nghệ thủ công.</p>
-          <p>Từ niềm tự hào ấy, Tro &amp; Lam được hình thành với mong muốn để gốm Chu Đậu không chỉ được ngắm nhìn như một sản phẩm truyền thống, mà còn hiện diện trong đời sống hiện đại.</p>
+          <p>Từ niềm tự hào ấy, Tro &  Lam được hình thành với mong muốn để gốm Chu Đậu không chỉ được ngắm nhìn như một sản phẩm truyền thống, mà còn hiện diện trong đời sống hiện đại.</p>
           <blockquote>Một di sản chỉ thực sự sống khi nó tiếp tục được biết đến, được yêu thích và được kể lại bằng những cách mới.</blockquote>
         </div>
       </div>

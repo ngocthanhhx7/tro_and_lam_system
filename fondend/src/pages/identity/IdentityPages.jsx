@@ -4,10 +4,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { identityApi } from '../../services/identity/identity.api.js';
 import { useAuth } from '../../contexts/auth.context.js';
 import { useIdentityRequest } from '../../hooks/identity/useIdentityRequest.js';
+import EditorialPageMotif from '../../components/catalog/EditorialPageMotif.jsx';
 import './identity.css';
 
-function Frame({ title, description, children }) {
-  return <section className="identity-page"><div className="identity-card"><p className="identity-eyebrow">TRO &amp; LAM · TÀI KHOẢN</p><h1>{title}</h1>{description && <p className="identity-description">{description}</p>}{children}</div></section>;
+function Frame({ title, description, children, motif }) {
+  return <section className="identity-page"><div className={`identity-card${motif ? ' identity-card--ornamented' : ''}`} data-identity-motif={motif}>{motif && <EditorialPageMotif motif={motif} opacity={.12} align="right" />}<p className="identity-eyebrow">TRO &amp; LAM · TÀI KHOẢN</p><h1>{title}</h1>{description && <p className="identity-description">{description}</p>}{children}</div></section>;
 }
 
 function Feedback({ error, success }) {
@@ -44,7 +45,7 @@ export function LoginPage() {
       }
     }
   }
-  return <Frame title="Đăng nhập" description={emailVerified ? 'Email đã được xác minh. Đăng nhập để tiếp tục.' : 'Sử dụng tài khoản đã xác minh để tiếp tục.'}>
+  return <Frame title="Đăng nhập" motif="pavilion" description={emailVerified ? 'Email đã được xác minh. Đăng nhập để tiếp tục.' : 'Sử dụng tài khoản đã xác minh để tiếp tục.'}>
     <form className="identity-form" onSubmit={submit}>
       <Field label="Email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" maxLength={254} />
       <Field label="Mật khẩu" name="password" type="password" value={form.password} onChange={update} autoComplete="current-password" maxLength={128} />
@@ -73,7 +74,7 @@ export function RegisterPage() {
       setForm((current) => ({ ...current, password: '', confirmPassword: '' }));
     } catch { /* The request hook retains the error for the form. */ }
   }
-  return <Frame title="Tạo tài khoản" description="Tài khoản mới bắt đầu với quyền khách hàng. Email cần được xác minh trước khi đăng nhập.">
+  return <Frame title="Tạo tài khoản" motif="lotus" description="Tài khoản mới bắt đầu với quyền khách hàng. Email cần được xác minh trước khi đăng nhập.">
     <form className="identity-form" onSubmit={submit}>
       <Field label="Họ và tên" name="name" value={form.name} onChange={update} autoComplete="name" maxLength={120} />
       <Field label="Email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" maxLength={254} />

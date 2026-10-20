@@ -30,13 +30,14 @@ export default function CoreValuesShowcase({ values }) {
               aria-label={`Xem giá trị ${value.vietnamese}`}
               aria-pressed={selected === index}
               aria-controls="story-value-detail"
+              onPointerEnter={(event) => { if (event.pointerType === 'mouse') setSelected(index); }}
+              onFocus={() => setSelected(index)}
               onClick={() => setSelected(index)}
             >
               <span className="core-values__number">{value.number}</span>
               <img className="core-values__thumbnail" src={valueImages[index].src} alt="" width="1122" height="1402" loading="lazy" decoding="async" />
               <span className="core-values__choice-copy">
                 <strong>{value.vietnamese}</strong>
-                <span>{value.name}</span>
               </span>
               <span className="core-values__arrow"><Icon name="arrow" size={18} /></span>
             </button>
@@ -46,7 +47,6 @@ export default function CoreValuesShowcase({ values }) {
           <img key={image.src} className="core-values__detail-image" src={image.src} alt={image.alt} width="1122" height="1402" decoding="async" />
           <div className="core-values__shade" aria-hidden="true" />
           <div key={active.number} className="core-values__caption">
-            <span className="core-values__english">{active.name}</span>
             <div className="core-values__detail-heading">
               <h3 id="story-value-detail-title">{active.vietnamese}</h3>
               <span aria-hidden="true">{active.number}</span>

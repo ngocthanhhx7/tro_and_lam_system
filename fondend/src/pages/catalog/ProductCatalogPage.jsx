@@ -45,6 +45,7 @@ function readFilters(params, forcedLine) {
 
 function CatalogFilterForm({ filters, categories, forcedLine, onApply, onReset }) {
   const [draft, setDraft] = useState(filters);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   function submitFilters(event) {
     event.preventDefault();
@@ -56,8 +57,14 @@ function CatalogFilterForm({ filters, categories, forcedLine, onApply, onReset }
   }
 
   return <aside className="filter-panel" aria-label="Lọc sản phẩm">
-    <div className="filter-panel__heading"><h2>Lọc danh mục</h2><button className="text-link" type="button" onClick={onReset}>Xóa lọc</button></div>
-    <form className="catalog-filters" onSubmit={submitFilters}>
+    <div className="filter-panel__heading">
+      <h2>Lọc danh mục</h2>
+      <button className="filter-panel__toggle" type="button" aria-expanded={mobileOpen} aria-controls="catalog-filters" onClick={() => setMobileOpen((open) => !open)}>
+        <span>Bộ lọc sản phẩm</span><span aria-hidden="true">{mobileOpen ? '−' : '+'}</span>
+      </button>
+      <button className="text-link" type="button" onClick={onReset}>Xóa lọc</button>
+    </div>
+    <form id="catalog-filters" className={`catalog-filters${mobileOpen ? ' is-open' : ''}`} onSubmit={submitFilters}>
       <label>Tìm theo tên hoặc nội dung<input type="search" name="q" maxLength="120" value={draft.q} onChange={(event) => setDraft({ ...draft, q: event.target.value })} placeholder="Nhập từ khóa" /></label>
       <label>Dòng sản phẩm<select name="line" value={forcedLine || draft.line} disabled={Boolean(forcedLine)} onChange={(event) => setDraft({ ...draft, line: event.target.value })}><option value="">Tất cả dòng</option><option value="lifestyle">Lifestyle Line</option><option value="diplomacy">Diplomacy Line</option></select></label>
       <label>Danh mục<select name="category" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">Tất cả danh mục</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
@@ -130,12 +137,10 @@ export default function ProductCatalogPage({ showIntro = true } = {}) {
         <figure><img src={lineIntroductions[forcedLine].image} alt={lineIntroductions[forcedLine].alt} loading="eager" width="896" height="1152" /><small className="collection-story__disclosure">{lineIntroductions[forcedLine].disclosure}</small><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
       </div>
       <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2><p className="product-line-intro__note">Đây là gợi ý phong cách. Tên mẫu, SKU, nguồn cung và giá cần được xác nhận khi tư vấn.</p></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
-      <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle" aria-current={forcedLine === 'lifestyle' ? 'page' : undefined}>Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy" aria-current={forcedLine === 'diplomacy' ? 'page' : undefined}>Diplomacy · Gốm trao tặng</Link></nav>
     </section> : <section className="catalog-page__intro">
       <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>
       <h1>{pageTitle}</h1>
       <p>Tìm một món gốm cho không gian của bạn, hay một món quà cho người bạn trân quý.</p>
-      <nav className="collection-tabs" aria-label="Dòng sản phẩm"><Link to="/san-pham" aria-current="page">Tất cả sản phẩm</Link><Link to="/bo-suu-tap/lifestyle">Lifestyle · Gốm trong đời sống</Link><Link to="/bo-suu-tap/diplomacy">Diplomacy · Gốm trao tặng</Link></nav>
     </section>)}
     <div className="catalog-layout">
       <CatalogFilterForm key={routeKey} filters={filters} categories={categories} forcedLine={forcedLine} onApply={setQuery} onReset={resetFilters} />

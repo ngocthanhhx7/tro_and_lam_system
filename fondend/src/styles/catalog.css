@@ -280,6 +280,7 @@
 .filter-panel__heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
 .filter-panel__heading h2 { margin: 0; color: var(--brand-deep-blue); font-family: var(--font-heading); font-size: 1.22rem; font-weight: 400; }
 .filter-panel__heading .text-link { border: 0; background: transparent; font-size: 0.72rem; cursor: pointer; }
+.filter-panel__toggle { display: none; }
 .catalog-filters { display: grid; gap: 17px; padding-top: 18px; }
 .catalog-filters label,
 .catalog-form > label,
@@ -502,12 +503,23 @@
   .catalog-page__intro { margin: 26px 0 28px; }
   .catalog-page__intro h1 { font-size: 2.55rem; }
   .catalog-layout { grid-template-columns: 1fr; }
-  .filter-panel { position: static; padding: 16px; }
-  .catalog-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .filter-panel { position: static; padding: 8px 12px; }
+  .filter-panel__heading { min-height: 40px; padding-bottom: 0; border-bottom: 0; }
+  .filter-panel__heading h2 { display: none; }
+  .filter-panel__toggle { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 14px; padding: 0; border: 0; color: var(--brand-deep-blue); background: transparent; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+  .filter-panel__toggle span:last-child { color: var(--brand-blue); font-size: 1.15rem; font-weight: 400; }
+  .filter-panel__heading .text-link { padding: 8px 0; }
+  .catalog-filters { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 10px; padding-top: 10px; }
+  .catalog-filters.is-open { display: grid; }
   .catalog-filters > label:first-child,
   .catalog-filters fieldset,
   .catalog-filters > label:nth-last-of-type(2),
   .filter-panel__submit { grid-column: 1 / -1; }
+  .catalog-filters label,
+  .catalog-filters legend { gap: 4px; font-size: 0.69rem; }
+  .catalog-filters input,
+  .catalog-filters select { min-height: 38px; padding: 8px; font-size: 0.76rem; }
+  .catalog-filters .filter-panel__submit { min-height: 40px; margin-top: 0; padding-block: 9px; font-size: 0.76rem; }
   .catalog-results__top { min-height: 38px; }
   .product-detail { padding-top: 8px; }
   .product-detail__grid { grid-template-columns: 1fr; gap: 18px; }
@@ -558,17 +570,3 @@
   .closing-note__lotus { right: -12px; width: 122px; opacity: .13; }
   .product-story { padding-right: 58px; }
 }
-.header-cart-preview { position: relative; }
-.header-cart-preview__panel { display: none; position: absolute; z-index: 50; top: 100%; right: -10px; width: min(390px, calc(100vw - 32px)); padding: 18px; border: 1px solid #e2ddd2; border-radius: 4px; background: #fffdf9; box-shadow: 0 12px 32px #092b3b26; }
-.header-cart-preview:hover .header-cart-preview__panel, .header-cart-preview:focus-within .header-cart-preview__panel { display: block; }
-.header-cart-preview__panel > p { margin: 0 0 14px; color: #637177; font-size: 13px; }
-.header-cart-preview__panel ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-.header-cart-preview__panel li { display: flex; align-items: center; gap: 12px; }
-.header-cart-preview__panel li > a { display: flex; flex: 1; min-width: 0; align-items: center; gap: 12px; text-decoration: none; }
-.header-cart-preview__panel img { object-fit: cover; flex-shrink: 0; }
-.header-cart-preview__panel li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--brand-deep-blue); font-size: 13px; }
-.header-cart-preview__panel li small { display: block; margin-top: 4px; color: #637177; font-size: 11px; }
-.header-cart-preview__panel li strong { flex-shrink: 0; color: var(--brand-blue); font-size: 12px; }
-.header-cart-preview__footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e2ddd2; font-size: 12px; }
-.header-cart-preview__footer a { padding: 10px 16px; color: white; background: var(--brand-blue); text-decoration: none; }
-@media (hover: none) { .header-cart-preview:hover:not(:focus-within) .header-cart-preview__panel { display: none; } }
