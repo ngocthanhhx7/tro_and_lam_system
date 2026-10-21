@@ -267,6 +267,69 @@ test('an unpublished linked story does not hide its published product detail', a
   assert.equal(detail.story, undefined);
 });
 
+test('category-gated product detail batches fresh availability for main and related products', async () => {
+  const main = product('64f000000000000000000071');
+  const related = product('64f000000000000000000072');
+  let inStock = true;
+  const batches = [];
+  const { service } = serviceFor({
+    repository: {
+      publishedCategoryChecked: true,
+      findPublishedProductBySlug: async () => main,
+      listPublishedRelatedProducts: async () => [related],
+      findPublishedProductsByIds: async () => [main],
+      getPublishedCategoryForProduct: async () => { throw new Error('Category gate already checked'); },
+      getPublishedCategoryIds: async () => { throw new Error('Category gate already checked'); },
+    },
+    inventoryPort: { getAvailability: async ids => {
+      batches.push(ids);
+      return ids.map(productId => ({ productId, available: inStock }));
+    } },
+  });
+  const first = await service.getPublishedProductBySlug(main.slug);
+  assert.deepEqual(batches, [[main._id, related._id]]);
+  assert.equal(first.availableForPurchase, true);
+  assert.equal(first.relatedProducts[0].availableForPurchase, true);
+  assert.equal(first.sku, main.sku);
+  assert.equal(first.relatedProducts[0].sku, undefined);
+  inStock = false;
+  const second = await service.getPublishedProductBySlug(main.slug);
+  assert.equal(second.availableForPurchase, false);
+  assert.equal(second.relatedProducts[0].availableForPurchase, false);
+  assert.equal((await service.getPublishedProductsByIds([main._id]))[0].availableForPurchase, false);
+  const stockReadsBeforeGate = batches.length;
+  assert.equal(await service.hasPublishedProduct(main._id), true);
+  assert.equal(batches.length, stockReadsBeforeGate);
+});
+
+test('optimized detail never overlaps reads when a session is supplied', async () => {
+  const main = product('64f000000000000000000073', { storyId: '64f000000000000000000074' });
+  const session = { localTestSession: true };
+  let active = 0;
+  const sequence = [];
+  const serialRead = (name, value) => async (...args) => {
+    assert.equal(active, 0, `Concurrent session command at ${name}`);
+    assert.equal(args.at(-1)?.session, session);
+    active += 1;
+    sequence.push(name);
+    await Promise.resolve();
+    active -= 1;
+    return value;
+  };
+  const { service } = serviceFor({
+    repository: {
+      publishedCategoryChecked: true,
+      findPublishedProductBySlug: serialRead('product', main),
+      listPublishedRelatedProducts: serialRead('related', []),
+    },
+    storyPort: { getPublishedStoryById: serialRead('story', { title: 'Published story' }) },
+    inventoryPort: { getAvailability: serialRead('inventory', [{ productId: main._id, available: true }]) },
+  });
+  const detail = await service.getPublishedProductBySlug(main.slug, { session });
+  assert.equal(detail.story.title, 'Published story');
+  assert.deepEqual(sequence, ['product', 'story', 'related', 'inventory']);
+});
+
 test('stale product edits conflict and duplicate SKU maps to HTTP 409', async () => {
   const current = product('64f000000000000000000061');
   const { service } = serviceFor({

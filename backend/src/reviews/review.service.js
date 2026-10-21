@@ -191,9 +191,13 @@ export function createReviewService({ ports = {}, repository, supportRepository 
     async listPublishedProductReviews(productId, filters = {}) {
       const id = validateObjectId(productId, 'productId');
       const query = validateListQuery(filters);
-      if (typeof catalog.getPublishedProductsByIds !== 'function') throw SUPPORT_REVIEW_ERROR('Xác minh sản phẩm công khai chưa sẵn sàng');
-      const products = await catalog.getPublishedProductsByIds([id]);
-      if (!products.some((product) => idOf(product) === id)) throw notFound();
+      if (typeof catalog.hasPublishedProduct === 'function') {
+        if (!await catalog.hasPublishedProduct(id)) throw notFound();
+      } else {
+        if (typeof catalog.getPublishedProductsByIds !== 'function') throw SUPPORT_REVIEW_ERROR('Xác minh sản phẩm công khai chưa sẵn sàng');
+        const products = await catalog.getPublishedProductsByIds([id]);
+        if (!products.some((product) => idOf(product) === id)) throw notFound();
+      }
       const result = await repo.listPublished(id, query);
       const reviewIds = result.items.flatMap((review) => review.attachmentIds || []);
       const attachments = reviewIds.length ? await attachmentRepo.listReviewAttachments(reviewIds) : [];

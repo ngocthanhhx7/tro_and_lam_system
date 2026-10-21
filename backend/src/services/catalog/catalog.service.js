@@ -287,19 +287,29 @@ export function createCatalogService({
       if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug) || slug.length > 180) throw notFound();
       const product = await productRepository.findPublishedProductBySlug(slug, { session });
       if (!product) throw notFound();
-      const category = await productRepository.getPublishedCategoryForProduct(product.categoryId, { session });
-      if (!category) throw notFound();
+      if (productRepository.publishedCategoryChecked !== true) {
+        const category = await productRepository.getPublishedCategoryForProduct(product.categoryId, { session });
+        if (!category) throw notFound();
+      }
       const readStory = async () => {
         if (!product.storyId || !storyPort?.getPublishedStoryById) return undefined;
         try { return await storyPort.getPublishedStoryById(plainId(product.storyId), { session }); }
         catch (error) { if (error?.status !== 404) throw error; return undefined; }
       };
+      if (typeof productRepository.listPublishedRelatedProducts === 'function') {
+        const readRelated = () => productRepository.listPublishedRelatedProducts(product, { session });
+        // No concurrent commands in a transaction. Outside a session, story and
+        // related products are independent; inventory stays fresh in one batch.
+        const [story, related] = session
+          ? [await readStory(), await readRelated()]
+          : await Promise.all([readStory(), readRelated()]);
+        const states = await availabilityFor([product, ...related], { session });
+        const detail = { ...toPublicProduct(product, states.get(plainId(product))), sku: product.sku };
+        if (story) detail.story = story;
+        detail.relatedProducts = related.map(item => toPublicProduct(item, states.get(plainId(item))));
+        return detail;
+      }
       const readRelated = async () => {
-        if (productRepository.listPublishedRelatedProducts) {
-          const items = await productRepository.listPublishedRelatedProducts(product, { session });
-          const availability = await availabilityFor(items, { session });
-          return items.map(item => toPublicProduct(item, availability.get(plainId(item))));
-        }
         const related = await readPublishedPage({ line: product.line, sort: 'newest', page: 1, limit: 5, q: '' }, { session });
         return (related.items || []).filter(item => item.id !== plainId(product)).slice(0, 4);
       };
@@ -321,12 +331,26 @@ export function createCatalogService({
         && Number.isSafeInteger(product.priceVnd) && product.priceVnd > 0).map(toCheckoutProduct);
     },
 
+    async hasPublishedProduct(id, { session } = {}) {
+      if (!mongoose.isValidObjectId(id)) return false;
+      if (typeof productRepository.hasPublishedProduct === 'function') return productRepository.hasPublishedProduct(id, { session });
+      const products = await productRepository.findPublishedProductsByIds([id], { session });
+      const product = products.find(item => plainId(item) === plainId(id));
+      if (!product || (product.status && product.status !== 'published')) return false;
+      if (productRepository.publishedCategoryChecked === true) return true;
+      const categories = await productRepository.getPublishedCategoryIds([product.categoryId], { session });
+      return categories.some(category => plainId(category) === asCategoryId(product));
+    },
+
     async getPublishedProductsByIds(ids, { session } = {}) {
       if (!Array.isArray(ids)) throw badRequest('BAD_REQUEST', 'Danh sách sản phẩm không hợp lệ');
       const products = await productRepository.findPublishedProductsByIds(ids, { session });
-      const categories = await productRepository.getPublishedCategoryIds(products.map((product) => product.categoryId), { session });
-      const allowed = new Set(categories.map(plainId));
-      const visible = products.filter((product) => allowed.has(asCategoryId(product)));
+      let visible = products;
+      if (productRepository.publishedCategoryChecked !== true) {
+        const categories = await productRepository.getPublishedCategoryIds(products.map((product) => product.categoryId), { session });
+        const allowed = new Set(categories.map(plainId));
+        visible = products.filter((product) => allowed.has(asCategoryId(product)));
+      }
       const states = await availabilityFor(visible, { session });
       return visible.map((product) => toPublicProduct(product, states.get(plainId(product))));
     },

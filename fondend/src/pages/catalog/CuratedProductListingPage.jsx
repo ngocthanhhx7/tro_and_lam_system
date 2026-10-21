@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import ProductCatalogPage from './ProductCatalogPage.jsx';
+import { staticImageProps } from '../../services/catalog/staticImage.js';
 import './curated-product-listing.css';
 
 const lineTabs = [
@@ -22,7 +23,7 @@ export default function CuratedProductListingPage() {
 
   return <div className="curated-listing">
     <header className="curated-listing__hero">
-      <div className="curated-listing__hero-art" aria-hidden="true"><img src="/assets/editorial/product-listing-hero.webp" alt="" width="1586" height="1024" loading="eager" fetchPriority="high" /></div>
+      <div className="curated-listing__hero-art" aria-hidden="true"><img {...staticImageProps('/assets/editorial/product-listing-hero.webp', { width: 960, sizes: '100vw' })} alt="" width="1586" height="992" loading="eager" fetchPriority="high" /></div>
       <div className="curated-listing__hero-inner section-wrap">
         <div className="curated-listing__hero-copy">
           <p className="eyebrow">GỐM CHU ĐẬU · TRO & LAM</p>

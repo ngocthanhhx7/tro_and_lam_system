@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { staticImageProps } from '../../services/catalog/staticImage.js';
 import Icon from './Icon.jsx';
 import './core-values-showcase.css';
 
@@ -35,7 +36,7 @@ export default function CoreValuesShowcase({ values }) {
               onClick={() => setSelected(index)}
             >
               <span className="core-values__number">{value.number}</span>
-              <img className="core-values__thumbnail" src={valueImages[index].src} alt="" width="1122" height="1402" loading="lazy" decoding="async" />
+              <img className="core-values__thumbnail" {...staticImageProps(valueImages[index].src, { width: 320, sizes: '72px' })} alt="" width="1122" height="1402" loading="lazy" />
               <span className="core-values__choice-copy">
                 <strong>{value.vietnamese}</strong>
               </span>
@@ -44,7 +45,7 @@ export default function CoreValuesShowcase({ values }) {
           </li>)}
         </ol>
         <article className="core-values__detail" id="story-value-detail" aria-labelledby="story-value-detail-title" aria-live="polite" aria-atomic="true">
-          <img key={image.src} className="core-values__detail-image" src={image.src} alt={image.alt} width="1122" height="1402" decoding="async" />
+          <img key={image.src} className="core-values__detail-image" {...staticImageProps(image.src)} alt={image.alt} width="1122" height="1402" loading="lazy" />
           <div className="core-values__shade" aria-hidden="true" />
           <div key={active.number} className="core-values__caption">
             <div className="core-values__detail-heading">

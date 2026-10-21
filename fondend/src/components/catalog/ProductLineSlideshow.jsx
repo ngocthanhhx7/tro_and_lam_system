@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { staticImageProps } from '../../services/catalog/staticImage.js';
 import './product-line-slideshow.css';
 
 export default function ProductLineSlideshow({ slides, label }) {
@@ -55,7 +56,7 @@ export default function ProductLineSlideshow({ slides, label }) {
       onTransitionEnd={(event) => { if (event.target === event.currentTarget && position === slideCount) setPosition(0); }}
     >
       {loopSlides.map((slide, index) => <div className="product-line-slideshow__slide" key={`${slide.src}-${index}`} role="group" aria-roledescription="ảnh" aria-label={`${index + 1} / ${slideCount}`} aria-hidden={index !== activeSlide}>
-        <img src={slide.src} alt={index === slideCount ? '' : slide.alt} width="1122" height="1402" loading={index === slideCount || (inView && index === activeSlide + 1) ? 'eager' : 'lazy'} decoding="async" fetchPriority="low" draggable="false" />
+        <img {...staticImageProps(slide.src)} alt={index === slideCount ? '' : slide.alt} width="1122" height="1402" loading={inView && (index === activeSlide || index === activeSlide + 1) ? 'eager' : 'lazy'} fetchPriority="low" draggable="false" />
       </div>)}
     </div>
   </div>;

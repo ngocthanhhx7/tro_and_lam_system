@@ -59,6 +59,8 @@ export function createMongooseCatalogRepository({
   MediaAsset = CatalogMediaAsset,
 } = {}) {
   return {
+    // Slug and ID-batch reads below already enforce the published category gate.
+    publishedCategoryChecked: true,
     transaction(callback) {
       return mongoose.connection.transaction(callback);
     },
@@ -85,9 +87,26 @@ export function createMongooseCatalogRepository({
     },
 
     async findPublishedProductBySlug(slug, { session } = {}) {
-      let query = Product.findOne({ slug, status: 'published' }).lean();
-      query = withSession(query, session);
-      return query;
+      const [product] = await withSession(Product.aggregate([
+        { $match: { slug, status: 'published' } },
+        { $limit: 1 },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        { $project: { _publishedCategory: 0 } },
+      ]), session);
+      return product || null;
+    },
+
+    async hasPublishedProduct(id, { session } = {}) {
+      if (!mongoose.isValidObjectId(id)) return false;
+      const [product] = await withSession(Product.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(id), status: 'published' } },
+        { $project: { categoryId: 1 } },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        { $project: { _id: 1 } },
+      ]), session);
+      return Boolean(product);
     },
 
     async getPublishedCategoryForProduct(categoryId, { session } = {}) {

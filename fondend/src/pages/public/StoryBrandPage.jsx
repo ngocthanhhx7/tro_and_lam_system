@@ -3,6 +3,7 @@ import Icon from '../../components/catalog/Icon.jsx';
 import { HeritageFilm } from '../../components/catalog/EditorialMedia.jsx';
 import StoryPageDecorations from '../../components/catalog/StoryPageDecorations.jsx';
 import CoreValuesShowcase from '../../components/catalog/CoreValuesShowcase.jsx';
+import { staticImageProps } from '../../services/catalog/staticImage.js';
 import './story-brand.css';
 
 const storySteps = [
@@ -28,7 +29,7 @@ const values = [
 
 function StoryImage({ src, alt, className, caption, loading = 'lazy' }) {
   return <figure className={`story-brand__image ${className}`}>
-    <img src={src} alt={alt} loading={loading} decoding="async" width="1122" height="1402" />
+    <img {...staticImageProps(src)} alt={alt} loading={loading} width="1122" height="1402" />
     {caption && <figcaption>{caption}</figcaption>}
   </figure>;
 }
