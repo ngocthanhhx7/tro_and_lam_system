@@ -52,3 +52,19 @@ Review API trước sửa trên VPS: 725–727 ms, 5 command (product aggregate,
 Hồi quy local bao gồm public/draft/archived category và sản phẩm, related ordering, stock freshness, DTO không lộ dữ liệu nội bộ, session không chồng query; public review fail closed và compatibility ports; static variants dimensions/alpha/budget/fallback; startup không chờ font/background request và có deadline. Chưa tạo đơn/payment/mail giả trên production.
 
 Kiểm tra trình duyệt local desktop trước khi công cụ bị tắt cho thấy ảnh responsive hiển thị đúng, không có ảnh lỗi trong viewport. Kiểm tra mobile/visibility video đầy đủ sau sửa chưa hoàn tất vì Browser Use bị tắt trong Work settings; không coi việc có implementation là bằng chứng mọi trình duyệt đều đã kiểm chứng.
+
+## Số đo sau triển khai 46abacd
+
+| Luồng trên cùng VPS–Atlas | Trước | Sau | Command |
+| --- | --- | --- | --- |
+| Detail binh-phu-quy | 729–739 ms | 548–550 ms | 5 → 3 |
+| Public reviews cùng sản phẩm | 725–727 ms | 367–369 ms | 5 → 3 |
+| List 8 SKU | 366–367 ms | 367–368 ms | 2 → 2 |
+
+Detail giảm khoảng 25% trên mẫu này; reviews giảm khoảng 49%. Mỗi round trip vẫn khoảng 181–183 ms, nên không gọi đây là đã tối ưu tuyệt đối. Lần helper khởi tạo mới ~3 giây được tách khỏi số warm. Product detail có story sẽ có thêm lượt đọc story; các đọc độc lập ngoài session chạy song song, trong session giữ tuần tự.
+
+Explain production đúng pipeline detail mới dùng slug_1 + category _id_, EQ_LOOKUP/LIMIT/FETCH/IXSCAN; existence dùng _id_, EQ_LOOKUP/PROJECTION_SIMPLE/FETCH/IXSCAN. Cả hai execution 1 ms, 2 docs/2 keys examined. Không thêm hoặc drop index. List vẫn có SORT và 16 docs/keys examined; với 8 SKU chưa đủ bằng chứng thêm index hay đổi search semantics.
+
+Xác nhận production: 50 derivative WebP đúng chiều rộng, ảnh motif giữ alpha, tổng 4.997.510 bytes. Ba URL mẫu trả HTTP 200, Content-Type image/webp, Cache-Control max-age=2592000 theo Nginx hiện tại. Trang home/list/detail, API sản phẩm và ready trả HTTP 200. Bundle mới index-CYtLihHm.js. Không tuyên bố đã bật immutable 1 năm cho static derivatives; URL có hash vẫn tránh đè cache khi đổi nguồn.
+
+Kiểm tra cuối: contracts, lint, 18 dev tests và backend 257 tests (254 đạt, 3 skip) cùng production build đều đạt. Chưa thực hiện kiểm thử mua hàng/thanh toán production. Browser Use bị tắt nên chưa hoàn tất xác nhận mobile, reduced-motion/saveData và video offscreen trên trình duyệt sau triển khai; đã triển khai logic và giữ điểm này là giới hạn kiểm chứng.
