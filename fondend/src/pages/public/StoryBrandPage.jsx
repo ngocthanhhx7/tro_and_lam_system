@@ -14,7 +14,7 @@ const storySteps = [
 ];
 
 const milestones = [
-  { year: '2026', text: 'Hoàn thiện thương hiệu, các dòng Lifestyle và Diplomacy, cùng trải nghiệm NFC và AI Chatbot.' },
+  { year: '2026', text: 'Hoàn thiện thương hiệu, các dòng gốm đời sống và gốm quà tặng, cùng trải nghiệm NFC và AI Chatbot.' },
   { year: '2027–2028', text: 'Mở rộng sản phẩm, năng lực sản xuất, hệ thống phân phối và trải nghiệm công nghệ.' },
   { year: '2029–2030', text: 'Mở rộng thị trường quốc tế, đưa câu chuyện gốm Chu Đậu đến gần hơn với khách hàng ngoài Việt Nam.' },
 ];

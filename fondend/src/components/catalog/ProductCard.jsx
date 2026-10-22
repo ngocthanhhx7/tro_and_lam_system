@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import { addCartQuantity, formatVnd } from '../../services/catalog/catalogApi.js';
@@ -6,6 +6,7 @@ import { productImageProps } from '../../services/catalog/productImage.js';
 
 export default function ProductCard({ product, headingLevel = 'h2', onCartUpdated }) {
   const [cartStatus, setCartStatus] = useState({ state: 'idle', message: '' });
+  const cartPending = useRef(false);
   const image = product.images?.[0];
   const quoteOnly = product.saleMode === 'quote';
   const canAddToCart = ['buy', 'both'].includes(product.saleMode)
@@ -14,7 +15,8 @@ export default function ProductCard({ product, headingLevel = 'h2', onCartUpdate
     && product.priceVnd > 0;
 
   async function addToCart() {
-    if (!canAddToCart || cartStatus.state === 'loading') return;
+    if (!canAddToCart || cartPending.current) return;
+    cartPending.current = true;
     setCartStatus({ state: 'loading', message: 'Đang thêm vào giỏ…' });
     try {
       const response = await addCartQuantity(product.id, 1);
@@ -22,18 +24,20 @@ export default function ProductCard({ product, headingLevel = 'h2', onCartUpdate
       setCartStatus({ state: 'success', message: 'Đã thêm vào giỏ hàng.' });
     } catch (error) {
       setCartStatus({ state: 'error', message: error.message || 'Chưa thêm được sản phẩm. Hãy thử lại.' });
+    } finally {
+      cartPending.current = false;
     }
   }
 
   return <article className="product-card">
     <Link className="product-card__image" to={`/san-pham/${encodeURIComponent(product.slug)}`} aria-label={`Xem ${product.name}`}>
       {image
-        ? <img {...productImageProps(image.url, { sizes: '(max-width: 600px) 45vw, (max-width: 1000px) 40vw, 320px' })} alt={image.alt || product.name} width="640" height="520" loading="lazy" />
+        ? <img {...productImageProps(image.url, { sizes: 'auto, (max-width: 359px) calc(100vw - 34px), (max-width: 639px) calc((100vw - 48px) / 2), (max-width: 1100px) 40vw, 440px' })} alt={image.alt || product.name} width="640" height="640" loading="lazy" />
         : <span className="product-card__image-empty">Ảnh sản phẩm đang chờ cập nhật</span>}
       {quoteOnly && <span className="product-card__tag">Tư vấn theo yêu cầu</span>}
     </Link>
     <div className="product-card__body">
-      <p className="eyebrow">{product.line === 'lifestyle' ? 'Lifestyle Line' : 'Diplomacy Line'}</p>
+      <p className="eyebrow">{product.line === 'lifestyle' ? 'Dòng gốm đời sống' : 'Dòng gốm quà tặng'}</p>
       {headingLevel === 'h3'
         ? <h3><Link to={`/san-pham/${encodeURIComponent(product.slug)}`}>{product.name}</Link></h3>
         : <h2><Link to={`/san-pham/${encodeURIComponent(product.slug)}`}>{product.name}</Link></h2>}

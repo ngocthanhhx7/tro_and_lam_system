@@ -1,8 +1,10 @@
-import { lazy, useEffect, useState } from 'react';
+import { lazy, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CatalogError, CatalogLoading } from '../../components/catalog/CatalogStates.jsx';
 import Icon from '../../components/catalog/Icon.jsx';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
+import ProductImageZoom from '../../components/catalog/ProductImageZoom.jsx';
+import ProductDescription from '../../components/catalog/ProductDescription.jsx';
 import { getListingProductBySlug } from '../catalog/productListingData.js';
 import { addCartQuantity, formatVnd, getPublishedProduct, submitQuoteRequest } from '../../services/catalog/catalogApi.js';
 import { getProductImageSource } from '../../utils/productMedia.js';
@@ -75,6 +77,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageState, setSelectedImageState] = useState({ slug: '', index: 0 });
   const [cartStatus, setCartStatus] = useState({ busy: false, message: '', error: '' });
+  const cartPending = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -124,12 +127,16 @@ export default function ProductDetailPage() {
   }
 
   async function addToCart() {
+    if (!canBuy || cartPending.current) return;
+    cartPending.current = true;
     setCartStatus({ busy: true, message: '', error: '' });
     try {
       await addCartQuantity(cartProductId, quantity);
       setCartStatus({ busy: false, message: 'Đã cập nhật giỏ hàng từ danh mục hiện tại.', error: '' });
     } catch (error) {
       setCartStatus({ busy: false, message: '', error: error.message || 'Chưa cập nhật được giỏ hàng. Thử lại khi kết nối sẵn sàng.' });
+    } finally {
+      cartPending.current = false;
     }
   }
 
@@ -137,22 +144,22 @@ export default function ProductDetailPage() {
     <div className="product-detail__grid">
       <div className="product-gallery">
         <div className="product-gallery__main">
-          {images.length ? <img {...productImageProps(images[selectedImage]?.url, { width: 960, sizes: '(max-width: 720px) 95vw, 50vw' })} alt={images[selectedImage]?.alt || product.name} width="900" height="760" fetchPriority="high" /> : <div className="product-gallery__empty"><span aria-hidden="true">◌</span><p>Ảnh sản phẩm đang chờ cập nhật</p></div>}
+          {images.length ? <ProductImageZoom key={`${product.id}-${images[selectedImage].url}`} image={images[selectedImage]} productName={product.name} /> : <div className="product-gallery__empty"><span aria-hidden="true">◌</span><p>Ảnh sản phẩm đang chờ cập nhật</p></div>}
         </div>
         {images.length > 1 && <div className="product-gallery__controls" aria-label="Thư viện ảnh sản phẩm">
           <button className="product-gallery__arrow" type="button" onClick={() => selectAdjacentImage(-1)} aria-label="Ảnh trước"><span aria-hidden="true">←</span></button>
-          <div className="product-gallery__thumbs" aria-label="Chọn ảnh sản phẩm">{images.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={selectedImage === index ? 'is-selected' : ''} onClick={() => setSelectedImageState({ slug, index })} aria-label={`Xem ảnh ${index + 1}: ${image.alt || product.name}`} aria-pressed={selectedImage === index}><img {...productImageProps(image.url, { width: 160, sizes: '112px' })} alt="" width="112" height="96" loading="lazy" /></button>)}</div>
+          <div className="product-gallery__thumbs" aria-label="Chọn ảnh sản phẩm">{images.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={selectedImage === index ? 'is-selected' : ''} onClick={() => setSelectedImageState({ slug, index })} aria-label={`Xem ảnh ${index + 1}: ${image.alt || product.name}`} aria-pressed={selectedImage === index}><img {...productImageProps(image.url, { width: 160, sizes: '(max-width: 639px) 64px, 80px' })} alt="" width="112" height="112" loading="lazy" /></button>)}</div>
           <button className="product-gallery__arrow" type="button" onClick={() => selectAdjacentImage(1)} aria-label="Ảnh tiếp theo"><span aria-hidden="true">→</span></button>
         </div>}
-        {selectedImageSource && <div className="product-gallery__media-note" aria-live="polite"><img src="/assets/editorial/lotus-line-ornament.svg" alt="" width="48" height="32" /><p>{selectedImageSource.disclosure}</p></div>}
+        {selectedImageSource?.kind === 'concept' && <div className="product-gallery__media-note" aria-live="polite"><img src="/assets/editorial/lotus-line-ornament.svg" alt="" width="48" height="32" /><p>{selectedImageSource.disclosure}</p></div>}
       </div>
       <section className="product-detail__info" aria-labelledby="product-title">
-        <p className="eyebrow">{product.line === 'lifestyle' ? 'LIFESTYLE LINE' : 'DIPLOMACY LINE'}</p>
+        <p className="eyebrow">{product.line === 'lifestyle' ? 'DÒNG GỐM ĐỜI SỐNG' : 'DÒNG GỐM QUÀ TẶNG'}</p>
         <h1 id="product-title">{product.name}</h1>
         {product.sku && <p className="product-detail__sku">Mã sản phẩm: {product.sku}</p>}
-        <p className="product-detail__description">{product.description || 'Thông tin mô tả đang được cập nhật.'}</p>
+        <ProductDescription key={product.id} text={product.description} />
         {product.saleMode !== 'quote' && product.priceVnd > 0 && <p className="product-detail__price">{product.priceLabel || formatVnd(product.priceVnd)}</p>}
-        <p className={`product-detail__availability${product.availableForPurchase ? ' is-available' : ''}`}><span aria-hidden="true">●</span> {product.stockLabel}</p>
+        <p className={`product-detail__availability${product.availableForPurchase ? ' is-available' : ''}`}><span aria-hidden="true">●</span> Tình trạng: <strong>{product.availableForPurchase ? 'Còn hàng' : product.stockLabel === 'Tạm thời chưa có hàng' ? 'Hết hàng' : product.stockLabel || 'Đang xác minh khả năng cung ứng'}</strong></p>
         {['buy', 'both'].includes(product.saleMode) && <div className="buy-panel">
           <div className="buy-panel__quantity"><label htmlFor="product-quantity">Số lượng</label><div className="buy-panel__quantity-control"><input id="product-quantity" type="number" min="1" max="99" value={quantity} onChange={(event) => updateQuantity(event.target.value)} aria-label="Số lượng sản phẩm" /><div><button type="button" onClick={() => updateQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Giảm số lượng">−</button><button type="button" onClick={() => updateQuantity(quantity + 1)} disabled={quantity >= 99} aria-label="Tăng số lượng">+</button></div></div></div>
           <button className="button button--primary" type="button" onClick={addToCart} disabled={!canBuy || cartStatus.busy}><Icon name="bag" size={18} />{cartStatus.busy ? 'Đang cập nhật…' : 'Thêm vào giỏ'}</button>

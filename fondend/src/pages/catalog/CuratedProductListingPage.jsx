@@ -5,8 +5,8 @@ import './curated-product-listing.css';
 
 const lineTabs = [
   { id: '', label: 'Tất cả sản phẩm' },
-  { id: 'lifestyle', label: 'Lifestyle Line' },
-  { id: 'diplomacy', label: 'Diplomacy Line' },
+  { id: 'lifestyle', label: 'Dòng gốm đời sống' },
+  { id: 'diplomacy', label: 'Dòng gốm quà tặng' },
 ];
 
 export default function CuratedProductListingPage() {

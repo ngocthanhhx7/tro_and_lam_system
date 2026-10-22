@@ -6,8 +6,8 @@ TRO & LAM presents Chu Đậu ceramics for daily use, interiors and considered g
 
 The two catalog lines remain distinct in product copy:
 
-- **Lifestyle Line** — useful ceramics and objects for personal spaces and gifting.
-- **Diplomacy Line** — selected vessels and gift inquiries for formal, business and institutional occasions. Purchase or quote actions follow each product's `saleMode`.
+- **Dòng gốm đời sống** — useful ceramics and objects for personal spaces and gifting.
+- **Dòng gốm quà tặng** — selected vessels and gift inquiries for formal, business and institutional occasions. Purchase or quote actions follow each product's `saleMode`.
 
 NFC pages explain an editorial story attached to a tag. A tag URL is not proof of authenticity, provenance or ownership.
 
@@ -48,7 +48,7 @@ Use these search phrases naturally when they match the page: **gốm Chu Đậu*
 
 Example homepage title: `TRO & LAM — Gốm Chu Đậu cho đời sống hôm nay`.
 
-Example collection introduction: `Khám phá các sản phẩm gốm Chu Đậu thuộc Lifestyle Line và Diplomacy Line. Lọc theo công năng, mức giá và hình thức tư vấn; thông tin sản phẩm được hiển thị theo dữ liệu đã công bố.`
+Example collection introduction: `Khám phá các sản phẩm gốm Chu Đậu thuộc Dòng gốm đời sống và Dòng gốm quà tặng. Lọc theo công năng, mức giá và hình thức tư vấn; thông tin sản phẩm được hiển thị theo dữ liệu đã công bố.`
 
 Do not publish claims such as “nghìn năm”, “di sản UNESCO”, “nghệ nhân lâu đời”, “thủ công 100%”, “độc bản”, “được chứng nhận”, or “chống hàng giả” unless the owner supplies and approves supporting evidence. Do not fabricate reviews, stock, discounts, delivery promises or customer counts.
 

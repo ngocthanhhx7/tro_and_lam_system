@@ -58,7 +58,7 @@ export default function NfcStoryPage() {
     {product?.slug && <aside className="story-product">
       <p className="story-eyebrow">Sản phẩm liên quan</p>
       <h2>{product.name}</h2>
-      {product.line && <p>{product.line === 'lifestyle' ? 'Lifestyle' : product.line === 'diplomacy' ? 'Diplomacy' : ''}</p>}
+      {product.line && <p>{product.line === 'lifestyle' ? 'Dòng gốm đời sống' : product.line === 'diplomacy' ? 'Dòng gốm quà tặng' : ''}</p>}
       <Link to={`/san-pham/${encodeURIComponent(product.slug)}`}>Xem sản phẩm</Link>
     </aside>}
     <StoryContent story={story} label="Nội dung NFC" />

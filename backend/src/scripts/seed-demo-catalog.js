@@ -67,13 +67,13 @@ const PRODUCT_COPY = Object.freeze({
 const CATEGORY_DATA = Object.freeze({
   lifestyle: Object.freeze({
     slug: 'demo-lifestyle',
-    name: 'Lifestyle · dữ liệu xem trước',
+    name: 'Dòng gốm đời sống · dữ liệu xem trước',
     description: 'Danh mục demo cho dòng sản phẩm phong cách sống. Nội dung và khả năng cung cấp cần chủ dự án xác nhận.',
     sortOrder: 900,
   }),
   diplomacy: Object.freeze({
     slug: 'demo-diplomacy',
-    name: 'Diplomacy · dữ liệu xem trước',
+    name: 'Dòng gốm quà tặng · dữ liệu xem trước',
     description: 'Danh mục demo cho dòng sản phẩm ngoại giao. Nội dung và khả năng cung cấp cần chủ dự án xác nhận.',
     sortOrder: 901,
   }),

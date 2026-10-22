@@ -1,0 +1,20 @@
+.product-image-zoom { position: relative; width: 100%; height: 100%; }
+.product-image-zoom__trigger { position: relative; display: block; overflow: hidden; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; touch-action: pan-y; }
+.product-image-zoom__trigger > img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: var(--zoom-x, 50%) var(--zoom-y, 50%); transition: transform 180ms ease; pointer-events: none; }
+.product-image-zoom.is-active .product-image-zoom__trigger { cursor: crosshair; touch-action: none; }
+.product-image-zoom.is-active .product-image-zoom__trigger > img { will-change: transform; }
+.product-image-zoom__hint { position: absolute; bottom: 22px; right: 22px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; background: #fcfaf4eb; color: #123f56; font-size: .72rem; }
+.product-image-zoom__touch-hint { display: none; }
+.product-image-zoom__controls { position: absolute; z-index: 2; right: 22px; bottom: 22px; display: flex; align-items: center; gap: 4px; padding: 4px; background: #fcfaf4f5; color: #123f56; border: 1px solid #dedbd0; }
+.product-image-zoom__controls button { display: grid; min-width: 40px; min-height: 40px; place-items: center; padding: 4px; border: 0; color: inherit; background: transparent; font: inherit; font-size: 1.1rem; cursor: pointer; touch-action: manipulation; }
+.product-image-zoom__controls button:hover { background: #e8ddc5; }
+.product-image-zoom__controls button:disabled { opacity: .45; cursor: default; }
+.product-image-zoom__controls output { min-width: 48px; text-align: center; font-size: .8rem; }
+.product-image-zoom button:focus-visible { outline: 2px solid #8a620e; outline-offset: -3px; }
+@media (hover: none), (pointer: coarse) {
+  .product-image-zoom__mouse-hint { display: none; }
+  .product-image-zoom__touch-hint { display: inline; }
+  .product-image-zoom__controls button { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 639px) { .product-image-zoom__hint, .product-image-zoom__controls { bottom: 14px; right: 14px; } }
+@media (prefers-reduced-motion: reduce) { .product-image-zoom__trigger > img { transition: none; } }

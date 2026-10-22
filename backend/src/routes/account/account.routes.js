@@ -57,7 +57,7 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
       if (!token) token = randomBytes(32).toString('base64url');
       let tokenHash = guestTokenHash(token);
       const reuseSnapshot = ((req.method === 'GET' && req.path === '/cart')
-        || (req.method === 'PUT' && req.path.startsWith('/cart/items/'))) && typeof service.getGuestCartSnapshot === 'function';
+        || (['PUT', 'DELETE'].includes(req.method) && req.path.startsWith('/cart/items/'))) && typeof service.getGuestCartSnapshot === 'function';
       const snapshot = reuseSnapshot ? await service.getGuestCartSnapshot(tokenHash) : undefined;
       if (reuseSnapshot ? Boolean(snapshot?.mergedAt) : await service.guestCartWasMerged(tokenHash)) {
         token = randomBytes(32).toString('base64url');
@@ -118,7 +118,7 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
   });
   router.delete('/cart/items/:productId', csrfProtection, resolveCartActor, async (req, res) => {
     const expectedVersion = validateExpectedVersion(req.query.expectedVersion);
-    return sendSuccess(res, await service.removeCartItem(req.cartActor, req.params.productId, expectedVersion));
+    return sendSuccess(res, await service.removeCartItem(req.cartActor, req.params.productId, expectedVersion, { guestCartSnapshot: req.guestCartSnapshot }));
   });
   router.post('/cart/merge', csrfProtection, resolveCartActor, requireCartAccount, async (req, res) => {
     const input = validateCartMerge(req.body);

@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const publicDir = join(root, 'fondend/public');
 const manifestFile = join(root, 'fondend/src/services/catalog/staticImageManifest.js');
 const sources = [];
-for (const directory of ['assets/editorial/diplomacy-slides', 'assets/editorial/lifestyle-slides', 'assets/editorial/story', 'assets/motifs']) {
+for (const directory of ['assets/editorial/home-products', 'assets/editorial/story', 'assets/motifs']) {
   for (const name of (await readdir(join(publicDir, directory))).sort()) {
     if (!name.endsWith('.webp') || name.endsWith('-512.webp')) continue;
     sources.push({ source: `/${directory}/${name}`, widths: directory.endsWith('motifs') ? [320, 512] : [320, 640, 960] });

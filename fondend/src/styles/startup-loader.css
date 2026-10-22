@@ -14,7 +14,7 @@
   transition: opacity 360ms ease;
 }
 .startup-loader__content { display: grid; justify-items: center; text-align: center; }
-.startup-loader__logo { width: 88px; height: 88px; object-fit: contain; border-radius: 20px; background: #f8f5ec; box-shadow: 0 0 44px #d8b35a12; }
+.startup-loader__logo { width: 144px; height: 144px; object-fit: contain; background: transparent; }
 .startup-loader__name { margin: 22px 0 6px; font: 500 clamp(25px, 6vw, 32px)/1.3 'Noto Serif', Georgia, serif; letter-spacing: .12em; }
 .startup-loader__origin { margin: 0; color: #dfc98d; font: 500 10px/1.6 'Be Vietnam Pro', Arial, sans-serif; letter-spacing: .32em; }
 .startup-loader__track { width: 180px; height: 4px; margin: 28px 0 22px; overflow: hidden; border-radius: 999px; background: #f8f5ec26; }

@@ -1,0 +1,48 @@
+{
+  "sourceHomepage": "https://chudauceramic.vn/",
+  "authorization": "Owner requested source photographs on 2026-10-22. Preserve original watermarks.",
+  "photos": [
+    {
+      "file": "binh-ty-ba-813f5789e1a9.webp",
+      "sourcePage": "https://chudauceramic.vn/binh-ty-ba",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/ty-ba.jpg?v=1779183809470",
+      "sha256": "813f5789e1a9a0a75fcad05dd2b5abbc512a8f067c6949fd9d1bc18c88dac403"
+    },
+    {
+      "file": "binh-hoa-lam-587519d6fa3a.webp",
+      "sourcePage": "https://chudauceramic.vn/binh-hoa-lam-gom-chu-dau-1",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/0d249636-a972-45c6-8d22-a0bede0fbe6b.jpg?v=1764216548433",
+      "sha256": "587519d6fa3a20bcc2729f432a73f34eb291ed70f8cb2db420283a49d40e4ffe"
+    },
+    {
+      "file": "binh-phuong-hoang-601b00f469aa.webp",
+      "sourcePage": "https://chudauceramic.vn/binh-phuong-hoang",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/file-20.jpg?v=1779183916900",
+      "sha256": "601b00f469aaca33e508b21bd07bec54d725566651b2c56fae878d4f9e7e07e7"
+    },
+    {
+      "file": "binh-thien-nga-666adfea1ebc.webp",
+      "sourcePage": "https://chudauceramic.vn/binh-thien-nga",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/file-22.jpg?v=1779184115443",
+      "sha256": "666adfea1ebc45012778a6a0c2cd073e1c92c269956bce31555650f7d827975a"
+    },
+    {
+      "file": "bo-tra-lac-hong-eccad4b49288.webp",
+      "sourcePage": "https://chudauceramic.vn/bo-tra-lac-hong-gom-chu-dau-ve-vien-vang",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/untitled-1.jpg?v=1745207488280",
+      "sha256": "eccad4b492887be21f9183c0d92f6b9a76a859f49dc0c4506e8245f069fb67a1"
+    },
+    {
+      "file": "hop-tra-gom-9a3e5264bf62.webp",
+      "sourcePage": "https://chudauceramic.vn/copy-of-hop-tra-ve-hoa-phu-dung-gom-chu-dau",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/hop-tra-chim-hac-1.jpg?v=1662432867707",
+      "sha256": "9a3e5264bf625da1fff41e1537bb8a90105bbd8e2a518d797a4570338e0884b0"
+    },
+    {
+      "file": "bo-do-an-e4f2aa2da602.webp",
+      "sourcePage": "https://chudauceramic.vn/bo-do-an-chu-dau",
+      "sourceImage": "https://bizweb.dktcdn.net/100/376/052/products/anh-chinh.jpg?v=1663818641063",
+      "sha256": "e4f2aa2da602fe3e8d8988d6ee43126b259172cd347f254f8bb5415ede8af8cc"
+    }
+  ]
+}

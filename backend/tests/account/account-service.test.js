@@ -245,6 +245,31 @@ test('cart PUT reuses an owned snapshot, reads product data once, and rejects a 
   await assert.rejects(service.setCartItemQuantity({ ...guest, guestTokenHash: '2'.repeat(64) }, PRODUCT_A, 1, 0, { guestCartSnapshot: snapshot }), { status: 403 });
 });
 
+test('cart DELETE reuses only its own unmerged snapshot and keeps CAS without a transaction', async () => {
+  const { service, repository } = makeService();
+  const guest = { kind: 'guest', guestTokenHash: '3'.repeat(64) };
+  await service.setCartItemQuantity(guest, PRODUCT_A, 2, 0);
+  await service.setCartItemQuantity(guest, PRODUCT_B, 1, 1);
+  const snapshot = structuredClone(await service.getGuestCartSnapshot(guest.guestTokenHash));
+  repository.findGuestCart = async () => { throw new Error('Unexpected repeated cart lookup'); };
+  repository.transaction = async () => { throw new Error('Single-document DELETE must use atomic CAS'); };
+  await assert.rejects(service.removeCartItem({ ...guest, guestTokenHash: '4'.repeat(64) }, PRODUCT_A, 2, { guestCartSnapshot: snapshot }), { status: 403 });
+  await assert.rejects(service.removeCartItem(guest, PRODUCT_A, 2, { guestCartSnapshot: { ...snapshot, mergedAt: new Date() } }), { status: 403 });
+  const result = await service.removeCartItem(guest, PRODUCT_A, 2, { guestCartSnapshot: snapshot });
+  assert.equal(result.version, 3);
+  assert.deepEqual(result.items.map(item => [item.productId, item.quantity]), [[PRODUCT_B, 1]]);
+  await assert.rejects(service.removeCartItem(guest, PRODUCT_B, 2, { guestCartSnapshot: snapshot }), { code: 'VERSION_CONFLICT' });
+});
+
+test('deleting from an empty cart does not persist an empty document or accept a stale version', async () => {
+  const { service, repository } = makeService();
+  const guest = { kind: 'guest', guestTokenHash: '5'.repeat(64) };
+  assert.equal((await service.removeCartItem(guest, PRODUCT_A, 0, { guestCartSnapshot: null })).version, 0);
+  assert.equal((await service.removeCartItem({ id: USER_A }, PRODUCT_A, 0)).items.length, 0);
+  assert.equal(repository.carts.length, 0);
+  await assert.rejects(service.removeCartItem(guest, PRODUCT_A, 1, { guestCartSnapshot: null }), { code: 'VERSION_CONFLICT' });
+});
+
 test('committed quantities are subtracted without deleting unpurchased quantities or another owner cart', async () => {
   const { service, repository } = makeService();
   const owner = { id: USER_A, role: 'customer' };

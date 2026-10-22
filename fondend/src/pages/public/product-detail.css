@@ -4,7 +4,7 @@
 }
 
 .product-detail__grid {
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: clamp(32px, 4vw, 58px);
 }
@@ -15,10 +15,16 @@
 }
 
 .product-detail .product-gallery__main {
+  position: relative;
+  display: block;
   min-height: 0;
-  aspect-ratio: .94;
+  max-height: none;
+  aspect-ratio: 1;
   background: #f0ece2;
 }
+
+.product-detail .product-gallery__main > .product-image-zoom { position: absolute; inset: 0; }
+.product-detail .product-image-zoom__trigger > img { max-height: none; object-fit: contain; }
 
 .product-detail .product-gallery__main > img {
   width: 100%;
@@ -66,10 +72,10 @@
 }
 
 .product-detail .product-gallery__thumbs button {
-  flex: 0 0 86px;
-  width: 86px;
-  height: 76px;
-  min-height: 76px;
+  flex: 0 0 80px;
+  width: 80px;
+  height: 80px;
+  min-height: 80px;
   border: 1px solid transparent;
   background: #efece4;
   opacity: .72;
@@ -623,7 +629,7 @@
 }
 
 .product-detail .related-products .product-card__image {
-  aspect-ratio: .9;
+  aspect-ratio: 1;
   min-height: 0;
   background: #eeeae0;
 }
@@ -679,12 +685,7 @@
 }
 
 .product-detail .product-gallery__main::after {
-  position: absolute;
-  z-index: 1;
-  inset: 14px;
-  border: 1px solid rgb(18 63 86 / 8%);
-  content: '';
-  pointer-events: none;
+  content: none;
 }
 
 .product-detail .product-gallery__arrow,
@@ -786,10 +787,6 @@
     gap: 32px;
   }
 
-  .product-detail .product-gallery__main {
-    max-height: 680px;
-  }
-
   .product-detail__info h1 {
     font-size: clamp(2.5rem, 7vw, 3.5rem);
   }
@@ -835,10 +832,10 @@
   }
 
   .product-detail .product-gallery__thumbs button {
-    width: 68px;
-    height: 62px;
-    min-height: 62px;
-    flex-basis: 68px;
+    width: 64px;
+    height: 64px;
+    min-height: 64px;
+    flex-basis: 64px;
   }
 
   .product-detail .product-gallery__media-note {
@@ -934,3 +931,6 @@
     transform: none;
   }
 }
+.product-detail__description.is-collapsed { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.product-description__toggle { padding: 0 0 3px; border: 0; border-bottom: 1px solid #c8b58c; background: transparent; color: #123f56; font: inherit; font-size: .8rem; cursor: pointer; }
+.product-description__toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }

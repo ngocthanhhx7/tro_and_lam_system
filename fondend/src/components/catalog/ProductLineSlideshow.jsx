@@ -10,7 +10,6 @@ export default function ProductLineSlideshow({ slides, label }) {
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
   const [inView, setInView] = useState(false);
-  const [hovered, setHovered] = useState(false);
   const activeSlide = position % slideCount;
 
   useEffect(() => {
@@ -29,10 +28,10 @@ export default function ProductLineSlideshow({ slides, label }) {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || !visible || !inView || hovered) return;
+    if (reducedMotion || !visible || !inView) return;
     const timer = window.setInterval(() => setPosition((current) => Math.min(current + 1, slideCount)), 4000);
     return () => window.clearInterval(timer);
-  }, [visible, inView, hovered, reducedMotion, slideCount]);
+  }, [visible, inView, reducedMotion, slideCount]);
 
   useEffect(() => {
     if (position !== slideCount) return;
@@ -47,8 +46,6 @@ export default function ProductLineSlideshow({ slides, label }) {
     role="region"
     aria-roledescription="trình chiếu ảnh"
     aria-label={`Ảnh dòng sản phẩm ${label}`}
-    onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
-    onPointerLeave={() => setHovered(false)}
   >
     <div
       className="product-line-slideshow__track"
@@ -56,7 +53,7 @@ export default function ProductLineSlideshow({ slides, label }) {
       onTransitionEnd={(event) => { if (event.target === event.currentTarget && position === slideCount) setPosition(0); }}
     >
       {loopSlides.map((slide, index) => <div className="product-line-slideshow__slide" key={`${slide.src}-${index}`} role="group" aria-roledescription="ảnh" aria-label={`${index + 1} / ${slideCount}`} aria-hidden={index !== activeSlide}>
-        <img {...staticImageProps(slide.src)} alt={index === slideCount ? '' : slide.alt} width="1122" height="1402" loading={inView && (index === activeSlide || index === activeSlide + 1) ? 'eager' : 'lazy'} fetchPriority="low" draggable="false" />
+        <img {...staticImageProps(slide.src, { width: 960, sizes: '(max-width: 820px) min(640px, calc(100vw - 32px)), 50vw' })} alt={index === slideCount ? '' : slide.alt} width="1600" height="1600" loading={inView && (index === activeSlide || index === activeSlide + 1) ? 'eager' : 'lazy'} fetchPriority="low" draggable="false" />
       </div>)}
     </div>
   </div>;

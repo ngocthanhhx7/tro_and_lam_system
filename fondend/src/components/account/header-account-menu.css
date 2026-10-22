@@ -1,2 +1,14 @@
+.header-account-menu { position: relative; }
 .header-account-menu__trigger { position: relative; padding: 0; background: transparent; cursor: pointer; }
+.header-account-menu__trigger { list-style: none; }
+.header-account-menu__trigger::-webkit-details-marker { display: none; }
+.header-account-menu__trigger:focus-visible { outline: 3px solid #8a620e; outline-offset: 3px; }
+.header-account-menu__dropdown { position: absolute; z-index: 10; top: 100%; right: 0; width: min(240px, calc(100vw - 32px)); padding: 8px; border: 1px solid #dedbd0; background: #fcfaf4; box-shadow: 0 12px 28px #092b3b12; }
+.catalog-header__actions .header-account-menu__dropdown a,
+.catalog-header__actions .header-account-menu__dropdown button { display: flex; align-items: center; justify-content: flex-start; gap: 12px; width: 100%; min-height: 44px; padding: 12px; border: 0; border-radius: 0; background: transparent; color: #123f56; font: 500 0.85rem var(--font-body, system-ui, sans-serif); text-decoration: none; text-align: left; }
+.catalog-header__actions .header-account-menu__dropdown a:hover,
+.catalog-header__actions .header-account-menu__dropdown button:hover:not(:disabled) { background: #f2eee3; color: #092b3b; }
+.header-account-menu__dropdown .logout-action { margin-top: 4px; padding-top: 4px; border-top: 1px solid #dedbd0; }
+.header-account-menu__dropdown .logout-action__error { padding: 0 12px 8px; }
+.header-account-menu__unread { margin-left: auto; color: #b6382a; font-size: 0.75rem; font-weight: 700; }
 .header-account-menu__badge { position: absolute; top: -5px; right: -5px; display: grid; min-width: 18px; height: 18px; place-items: center; padding-inline: 4px; border: 2px solid #fcfaf4; border-radius: 999px; background: #b6382a; color: #fff; font-size: 0.62rem; font-weight: 700; line-height: 1; }

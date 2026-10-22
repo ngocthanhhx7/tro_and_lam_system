@@ -96,7 +96,7 @@
     grid-column: 1 / -1;
     order: 1;
     justify-self: center;
-    width: min(100%, 760px);
+    width: min(100%, 640px);
   }
 
   .home-product-line__highlights { order: 2; }

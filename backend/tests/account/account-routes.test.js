@@ -56,7 +56,7 @@ function makeApp() {
   app.use(express.json());
   app.use('/api/v1', router);
   app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: { code: error.code, message: error.message } }));
-  return { app, csrf, merges, owners };
+  return { app, csrf, merges, owners, accountService };
 }
 
 test('guest cart cookies are opaque, HttpOnly and isolate two guest actors', async () => {
@@ -105,4 +105,31 @@ test('cart reads indicate a merge only for an authenticated customer with a gues
   assert.equal((await request(app).get('/api/v1/cart').expect(200)).body.data.guestMergeRequired, false);
   assert.equal((await request(app).get('/api/v1/cart').set('Cookie', `tl_session=${SESSION_A}`).expect(200)).body.data.guestMergeRequired, false);
   assert.equal((await request(app).get('/api/v1/cart').set('Cookie', `tl_session=${SESSION_A}; tl_guest_cart=${GUEST_TOKEN}`).expect(200)).body.data.guestMergeRequired, true);
+});
+
+test('cart DELETE passes the checked guest snapshot once and rotates consumed tokens', async () => {
+  const { app, csrf, accountService } = makeApp();
+  let reads = 0;
+  let snapshot = { version: 2, items: [] };
+  let received;
+  accountService.guestCartWasMerged = async () => { throw new Error('Repeated lookup'); };
+  accountService.getGuestCartSnapshot = async hash => { reads += 1; return { ...snapshot, guestTokenHash: hash }; };
+  accountService.removeCartItem = async (actor, id, version, options) => {
+    received = { actor, id, version, options };
+    return { version: 3, items: [] };
+  };
+  const send = () => request(app).delete('/api/v1/cart/items/aaaaaaaaaaaaaaaaaaaaaaaa?expectedVersion=2')
+    .set('Origin', ORIGIN).set('Cookie', `tl_csrf=${encodeURIComponent(csrf)}; tl_guest_cart=${GUEST_TOKEN}`)
+    .set('X-CSRF-Token', csrf);
+  await send().expect(200);
+  assert.equal(reads, 1);
+  assert.equal(received.options.guestCartSnapshot.version, 2);
+  assert.equal(received.options.guestCartSnapshot.guestTokenHash, received.actor.guestTokenHash);
+  snapshot = { ...snapshot, mergedAt: new Date() };
+  const rotated = await send().expect(200);
+  assert.equal(reads, 2);
+  assert.equal(received.options.guestCartSnapshot, null);
+  assert.doesNotMatch(rotated.headers['set-cookie'].join(';'), new RegExp(`tl_guest_cart=${GUEST_TOKEN}`));
+  await request(app).delete('/api/v1/cart/items/aaaaaaaaaaaaaaaaaaaaaaaa?expectedVersion=2').expect(403);
+  assert.equal(reads, 2, 'invalid CSRF must not reach database resolution');
 });

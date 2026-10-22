@@ -71,9 +71,9 @@ function AssistantConversation() {
       if (requestError.name === 'AbortError') return;
       setMessages(current => current.map(item => item.id === messageId ? { ...item, failed: true } : item)); setDraft(message);
       setError(requestError.code === 'AI_DAILY_LIMIT'
-        ? 'Bạn đã dùng hết 10 câu hỏi hôm nay. Men hẹn bạn sau 00:00 nhé 🌙 Bạn vẫn có thể liên hệ nhân viên.'
-        : requestError.status === 429 ? 'Men cần nghỉ một nhịp. Bạn đợi chút rồi gửi lại nhé.'
-          : 'Men chưa nhận được câu trả lời. Câu hỏi vẫn ở ô nhập để bạn thử lại nhé.');
+        ? 'Bạn đã dùng hết 10 câu hỏi hôm nay. Đậu Đậu hẹn bạn sau 00:00 nhé 🌙 Bạn vẫn có thể liên hệ nhân viên.'
+        : requestError.status === 429 ? 'Đậu Đậu cần nghỉ một nhịp. Bạn đợi chút rồi gửi lại nhé.'
+          : 'Đậu Đậu chưa nhận được câu trả lời. Câu hỏi vẫn ở ô nhập để bạn thử lại nhé.');
       try { acceptUsage(await getAssistantUsage({ signal: controller.signal })); } catch { /* Server remains the quota authority. */ }
     } finally { busy.current = false; setPending(false); }
   }
@@ -93,37 +93,37 @@ function AssistantConversation() {
       onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}>
       <header className="assistant-widget__header">
         <img className="assistant-widget__avatar" src={MASCOT} alt="" width="52" height="52" />
-        <div><p className="assistant-widget__eyebrow">TRO &amp; LAM · TRỢ LÝ GỐM</p><h2 id={`${panelId}-title`}>Men đây, bạn ơi! 🌿</h2></div>
+        <div><p className="assistant-widget__eyebrow">TRO &amp; LAM · TRỢ LÝ GỐM</p><h2 id={`${panelId}-title`}>Đậu Đậu đây, bạn ơi! 🌿</h2></div>
         <button type="button" className="assistant-widget__close" aria-label="Đóng trợ lý" onClick={() => setOpen(false)}><Icon name="close" size={18} /></button>
       </header>
       <div className="assistant-widget__usage"><span>Hôm nay</span><strong aria-live="polite">{usage ? `${usage.remaining}/${usage.limit} lượt còn lại` : '10 câu hỏi / ngày'}</strong></div>
-      <div ref={scroll} className="assistant-widget__messages" role="log" aria-label="Cuộc trò chuyện với Men" aria-live="polite"
+      <div ref={scroll} className="assistant-widget__messages" role="log" aria-label="Cuộc trò chuyện với Đậu Đậu" aria-live="polite"
         onScroll={event => { const el = event.currentTarget; followMessages.current = el.scrollHeight - el.clientHeight - el.scrollTop < 80; }}>
         {!messages.length && <div className="assistant-widget__welcome">
           <p>Bạn cần chọn gốm hay hỗ trợ đặt hàng? Mình giúp bạn nhé ✨</p>
           <div className="assistant-widget__suggestions">{SUGGESTIONS.map(text => <button type="button" key={text} disabled={pending || exhausted || (!usage && !usageError)} onClick={() => sendMessage(text)}>{text}<Icon name="arrow" size={15} /></button>)}</div>
         </div>}
         {messages.map(item => <article key={item.id} className={`assistant-widget__message assistant-widget__message--${item.role}`}>
-          {item.role === 'assistant' ? <><span className="assistant-widget__speaker">MEN · TRO &amp; LAM</span><Suspense fallback={<p>{item.content}</p>}><AssistantMarkdown content={item.content} sources={item.sources} /></Suspense></> : <p>{item.content}</p>}
+          {item.role === 'assistant' ? <><span className="assistant-widget__speaker">ĐẬU ĐẬU · TRO &amp; LAM</span><Suspense fallback={<p>{item.content}</p>}><AssistantMarkdown content={item.content} sources={item.sources} /></Suspense></> : <p>{item.content}</p>}
           {item.failed && <small className="assistant-widget__failed">Chưa gửi thành công</small>}
           {!!item.sources?.length && <div className="assistant-widget__sources" aria-label="Xem thêm">{item.sources.map(source => {
             const href = safeAssistantHref(source.href); return href ? <Link key={`${source.type}-${source.id}`} to={href}>{source.title || 'Xem thêm'}<Icon name="arrow" size={13} /></Link> : null;
           })}</div>}
         </article>)}
-        {pending && <p className="assistant-widget__status" role="status"><img src={MASCOT} alt="" width="28" height="28" />Men đang tìm thông tin cho bạn…</p>}
+        {pending && <p className="assistant-widget__status" role="status"><img src={MASCOT} alt="" width="28" height="28" />Đậu Đậu đang tìm thông tin cho bạn…</p>}
       </div>
       {error && <p className="assistant-widget__error" role="alert">{error}</p>}
       {handoffDone && <p className="assistant-widget__success" role="status">{handoffDone}</p>}
       {exhausted ? <div className="assistant-widget__limit"><strong>Hẹn bạn ngày mai nhé 🌙</strong><p>10 lượt mới sẽ có lúc 00:00 (giờ Việt Nam).</p><Link to="/lien-he">Liên hệ nhân viên <Icon name="arrow" size={15} /></Link></div>
         : <form className="assistant-widget__form" onSubmit={event => { event.preventDefault(); void sendMessage(draft); }}>
-          <label className="visually-hidden" htmlFor={`${panelId}-message`}>Câu hỏi cho Men</label>
-          <div className="assistant-widget__composer"><textarea ref={composer} id={`${panelId}-message`} rows="2" maxLength="2000" value={draft} onChange={event => setDraft(event.target.value)} placeholder="Bạn muốn Men giúp điều gì?" required
+          <label className="visually-hidden" htmlFor={`${panelId}-message`}>Câu hỏi cho Đậu Đậu</label>
+          <div className="assistant-widget__composer"><textarea ref={composer} id={`${panelId}-message`} rows="2" maxLength="2000" value={draft} onChange={event => setDraft(event.target.value)} placeholder="Bạn muốn Đậu Đậu giúp điều gì?" required
             onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage(draft); } }} />
             <button className="assistant-widget__send" type="submit" disabled={!draft.trim() || pending || (!usage && !usageError)} aria-label="Gửi câu hỏi"><Icon name="arrow" size={21} /></button></div>
           <div className="assistant-widget__compose-hint"><span>Enter để gửi · Shift + Enter để xuống dòng</span><span>{draft.length}/2000</span></div>
         </form>}
       {usageError && <p className="assistant-widget__usage-error">Chưa tải được số lượt. Hạn mức vẫn được kiểm tra khi gửi.</p>}
-      <details className="assistant-widget__privacy"><summary>Thông tin riêng tư được bảo vệ thế nào?</summary><p>Câu hỏi được ẩn thông tin nhận dạng thường gặp trước khi gửi đến Gemini. Không gửi mật khẩu, OTP hoặc thông tin thanh toán. Lượt hỏi tính theo cookie trình duyệt, đặt lại lúc 00:00 giờ Việt Nam. Men có thể nhầm; giá, phí và tồn kho được kiểm tra lại khi đặt hàng.</p></details>
+      <details className="assistant-widget__privacy"><summary>Thông tin riêng tư được bảo vệ thế nào?</summary><p>Câu hỏi được ẩn thông tin nhận dạng thường gặp trước khi gửi đến Gemini. Không gửi mật khẩu, OTP hoặc thông tin thanh toán. Lượt hỏi tính theo cookie trình duyệt, đặt lại lúc 00:00 giờ Việt Nam. Đậu Đậu có thể nhầm; giá, phí và tồn kho được kiểm tra lại khi đặt hàng.</p></details>
       {conversationId && (
             <div className="assistant-widget__handoff">
               {!handoffOpen ? (
@@ -159,8 +159,8 @@ function AssistantConversation() {
             </div>
           )}
     </section>}
-    {!open && <button ref={launcher} type="button" className="assistant-widget__launcher" aria-expanded="false" aria-controls={panelId} aria-label="Mở trợ lý tư vấn Men" onClick={() => setOpen(true)}>
-      <img src={MASCOT} srcSet="/images/mascot/men-160.webp 1x, /images/mascot/men-320.webp 2x" alt="" width="80" height="80" /><span>Hỏi Men nè!</span>
+    {!open && <button ref={launcher} type="button" className="assistant-widget__launcher" aria-expanded="false" aria-controls={panelId} aria-label="Mở trợ lý tư vấn Đậu Đậu" onClick={() => setOpen(true)}>
+      <img src={MASCOT} srcSet="/images/mascot/men-160.webp 1x, /images/mascot/men-320.webp 2x" alt="" width="80" height="80" /><span>Hỏi Đậu Đậu nè!</span>
     </button>}
   </div>;
 }

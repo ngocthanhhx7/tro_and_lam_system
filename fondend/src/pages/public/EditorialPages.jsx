@@ -18,7 +18,7 @@ export function AboutPage() {
         <p className="eyebrow">MỘT HÀNH TRÌNH ĐANG TIẾP NỐI</p>
         <h2>Đưa gốm đến gần<br />hơn với mỗi ngày.</h2>
         <p>TRO &amp; LAM kể câu chuyện về gốm Chu Đậu qua những điều gần gũi: một góc trà, một vật phẩm cho không gian sống, hay món quà dành cho dịp cần sự trân trọng.</p>
-        <p>Hai dòng Lifestyle và Diplomacy mở ra hai cách khám phá. Hãy bắt đầu từ điều bạn đang tìm kiếm.</p>
+        <p>Hai dòng gốm đời sống và gốm quà tặng mở ra hai cách khám phá. Hãy bắt đầu từ điều bạn đang tìm kiếm.</p>
         <Link className="text-link" to="/san-pham">Tìm món gốm của bạn <Icon name="arrow" size={18} /></Link>
       </div>
       <figure className="editorial-intro__image"><img src={media.hands} alt="Bàn tay tạo hình gốm trên bàn xoay — ảnh minh họa nghề gốm" loading="lazy" /></figure>

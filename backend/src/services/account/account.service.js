@@ -265,27 +265,30 @@ export function createAccountService({ ports = {}, config = {} } = {}) {
     return toCartDto(toCartRecord(saved), products);
   }
 
-  async function removeCartItem(actor, productId, expectedVersionValue, { session } = {}) {
+  async function removeCartItem(actor, productId, expectedVersionValue, { session, guestCartSnapshot } = {}) {
     const owner = cartOwner(actor);
     if (!isObjectId(productId)) throw badRequest('VALIDATION_ERROR', 'Mã sản phẩm không hợp lệ');
     const expectedVersion = validateExpectedVersion(expectedVersionValue);
-    await getOrCreateCart(owner);
-    const updated = await repository.transaction(async (transactionSession) => {
-      const current = owner.kind === 'user'
-        ? await repository.findUserCart(owner.key, { session: transactionSession })
-        : await repository.findGuestCart(owner.key, { session: transactionSession });
-      const cart = toCartRecord(current);
-      if (!cart) throw conflict('VERSION_CONFLICT');
-      assertVersion(cart, expectedVersion);
-      const items = cart.items.filter((item) => item.productId !== productId);
-      if (items.length === cart.items.length) return cart;
-      cart.items = items;
-      cart.expiresAt = expiredAt(cartTtlMs);
-      const saved = await repository.saveCart(cart, expectedVersion, { session: transactionSession });
-      if (!saved) throw conflict('VERSION_CONFLICT');
-      return toCartRecord(saved);
-    }, { session });
-    return cartWithPrices(updated, { session });
+    const reuseSnapshot = owner.kind === 'guest' && guestCartSnapshot !== undefined && !session;
+    if (reuseSnapshot && guestCartSnapshot
+      && (guestCartSnapshot.guestTokenHash !== owner.key || guestCartSnapshot.mergedAt)) {
+      throw new ServiceError(403, 'FORBIDDEN', 'Giỏ hàng khách không hợp lệ');
+    }
+    const current = reuseSnapshot ? guestCartSnapshot : owner.kind === 'user'
+      ? await repository.findUserCart(owner.key, { session })
+      : await repository.findGuestCart(owner.key, { session });
+    const cart = toCartRecord(current) || { version: 0, items: [] };
+    if (cart.mergedAt) throw conflict('VERSION_CONFLICT');
+    assertVersion(cart, expectedVersion);
+    const items = cart.items.filter((item) => item.productId !== productId);
+    if (items.length === cart.items.length) return cartWithPrices(cart, { session });
+    cart.items = items;
+    cart.expiresAt = expiredAt(cartTtlMs);
+    // One-document CAS also protects deletion from concurrent writes, merge and
+    // checkout. An existing caller transaction is still respected via session.
+    const saved = await repository.saveCart(cart, expectedVersion, { session });
+    if (!saved) throw conflict('VERSION_CONFLICT');
+    return cartWithPrices(toCartRecord(saved), { session });
   }
 
   async function guestCartWasMerged(tokenHash, { session } = {}) {

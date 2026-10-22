@@ -71,3 +71,7 @@ Kiểm tra provider thực ngày 2026-10-15: Gemini trả HTTP 403 PERMISSION_DE
 ## Rà soát toàn luồng ngày 2026-10-21
 
 Xem [báo cáo và kế hoạch](performance-review-2026-10-21.md) để biết phạm vi đã đọc, baseline, các sửa được thực hiện và backlog cần thêm explain/dữ liệu. Các nguyên tắc quyền, giá/tồn hiện hành và transaction ở trên vẫn áp dụng. Chi tiết sản phẩm gộp public category gate và inventory main/related; reviews dùng existence gate thay full DTO+stock. Ảnh editorial/motif có responsive derivatives giữ originals, startup không chờ request nền/font/video để mở tương tác. Kết quả đo sau triển khai được ghi trong báo cáo, không suy rộng số đo mẫu nhỏ thành cam kết mọi API.
+
+## Cart deletion - 2026-10-22
+
+See [cart mutation review](cart-mutation-review-2026-10-22.md). Request-scoped guest snapshot reuse plus atomic one-document CAS reduced deletion from six database commands/1093-1099 ms to three/590-591 ms in three VPS-Atlas samples with one remaining item. Exact ownership filter still uses the existing partial index. External transaction rollback, concurrent update/delete, consumed guest tokens and checkout replay were tested on a separate local replica set. Card/detail/cart handlers now have synchronous in-flight guards; browser checks confirmed 20 same-tick events produce one mutation and the header consumes its DTO without another GET. Add still performs fresh GET+PUT (five commands); do not claim its latency decreased. No result, price, stock or auth cache added and no production load test performed.

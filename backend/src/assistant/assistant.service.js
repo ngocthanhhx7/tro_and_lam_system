@@ -16,11 +16,11 @@ const CATALOG_QUERY_STOP_WORDS = new Set([
   'tìm', 'tiền', 'tôi', 'thế', 'thông', 'tin', 'về', 'vậy', 'với', 'xem', 'xin', 'ạ',
 ]);
 
-export const ASSISTANT_UNAVAILABLE_REPLY = 'Men đang hơi bí ở câu này rồi 🌿 Mình chưa có đủ thông tin để tư vấn chắc chắn. Bạn có thể xem sản phẩm bên dưới, hoặc nhờ nhân viên cùng tìm câu trả lời nhé.';
-export const ASSISTANT_NO_CONTEXT_REPLY = 'Câu này Men chưa có thông tin chắc chắn, nên mình không đoán bừa đâu nè 🌿 Bạn nói rõ thêm điều muốn tìm hiểu nhé? Nếu cần, mình có thể chuyển câu hỏi tới nhân viên.';
-export const ASSISTANT_RETRIEVAL_REPLY = 'Ối, Men chưa mở được thông tin sản phẩm lúc này 🌿 Bạn thử lại sau một chút nhé; nếu đang cần gấp, mình có thể chuyển câu hỏi tới nhân viên.';
-export const ASSISTANT_GREETING_REPLY = 'Chào bạn, mình là **Men**, tinh linh gốm của TRO & LAM nè! 🌿 Mình có thể giúp bạn chọn gốm, tìm hiểu hoa văn, cách đặt hàng và tra cứu đơn. Hôm nay mình tìm món gốm nào cùng bạn nhỉ?';
-const ASSISTANT_CAPABILITIES_REPLY = 'Men nhỏ xíu mà cũng có vài món nghề đó nha ✨\n\n- **Chọn gốm, tìm quà:** cùng bạn tìm sản phẩm theo nhu cầu và thông tin cửa hàng đang có.\n- **Tìm hiểu sản phẩm:** chất liệu, kích thước, cách chăm gốm và câu chuyện đã được giới thiệu.\n- **Hỗ trợ mua hàng:** hướng dẫn đặt hàng, dùng voucher, phí giao hàng và thanh toán.\n- **Theo dõi đơn:** hướng dẫn tra cứu bằng mã đơn, hoặc xem đơn của bạn khi đã đăng nhập.\n\nBạn đang chọn gốm cho **nhà mình hay làm quà** nè? 🌿';
+export const ASSISTANT_UNAVAILABLE_REPLY = 'Đậu Đậu đang hơi bí ở câu này rồi 🌿 Mình chưa có đủ thông tin để tư vấn chắc chắn. Bạn có thể xem sản phẩm bên dưới, hoặc nhờ nhân viên cùng tìm câu trả lời nhé.';
+export const ASSISTANT_NO_CONTEXT_REPLY = 'Câu này Đậu Đậu chưa có thông tin chắc chắn, nên mình không đoán bừa đâu nè 🌿 Bạn nói rõ thêm điều muốn tìm hiểu nhé? Nếu cần, mình có thể chuyển câu hỏi tới nhân viên.';
+export const ASSISTANT_RETRIEVAL_REPLY = 'Ối, Đậu Đậu chưa mở được thông tin sản phẩm lúc này 🌿 Bạn thử lại sau một chút nhé; nếu đang cần gấp, mình có thể chuyển câu hỏi tới nhân viên.';
+export const ASSISTANT_GREETING_REPLY = 'Chào bạn, mình là **Đậu Đậu**, tinh linh gốm của TRO & LAM nè! 🌿 Mình có thể giúp bạn chọn gốm, tìm hiểu hoa văn, cách đặt hàng và tra cứu đơn. Hôm nay mình tìm món gốm nào cùng bạn nhỉ?';
+const ASSISTANT_CAPABILITIES_REPLY = 'Đậu Đậu nhỏ xíu mà cũng có vài món nghề đó nha ✨\n\n- **Chọn gốm, tìm quà:** cùng bạn tìm sản phẩm theo nhu cầu và thông tin cửa hàng đang có.\n- **Tìm hiểu sản phẩm:** chất liệu, kích thước, cách chăm gốm và câu chuyện đã được giới thiệu.\n- **Hỗ trợ mua hàng:** hướng dẫn đặt hàng, dùng voucher, phí giao hàng và thanh toán.\n- **Theo dõi đơn:** hướng dẫn tra cứu bằng mã đơn, hoặc xem đơn của bạn khi đã đăng nhập.\n\nBạn đang chọn gốm cho **nhà mình hay làm quà** nè? 🌿';
 
 function idOf(value) {
   return String(value?._id ?? value?.id ?? value ?? '');
@@ -58,10 +58,10 @@ function isGreeting(value) {
 function conversationalReply(value) {
   const text = value.normalize('NFD').replace(/\p{Diacritic}/gu, '').replaceAll('đ', 'd').replaceAll('Đ', 'D').toLowerCase()
     .replace(/[.!?,;:]/gu, ' ').trim().replace(/\s+/gu, ' ');
-  if (/^(?:(?:cho (?:toi|minh|em) (?:biet|hoi)|vay|the) )?(?:ban|men|cau|tro ly)(?: oi)? (?:co the |se )?(?:lam (?:duoc )?(?:gi|nhung gi)|giup (?:duoc )?(?:(?:toi|minh|em) )?(?:duoc )?(?:gi|nhung gi)|ho tro (?:duoc )?(?:gi|nhung gi))(?: (?:nao|nhi|vay|the|a|nhe|khong))*$/u.test(text)
-    || /^(?:ban|men|cau) la ai(?: (?:vay|the|nhi|a))*$/u.test(text)) return ASSISTANT_CAPABILITIES_REPLY;
-  if (/^(?:(?:cam on|thank you|thanks)(?: (?:ban|men|nhe|nha|nhieu|a|lam|rat))*|da cam on(?: (?:ban|men|nhe|nha|a))*)$/u.test(text)) {
-    return 'Có gì đâu nè, Men vui vì giúp được bạn ✨ Khi cần chọn gốm hay hỏi chuyện đặt hàng, cứ gọi mình nhé!';
+  if (/^(?:(?:cho (?:toi|minh|em) (?:biet|hoi)|vay|the) )?(?:ban|dau dau|men|cau|tro ly)(?: oi)? (?:co the |se )?(?:lam (?:duoc )?(?:gi|nhung gi)|giup (?:duoc )?(?:(?:toi|minh|em) )?(?:duoc )?(?:gi|nhung gi)|ho tro (?:duoc )?(?:gi|nhung gi))(?: (?:nao|nhi|vay|the|a|nhe|khong))*$/u.test(text)
+    || /^(?:ban|dau dau|men|cau) la ai(?: (?:vay|the|nhi|a))*$/u.test(text)) return ASSISTANT_CAPABILITIES_REPLY;
+  if (/^(?:(?:cam on|thank you|thanks)(?: (?:ban|dau dau|men|nhe|nha|nhieu|a|lam|rat))*|da cam on(?: (?:ban|dau dau|men|nhe|nha|a))*)$/u.test(text)) {
+    return 'Có gì đâu nè, Đậu Đậu vui vì giúp được bạn ✨ Khi cần chọn gốm hay hỏi chuyện đặt hàng, cứ gọi mình nhé!';
   }
   return null;
 }
@@ -85,7 +85,7 @@ function catalogFallbackReply(approvedContext) {
     const methods = care.paymentMethods.map(method => method === 'cod' ? 'COD (thanh toán khi nhận hàng)' : 'PayOS (quét QR)').join(' hoặc ');
     const fees = care.shippingZones.filter(zone => Number.isSafeInteger(zone.feeVnd)).slice(0, 5)
       .map(zone => `- ${(zone.provinceNames || []).includes('*') ? 'Toàn quốc' : (zone.provinceNames || []).join(', ') || 'Vùng giao hàng được cấu hình'}: **${new Intl.NumberFormat('vi-VN').format(zone.feeVnd)} đ**`).join('\n');
-    return `Men gửi bạn thông tin đang có nhé 🌿\n\n${methods ? `- Thanh toán: **${methods}**.\n` : '- Thanh toán đang chờ cửa hàng cấu hình.\n'}${fees ? `- Phí theo vùng:\n${fees}\n` : ''}- Bạn có thể mua không cần đăng nhập và **nhập mã voucher tại thanh toán**.\n\nPhí cuối cùng và điều kiện mã sẽ được hệ thống kiểm tra theo địa chỉ, giỏ hàng của bạn. Với PayOS, tiếp tục sang trang thanh toán để quét QR nhé.`;
+    return `Đậu Đậu gửi bạn thông tin đang có nhé 🌿\n\n${methods ? `- Thanh toán: **${methods}**.\n` : '- Thanh toán đang chờ cửa hàng cấu hình.\n'}${fees ? `- Phí theo vùng:\n${fees}\n` : ''}- Bạn có thể mua không cần đăng nhập và **nhập mã voucher tại thanh toán**.\n\nPhí cuối cùng và điều kiện mã sẽ được hệ thống kiểm tra theo địa chỉ, giỏ hàng của bạn. Với PayOS, tiếp tục sang trang thanh toán để quét QR nhé.`;
   }
   const products = approvedContext
     .filter((item) => item?.type === 'product' && typeof item.product?.name === 'string')
@@ -100,7 +100,7 @@ function catalogFallbackReply(approvedContext) {
       return `• ${details.join(' — ')}`;
     });
   if (!products.length) return ASSISTANT_UNAVAILABLE_REPLY;
-  return `Men chưa tư vấn chi tiết được lúc này, nhưng đã tìm thấy vài món trong cửa hàng để bạn xem trước nè 🌿\n\n${products.join('\n')}\n\nBạn mở từng sản phẩm bên dưới để xem kỹ hơn nhé. Nhân viên cũng sẵn sàng tư vấn thêm nếu bạn cần.`;
+  return `Đậu Đậu chưa tư vấn chi tiết được lúc này, nhưng đã tìm thấy vài món trong cửa hàng để bạn xem trước nè 🌿\n\n${products.join('\n')}\n\nBạn mở từng sản phẩm bên dưới để xem kỹ hơn nhé. Nhân viên cũng sẵn sàng tư vấn thêm nếu bạn cần.`;
 }
 
 function productContext(product) {

@@ -1,5 +1,5 @@
 import { productImageProps } from '../../services/catalog/productImage.js';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth.context.js';
 import ProductCard from '../../components/catalog/ProductCard.jsx';
@@ -30,6 +30,7 @@ export default function CartPage() {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState(null);
+  const mutationPending = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [recommendations, setRecommendations] = useState([]);
@@ -93,7 +94,8 @@ export default function CartPage() {
   }, [cartProductIds, loading]);
 
   async function setQuantity(item, quantity) {
-    if (quantity < 1 || quantity > 99) return;
+    if (quantity < 1 || quantity > 99 || mutationPending.current) return;
+    mutationPending.current = true;
     setPendingId(item.productId);
     setError('');
     try {
@@ -102,11 +104,14 @@ export default function CartPage() {
     } catch (updateError) {
       setError(cartError(updateError));
     } finally {
+      mutationPending.current = false;
       setPendingId(null);
     }
   }
 
   async function removeItem(item) {
+    if (mutationPending.current) return;
+    mutationPending.current = true;
     setPendingId(item.productId);
     setError('');
     try {
@@ -116,6 +121,7 @@ export default function CartPage() {
     } catch (removeError) {
       setError(cartError(removeError));
     } finally {
+      mutationPending.current = false;
       setPendingId(null);
     }
   }
@@ -176,7 +182,7 @@ export default function CartPage() {
                 ? <img className="cart-item__image" {...productImageProps(item.product.imageUrl, { width: 160, sizes: '120px' })} alt={item.product.name} loading="lazy" />
                 : <div className="cart-item__image cart-item__image--empty" aria-hidden="true">TRO &amp; LAM</div>}
               <div className="cart-item__details">
-                <p className="cart-item__line">{item.product?.line === 'lifestyle' ? 'Lifestyle Line' : item.product ? 'Diplomacy Line' : 'Sản phẩm không còn mở bán'}</p>
+                <p className="cart-item__line">{item.product?.line === 'lifestyle' ? 'Dòng gốm đời sống' : item.product ? 'Dòng gốm quà tặng' : 'Sản phẩm không còn mở bán'}</p>
                 <h2>{item.product?.slug
                   ? <Link to={`/san-pham/${encodeURIComponent(item.product.slug)}`}>{item.product.name}</Link>
                   : item.product?.name || 'Sản phẩm không còn mở bán'}</h2>

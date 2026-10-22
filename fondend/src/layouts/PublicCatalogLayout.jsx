@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
 import HeaderAccountMenu from '../components/account/HeaderAccountMenu.jsx';
+import HeaderCartMenu from '../components/account/HeaderCartMenu.jsx';
 import Icon from '../components/catalog/Icon.jsx';
 import { QuickContactLinks } from '../components/catalog/QuickContactLinks.jsx';
 import LogoutButton from '../components/identity/LogoutButton.jsx';
 import { useAuth } from '../contexts/auth.context.js';
-import { accountApi } from '../services/account/account.api.js';
-import { CART_UPDATED_EVENT, getCartItemCount } from '../services/account/cartEvents.js';
 import { setPageMetadata } from '../utils/pageMetadata.js';
 
 const links = [
@@ -19,8 +18,8 @@ const links = [
 ];
 const collections = [
   { to: '/san-pham', label: 'Tất cả sản phẩm' },
-  { to: '/bo-suu-tap/lifestyle', label: 'Lifestyle · Gốm trong đời sống' },
-  { to: '/bo-suu-tap/diplomacy', label: 'Diplomacy · Gốm trao tặng' },
+  { to: '/bo-suu-tap/lifestyle', label: 'Dòng gốm đời sống' },
+  { to: '/bo-suu-tap/diplomacy', label: 'Dòng gốm quà tặng' },
 ];
 const pageMetadata = {
   '/': {
@@ -32,12 +31,12 @@ const pageMetadata = {
     description: 'Xem danh mục gốm Chu Đậu của TRO & LAM, tìm theo dòng sản phẩm, loại gốm và thông tin được công bố.',
   },
   '/bo-suu-tap/lifestyle': {
-    title: 'Gốm trong đời sống — Lifestyle | TRO & LAM',
-    description: 'Khám phá Lifestyle Line của TRO & LAM với những gợi ý gốm cho góc trà và không gian sống.',
+    title: 'Dòng gốm đời sống | TRO & LAM',
+    description: 'Khám phá dòng gốm đời sống của TRO & LAM với những gợi ý gốm cho góc trà và không gian sống.',
   },
   '/bo-suu-tap/diplomacy': {
-    title: 'Gốm trao tặng — Diplomacy | TRO & LAM',
-    description: 'Khám phá Diplomacy Line của TRO & LAM và gửi yêu cầu tư vấn quà tặng theo dịp sử dụng.',
+    title: 'Dòng gốm quà tặng | TRO & LAM',
+    description: 'Khám phá dòng gốm quà tặng của TRO & LAM và gửi yêu cầu tư vấn quà tặng theo dịp sử dụng.',
   },
   '/cau-chuyen': {
     title: 'Câu chuyện về gốm Chu Đậu | TRO & LAM',
@@ -76,32 +75,11 @@ export default function PublicCatalogLayout() {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const { pathname } = useLocation();
   const menuDialog = useRef(null);
   const menuButton = useRef(null);
   const productMenu = useRef(null);
   const isCollection = pathname.startsWith('/bo-suu-tap') || pathname.startsWith('/san-pham');
-  useEffect(() => {
-    let active = true;
-    let receivedCartUpdate = false;
-    const handleCartUpdate = (event) => {
-      receivedCartUpdate = true;
-      setCartCount(event.detail?.count || 0);
-    };
-    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdate);
-    accountApi.getCart()
-      .then((response) => {
-        if (active && !receivedCartUpdate) {
-          setCartCount(getCartItemCount(response?.data));
-        }
-      })
-      .catch(() => { if (active && !receivedCartUpdate) setCartCount(0); });
-    return () => {
-      active = false;
-      window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdate);
-    };
-  }, [user]);
   useEffect(() => {
     const dialog = menuDialog.current;
     if (menuOpen && !dialog.open) dialog.showModal();
@@ -127,16 +105,21 @@ export default function PublicCatalogLayout() {
     if (event.target instanceof Element && event.target.closest('img, picture')) event.preventDefault();
   }}>
     <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-    <div className="brand-ribbon">TỪ ĐẤT VÀ LỬA, GỬI MỘT SẮC LAM</div>
+    <div className="brand-ribbon">
+      <span className="visually-hidden">ĐẤT VIỆT TRONG TỪNG NÉT GỐM</span>
+      <div className="brand-ribbon__track" aria-hidden="true">{[0, 1].map(group => <div className="brand-ribbon__group" key={group}>
+        {Array.from({ length: 6 }, (_, index) => <span className="brand-ribbon__phrase" key={index}>ĐẤT VIỆT TRONG TỪNG NÉT GỐM<span className="brand-ribbon__separator">✦</span></span>)}
+      </div>)}</div>
+    </div>
     <header className="catalog-header">
       <div className="catalog-header__inner"><Brand />
         <nav className="catalog-nav" aria-label="Điều hướng chính">{links.map((link) => link.to === '/san-pham'
-          ? <div className="nav-products" key={link.to}><NavLink to={link.to} className={isCollection ? 'active' : undefined}>Sản phẩm</NavLink><details ref={productMenu} onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); } }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}><summary aria-label="Mở các dòng sản phẩm"><Icon name="chevron" size={15} /></summary><div className="product-dropdown">{collections.map((item) => <Link key={item.to} to={item.to} onClick={() => { productMenu.current.open = false; }}>{item.label}<Icon name="arrow" size={16} /></Link>)}</div></details></div>
+          ? <div className="nav-products" key={link.to} onPointerEnter={(event) => { if (event.pointerType === 'mouse') productMenu.current.open = true; }} onPointerLeave={(event) => { if (event.pointerType === 'mouse') productMenu.current.open = false; }}><NavLink to={link.to} className={isCollection ? 'active' : undefined}>Sản phẩm</NavLink><details ref={productMenu} onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); } }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}><summary aria-label="Mở các dòng sản phẩm"><Icon name="chevron" size={15} /></summary><div className="product-dropdown">{collections.map((item) => <Link key={item.to} to={item.to} onClick={() => { productMenu.current.open = false; }}>{item.label}<Icon name="arrow" size={16} /></Link>)}</div></details></div>
           : <NavLink key={link.to} to={link.to} end={link.to === '/'}>{link.label}</NavLink>)}</nav>
         <div className="catalog-header__actions">
           <button className="icon-button" aria-label={searchOpen ? 'Đóng tìm kiếm' : 'Mở tìm kiếm'} aria-expanded={searchOpen} aria-controls={searchOpen ? 'header-search-panel' : undefined} onClick={() => setSearchOpen(!searchOpen)}><Icon name={searchOpen ? 'close' : 'search'} /></button>
           <HeaderAccountMenu />
-          <Link className="catalog-header__icon-link catalog-header__cart-link" to="/gio-hang" aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}><Icon name="bag" />{cartCount > 0 && <span className="catalog-header__cart-count" aria-hidden="true">{cartCount > 99 ? '99+' : cartCount}</span>}</Link>
+          <HeaderCartMenu key={user?.id || 'guest'} />
           {user && user.role !== 'customer' && <LogoutButton variant="public" destination="/" />}
         </div>
         <button ref={menuButton} className="menu-toggle" aria-label="Mở điều hướng" aria-expanded={menuOpen} aria-haspopup="dialog" onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>

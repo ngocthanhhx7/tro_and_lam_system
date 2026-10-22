@@ -6,26 +6,22 @@ import { getPublishedCategories, searchPublishedProducts } from '../../services/
 import { lineImagery } from '../../constants/editorialMedia.js';
 import { staticImageProps } from '../../services/catalog/staticImage.js';
 
-const lineLabels = { lifestyle: 'Lifestyle Line', diplomacy: 'Diplomacy Line' };
+const lineLabels = { lifestyle: 'Dòng gốm đời sống', diplomacy: 'Dòng gốm quà tặng' };
 const lineIntroductions = {
   lifestyle: {
     eyebrow: 'GỐM TRONG ĐỜI SỐNG',
     heading: 'Một chút gốm. Một khoảng bình yên.',
-    summary: 'Lifestyle Line gợi mở những món gốm cho góc trà, không gian sống và những món quà gần gũi.',
+    summary: 'Dòng gốm đời sống gợi mở những món gốm cho góc trà, không gian sống và những món quà gần gũi.',
     image: lineImagery.lifestyle.landing,
     alt: lineImagery.lifestyle.alt,
-    caption: 'Hũ trà họa tiết chim Lạc · Ảnh do chủ dự án cung cấp',
-    disclosure: lineImagery.lifestyle.disclosure,
     items: ['Gợi ý cho góc hương', 'Gợi ý lưu trữ trà', 'Gợi ý thưởng trà'],
   },
   diplomacy: {
     eyebrow: 'GỐM CHO NHỮNG DỊP TRAO TẶNG',
     heading: 'Gửi một món quà. Gói một tấm lòng.',
-    summary: 'Diplomacy Line dành cho những lựa chọn quà tặng văn hóa, doanh nghiệp và các dịp trang trọng.',
+    summary: 'Dòng gốm quà tặng dành cho những lựa chọn quà tặng văn hóa, doanh nghiệp và các dịp trang trọng.',
     image: lineImagery.diplomacy.landing,
     alt: lineImagery.diplomacy.alt,
-    caption: 'Bình Thiên Nga · Ảnh do chủ dự án cung cấp',
-    disclosure: lineImagery.diplomacy.disclosure,
     items: ['Bình Thiên Nga', 'Bình Phú Quý', 'Bình Giọt Ngọc', 'Bình Hoa Lam', 'Bình Tỳ Bà'],
   },
 };
@@ -67,7 +63,7 @@ function CatalogFilterForm({ filters, categories, forcedLine, onApply, onReset }
     </div>
     <form id="catalog-filters" className={`catalog-filters${mobileOpen ? ' is-open' : ''}`} onSubmit={submitFilters}>
       <label>Tìm theo tên hoặc nội dung<input type="search" name="q" maxLength="120" value={draft.q} onChange={(event) => setDraft({ ...draft, q: event.target.value })} placeholder="Nhập từ khóa" /></label>
-      <label>Dòng sản phẩm<select name="line" value={forcedLine || draft.line} disabled={Boolean(forcedLine)} onChange={(event) => setDraft({ ...draft, line: event.target.value })}><option value="">Tất cả dòng</option><option value="lifestyle">Lifestyle Line</option><option value="diplomacy">Diplomacy Line</option></select></label>
+      <label>Dòng sản phẩm<select name="line" value={forcedLine || draft.line} disabled={Boolean(forcedLine)} onChange={(event) => setDraft({ ...draft, line: event.target.value })}><option value="">Tất cả dòng</option><option value="lifestyle">Dòng gốm đời sống</option><option value="diplomacy">Dòng gốm quà tặng</option></select></label>
       <label>Danh mục<select name="category" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">Tất cả danh mục</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       <fieldset><legend>Giá công bố (VND)</legend><div className="filter-panel__range"><label><span className="visually-hidden">Từ giá</span><input name="priceMin" type="number" min="0" step="1" value={draft.priceMin} onChange={(event) => setDraft({ ...draft, priceMin: event.target.value })} placeholder="Từ" /></label><span aria-hidden="true">—</span><label><span className="visually-hidden">Đến giá</span><input name="priceMax" type="number" min="0" step="1" value={draft.priceMax} onChange={(event) => setDraft({ ...draft, priceMax: event.target.value })} placeholder="Đến" /></label></div></fieldset>
       <label>Hình thức bán<select name="saleMode" value={draft.saleMode} onChange={(event) => setDraft({ ...draft, saleMode: event.target.value })}><option value="">Tất cả hình thức</option><option value="buy">Mua trực tiếp</option><option value="quote">Yêu cầu báo giá</option><option value="both">Mua hoặc yêu cầu tư vấn</option></select></label>
@@ -131,11 +127,10 @@ export default function ProductCatalogPage({ showIntro = true } = {}) {
 
   const pageTitle = forcedLine ? lineLabels[forcedLine] : 'Sản phẩm';
   return <div className={`catalog-page section-wrap${showIntro ? '' : ' catalog-page--embedded'}`}>
-    {showIntro && <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{pageTitle}</span></nav>}
     {showIntro && (forcedLine ? <section className="product-line-intro">
       <div className="product-line-intro__feature">
         <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>
-        <figure><img {...staticImageProps(lineIntroductions[forcedLine].image)} alt={lineIntroductions[forcedLine].alt} loading="eager" width="896" height="1152" /><small className="collection-story__disclosure">{lineIntroductions[forcedLine].disclosure}</small><figcaption>{lineIntroductions[forcedLine].caption}</figcaption><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / LIFESTYLE' : '02 / DIPLOMACY'}</span></figure>
+        <figure><img {...staticImageProps(lineIntroductions[forcedLine].image)} alt={lineIntroductions[forcedLine].alt} loading="eager" width="896" height="1152" /><span aria-hidden="true">{forcedLine === 'lifestyle' ? '01 / GỐM ĐỜI SỐNG' : '02 / GỐM QUÀ TẶNG'}</span></figure>
       </div>
       <div className="product-line-intro__guide"><div><p className="eyebrow">KHÁM PHÁ DÒNG SẢN PHẨM</p><h2>{forcedLine === 'lifestyle' ? 'Những món gốm cho từng góc nhỏ' : 'Những dáng bình dành cho dịp trao tặng'}</h2><p className="product-line-intro__note">Đây là gợi ý phong cách. Tên mẫu, SKU, nguồn cung và giá cần được xác nhận khi tư vấn.</p></div><ul>{lineIntroductions[forcedLine].items.map((item, index) => <li key={item}><span>0{index + 1}</span>{item}</li>)}</ul></div>
     </section> : <section className="catalog-page__intro">

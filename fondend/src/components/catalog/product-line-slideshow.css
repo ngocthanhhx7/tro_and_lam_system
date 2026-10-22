@@ -1,7 +1,7 @@
 .product-line-slideshow.collection-story__image {
   height: auto;
-  aspect-ratio: 4 / 5;
-  background: var(--brand-ivory);
+  aspect-ratio: 1;
+  background: #fff;
 }
 
 .product-line-slideshow__track {
@@ -13,7 +13,7 @@
   transition: transform 700ms cubic-bezier(.22, .61, .36, 1);
 }
 
-/* The new portrait frame leaves less empty space above the copy. */
+/* Keep ornaments clear of the square photo frame. */
 .home-product-line:has(.product-line-slideshow) .decorative-motif--above-right {
   bottom: calc(100% + 20px);
 }
