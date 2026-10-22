@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 import { FIXTURE_PASSWORD, USERS, WEB_ORIGIN } from './fixtures.js';
 
 const ERROR_STATUSES = [400, 401, 403, 404, 405, 408, 409, 413, 422, 429, 500, 502, 503, 504];

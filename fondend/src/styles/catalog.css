@@ -268,10 +268,6 @@
 .home-story-band__ornament { position: absolute; right: 8%; color: rgb(216 179 90 / 26%); font-size: clamp(12rem, 36vw, 34rem); font-weight: 200; line-height: 0.8; }
 
 .catalog-page { padding-top: 26px; }
-.breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 28px; color: var(--text-secondary); font-size: 0.77rem; }
-.breadcrumbs a { color: var(--text-secondary); text-decoration: none; }
-.breadcrumbs a:hover { color: var(--brand-blue); text-decoration: underline; }
-.breadcrumbs [aria-current='page'] { color: var(--brand-deep-blue); }
 .catalog-page__intro { max-width: 800px; margin: 40px 0 46px; }
 .catalog-page__intro h1 { font-size: clamp(2.4rem, 4vw, 3.8rem); }
 .catalog-page__intro > p:last-child { max-width: 670px; margin: 16px 0 0; color: var(--text-secondary); }

@@ -1,5 +1,5 @@
 import argon2 from 'argon2';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 import mongoose from 'mongoose';
 import { CatalogCategory } from '../../backend/src/models/catalog/category.model.js';
 import { CatalogProduct } from '../../backend/src/models/catalog/product.model.js';
@@ -55,7 +55,7 @@ test.beforeAll(async () => {
     const Stock = connection.model('P03BrowserInventorySeed', Inventory.schema);
     const Customer = connection.model('P03BrowserCustomerSeed', User.schema);
     const passwordHash = await argon2.hash(FIXTURE_PASSWORD);
-    await Customer.create({
+    await Customer.findOneAndUpdate({ emailNormalized: P03_BROWSER_CUSTOMER.email }, { $setOnInsert: {
       ...P03_BROWSER_CUSTOMER,
       emailNormalized: P03_BROWSER_CUSTOMER.email,
       passwordHash,
@@ -63,16 +63,16 @@ test.beforeAll(async () => {
       emailVerifiedAt: new Date(),
       authVersion: 0,
       version: 0,
-    });
-    const category = await Category.create({
+    } }, { upsert: true, returnDocument: 'after' });
+    const category = await Category.findOneAndUpdate({ slug: 'p03-fixture-geolocation-category' }, { $setOnInsert: {
       slug: 'p03-fixture-geolocation-category',
       name: 'P03 Browser Test Category',
       description: 'Synthetic category for isolated P03 browser acceptance.',
       sortOrder: 0,
       status: 'published',
       version: 0,
-    });
-    const product = await Product.create({
+    } }, { upsert: true, returnDocument: 'after' });
+    const product = await Product.findOneAndUpdate({ sku: P03_BROWSER_PRODUCT.sku }, { $setOnInsert: {
       ...P03_BROWSER_PRODUCT,
       line: 'lifestyle',
       categoryId: category._id,
@@ -82,8 +82,8 @@ test.beforeAll(async () => {
       status: 'published',
       featured: false,
       version: 0,
-    });
-    await Stock.create({ productId: product._id, onHand: 50, reserved: 0, version: 0 });
+    } }, { upsert: true, returnDocument: 'after' });
+    await Stock.updateOne({ productId: product._id }, { $setOnInsert: { productId: product._id, onHand: 50, reserved: 0, version: 0 } }, { upsert: true });
   } finally {
     await connection.close();
   }
@@ -134,27 +134,14 @@ async function saveManualAddress(page, label) {
   return persisted;
 }
 
-test('browser geolocation success reaches the real unconfigured geocoder, then manual address remains checkoutable', async ({ page }) => {
+test('manual address remains checkoutable without reading available browser geolocation', async ({ page }) => {
   await page.context().grantPermissions(['geolocation'], { origin: WEB_ORIGIN });
   await page.context().setGeolocation(BROWSER_FIXTURE_POSITION);
   await login(page);
   await page.goto('/tai-khoan/dia-chi');
 
-  const reverseResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/locations/reverse'
-    && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true }).click();
-  const reverseResponse = await reverseResponsePromise;
-  const reverseBody = await reverseResponse.json();
-  expect(reverseResponse.status(), JSON.stringify(reverseBody)).toBe(503);
-  expect(reverseBody.error?.code).toBe('GEO_UNAVAILABLE');
-  expect(reverseResponse.request().postDataJSON()).toEqual({
-    lat: BROWSER_FIXTURE_POSITION.latitude,
-    lng: BROWSER_FIXTURE_POSITION.longitude,
-  });
-  await expect(page.getByRole('status').filter({ hasText: 'Gợi ý địa chỉ đang tạm ngừng' })).toContainText('Nhập địa chỉ thủ công vẫn dùng được.');
-
-  const keepLocation = page.getByLabel('Lưu tọa độ gần đúng cùng địa chỉ này. Tọa độ không bắt buộc để đặt hàng.', { exact: true });
-  await expect(keepLocation).not.toBeChecked();
+  await expect(page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Lưu tọa độ gần đúng cùng địa chỉ này. Tọa độ không bắt buộc để đặt hàng.', { exact: true })).toHaveCount(0);
   const address = await saveManualAddress(page, 'P03 geolocation fallback');
 
   await page.goto('/san-pham');
@@ -166,14 +153,15 @@ test('browser geolocation success reaches the real unconfigured geocoder, then m
   expect(cartWrite.status()).toBe(200);
   await expect(page.getByRole('link', { name: 'Xem giỏ hàng', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
-  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
+  await page.locator('.cart-summary input[type=checkbox]').check();
+  await page.getByRole('link', { name: 'Mua hàng (1)', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Thông tin nhận hàng', exact: true })).toBeVisible();
   await expect(page.locator('#checkout-address')).toHaveValue(address.id);
   await expect(page.locator('.commerce-address-card')).toContainText('P03 Browser Fixture');
   await expect(page.locator('.commerce-address-card')).toContainText('33 Đường Kiểm thử, Việt Nam');
 });
 
-test('browser timeout test: a geolocation API timeout leaves manual address entry and save available', async ({ page }) => {
+test('manual address save does not depend on the browser geolocation API', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(globalThis.navigator, 'geolocation', {
       configurable: true,
@@ -197,8 +185,7 @@ test('browser timeout test: a geolocation API timeout leaves manual address entr
 
   await login(page);
   await page.goto('/tai-khoan/dia-chi');
-  await page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Thiết bị chưa trả vị trí kịp thời' })).toContainText('nhập địa chỉ thủ công');
+  await expect(page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true })).toHaveCount(0);
   expect(reverseGeocodeRequests).toBe(0);
 
   const address = await saveManualAddress(page, 'P03 browser timeout fallback');

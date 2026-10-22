@@ -96,7 +96,7 @@
 .workspace-panel__heading a { display: flex; align-items: center; gap: 12px; font-size: 10px; color: #00293b; text-decoration: none; white-space: nowrap; }
 .workspace-table-wrap { overflow-x: auto; }
 .workspace-empty { padding: 28px 14px; text-align: center; color: #6c7065; border: 1px dashed #e6dfcd; font-size: 12px; }
-.workspace-badge { display: inline-block; padding: 5px 8px; font-size: 9px; background: #f0ede2; color: #657276; border-radius: 1px; }
+.workspace-badge { display: inline-block; padding: 5px 8px; font-size: 9px; background: #f0ede2; color: #5c686c; border-radius: 1px; }
 .workspace-badge--pending, .workspace-badge--confirmed { background: #f9edc5; color: #765a1b; }
 .workspace-badge--processing { background: #e1edf0; color: #315b6b; }
 .workspace-badge--delivered, .workspace-badge--paid { background: #e5efe6; color: #3d6654; }

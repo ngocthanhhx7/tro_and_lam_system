@@ -291,7 +291,7 @@
 }
 
 .story-brand__steps li > span {
-  color: var(--brand-gold);
+  color: #806127;
   font-family: var(--font-heading);
   font-size: clamp(23px, 2.3vw, 32px);
   line-height: 1;

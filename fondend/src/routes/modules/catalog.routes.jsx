@@ -9,6 +9,8 @@ const ProductCatalogPage = lazy(() => import('../../pages/catalog/ProductCatalog
 const CuratedProductListingPage = lazy(() => import('../../pages/catalog/CuratedProductListingPage.jsx'));
 const ProductDetailPage = lazy(() => import('../../pages/public/ProductDetailPage.jsx'));
 const AdminCatalogPage = lazy(() => import('../../pages/admin/catalog/AdminCatalogPage.jsx'));
+const NewsPage = lazy(() => import('../../pages/news/NewsPage.jsx'));
+const NewsArticlePage = lazy(() => import('../../pages/news/NewsArticlePage.jsx'));
 
 export const catalogRoutes = [
   <Route key="catalog-public-shell" path="/" element={<PublicCatalogLayout />}>
@@ -16,6 +18,8 @@ export const catalogRoutes = [
     <Route path="san-pham" element={<CuratedProductListingPage />} />
     <Route path="san-pham/:slug" element={<ProductDetailPage />} />
     <Route path="bo-suu-tap/:line" element={<ProductCatalogPage />} />
+    <Route path="tin-tuc" element={<NewsPage />} />
+    <Route path="tin-tuc/:slug" element={<NewsArticlePage />} />
   </Route>,
   <Route key="admin-products" path="/admin/products" element={<IdentityRouteGuard roles={['admin']}><AdminCatalogPage /></IdentityRouteGuard>} />,
   <Route key="admin-product-new" path="/admin/products/new" element={<IdentityRouteGuard roles={['admin']}><AdminCatalogPage /></IdentityRouteGuard>} />,

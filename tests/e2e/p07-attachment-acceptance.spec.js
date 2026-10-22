@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 import argon2 from 'argon2';
 import mongoose from 'mongoose';
 import { OutboxEvent } from '../../backend/src/models/operations/outbox-event.model.js';
@@ -202,7 +202,8 @@ test('P07 guest order owner can attach private evidence and continue the protect
   const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   await seedSyntheticUsers();
   await page.goto('/tra-cuu-don-hang');
-  await page.getByLabel('Mã đơn hàng', { exact: true }).fill(GUEST_ORDER_CODE);
+  await page.getByText('Xác minh email để xem thông tin chi tiết', { exact: true }).click();
+  await page.locator('#order-code').fill(GUEST_ORDER_CODE);
   await page.getByLabel('Email đặt hàng', { exact: true }).fill(GUEST_ORDER_EMAIL);
   const challengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
     && response.request().method() === 'POST');

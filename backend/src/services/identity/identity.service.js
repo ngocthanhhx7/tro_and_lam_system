@@ -357,6 +357,13 @@ export function createIdentityService({ ports = {}, config = {} } = {}) {
         createdAt: currentTime,
       }, session);
       return { accepted: true, queued: true };
+    }).catch((error) => {
+      // A simultaneous first reset can race the unique cooldown guard insert.
+      // Let the transaction roll back before translating that duplicate key.
+      if (error?.code === 11000 && error.keyPattern?.key === 1) {
+        throw new ServiceError(429, 'RATE_LIMITED', 'Yêu cầu đặt lại đã được gửi gần đây. Vui lòng thử lại sau');
+      }
+      throw error;
     });
   }
 

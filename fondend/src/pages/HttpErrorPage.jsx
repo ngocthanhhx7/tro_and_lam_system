@@ -30,7 +30,22 @@ export default function HttpErrorPage({ status = 500, embedded = false }) {
   const primaryTarget = code === 401 ? '/dang-nhap' : workspaceHome;
   const primaryLabel = code === 401 ? 'Đăng nhập lại' : workspaceHome === '/' ? 'Về trang chủ' : 'Về không gian làm việc';
 
-  useEffect(() => { titleRef.current?.focus(); }, [code]);
+  useEffect(() => {
+    const root = document.getElementById('root');
+    const focusTitle = () => titleRef.current?.focus();
+    if (!root?.hasAttribute('inert')) {
+      focusTitle();
+      return undefined;
+    }
+    const observer = new MutationObserver(() => {
+      if (!root.hasAttribute('inert')) {
+        observer.disconnect();
+        focusTitle();
+      }
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ['inert'] });
+    return () => observer.disconnect();
+  }, [code]);
 
   const PageRegion = embedded ? 'section' : 'main';
   return <PageRegion className="http-error-page" aria-labelledby="http-error-title">

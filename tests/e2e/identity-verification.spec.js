@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 
 test('email verification keeps the fragment token through URL cleanup and submits it once', async ({ page }) => {
   const token = 'browser-only-verification-token';
@@ -55,5 +55,5 @@ test('expired email verification is shown as an error and lets the customer requ
 
   await page.getByLabel('Gửi lại tới email').fill('an@example.com');
   await page.getByRole('button', { name: 'Gửi lại hướng dẫn' }).click();
-  await expect(page.getByRole('status')).toContainText('hướng dẫn đã được xếp gửi');
+  await expect(page.locator('main').getByRole('status')).toContainText('hướng dẫn đã được xếp gửi');
 });

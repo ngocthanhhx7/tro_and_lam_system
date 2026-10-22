@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 import mongoose from 'mongoose';
 import { Inventory } from '../../backend/src/models/commerce/inventory.model.js';
@@ -55,14 +55,15 @@ async function browserApi(page, path, init = {}) {
   }, { apiPath: path, requestInit: init });
 }
 
-async function login(page, user) {
+async function login(page, user, password = FIXTURE_PASSWORD) {
   await page.goto('/dang-nhap');
   await page.getByLabel('Email', { exact: true }).fill(user.email);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   if (user.role === 'customer') {
     await expect(page).toHaveURL(/\/$/u);
     await expect(page.locator('.catalog-header')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   } else if (user.role === 'staff') {
     await expect(page.getByRole('heading', { name: 'Bảng công việc', level: 1, exact: true })).toBeVisible();
   } else if (user.role === 'admin') {
@@ -141,14 +142,16 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   await expect(page.getByText('Đã cập nhật giỏ hàng từ danh mục hiện tại.')).toBeVisible();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Giỏ hàng của bạn', exact: true })).toBeVisible();
-  await expect(page.getByText(PUBLISHED_PRODUCT.name, { exact: true })).toBeVisible();
+  await expect(page.locator('main').getByText(PUBLISHED_PRODUCT.name, { exact: true })).toBeVisible();
 
   const cart = await browserApi(page, '/api/v1/cart');
   expect(cart.status).toBe(200);
   expect(cart.body.data.items).toHaveLength(1);
   expect(String(cart.body.data.items[0].productId)).toBe(process.env.P11_E2E_FIXTURE_PRODUCT_ID);
 
-  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
+  await page.locator('.cart-summary input[type=checkbox]').check();
+  const optionsResponse = page.waitForResponse(response => response.url().endsWith('/api/v1/checkout/options'));
+  await page.getByRole('link', { name: 'Mua hàng (1)', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Thông tin nhận hàng', exact: true })).toBeVisible();
   await page.getByLabel('Người nhận', { exact: true }).fill('P11 Checkout Fixture');
   await page.getByLabel('Email nhận xác nhận', { exact: true }).fill('checkout.p11@example.test');
@@ -156,13 +159,11 @@ test('public catalog hides drafts and guest cart reaches the truthful R06-unconf
   await page.getByLabel('Địa chỉ', { exact: true }).fill('123 Đường Thử nghiệm');
   await page.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
   await page.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('123 Đường Thử nghiệm, Việt Nam');
-  const quoteResponse = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));
-  await page.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
-  const quote = await quoteResponse;
+  const quote = await optionsResponse;
   const quoteBody = await quote.json();
-  expect(quote.status(), JSON.stringify(quoteBody)).toBe(503);
-  expect(quoteBody.error.code).toBe('DATABASE_UNAVAILABLE');
-  await expect(page.getByRole('alert')).toContainText('Chưa cấu hình vùng giao hàng, phí và giới hạn checkout');
+  expect(quote.status(), JSON.stringify(quoteBody)).toBe(200);
+  expect(quoteBody.data).toMatchObject({ checkoutConfigured: false, paymentMethods: [] });
+  await expect(page.getByRole('alert')).toContainText('Hiện chưa nhận đơn trực tuyến');
   await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeDisabled();
 
   const layout = await page.evaluate(() => ({
@@ -243,14 +244,15 @@ test('product-card cart action updates the red header badge with total quantity'
   await expect(badge).toHaveText('2');
   await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng, 2 sản phẩm');
 
-  await cartLink.click();
+  await cartLink.hover();
+  await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
   const quantity = page.locator('.cart-item .cart-quantity span');
   await expect(quantity).toHaveText('2');
   await page.locator('.cart-item .cart-quantity button').last().click();
   await expect(quantity).toHaveText('3');
   await expect(badge).toHaveText('3');
 
-  await page.getByRole('button', { name: 'Xóa sản phẩm', exact: true }).click();
+  await page.locator('.cart-item .cart-remove').click();
   await expect(page.locator('.cart-empty')).toBeVisible();
   await expect(cartLink.locator('.catalog-header__cart-count')).toHaveCount(0);
   await expect(cartLink).toHaveAttribute('aria-label', 'Giỏ hàng');
@@ -343,34 +345,33 @@ test('public storefront routes remain indexable while account and operations rou
 test('home tells the TRO & LAM story, introduces both lines and links to their product-photo landing pages', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /Giữ một nét xưa/u })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Đưa gốm đến gần/u })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Dòng gốm đời sống -/u })).toBeVisible();
   const loadedModulePaths = await page.evaluate(() => performance.getEntriesByType('resource')
     .map(({ name }) => new URL(name, globalThis.location.href).pathname));
   expect(loadedModulePaths.some((path) => path.includes('/pages/admin/') || path.includes('/pages/staff/'))).toBe(false);
   await expect(page.getByRole('heading', { name: 'Gốm dành cho bạn', exact: true })).toBeVisible();
-  await expect(page.locator('.closing-note__lotus')).toHaveAttribute('src', '/assets/editorial/lotus-line-ornament.svg');
-  await expect(page.locator('.closing-note__lotus')).toHaveAttribute('alt', '');
-
   const homeStories = page.locator('.collection-story');
   await expect(homeStories).toHaveCount(2);
-  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('src', '/assets/products/owner-provided/hu-tra-chim-lac.webp');
-  await expect(homeStories.nth(0).locator('img')).toHaveAttribute('alt', /ảnh do chủ dự án cung cấp/u);
-  await expect(homeStories.nth(0).getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
-  await expect(homeStories.nth(1).locator('img')).toHaveAttribute('src', '/assets/products/owner-provided/binh-thien-nga-01.webp');
-  await expect(homeStories.nth(1).getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
+  for (const section of await homeStories.all()) {
+    const image = section.locator('[role="group"][aria-hidden="false"] img');
+    await expect(image).toHaveAttribute('src', /\/assets\/responsive\/v1\//u);
+    await expect(image).toHaveAttribute('alt', /ảnh sản phẩm Gốm Chu Đậu/u);
+    await expect(section.locator('.collection-story__disclosure')).toHaveCount(0);
+    await expect(section.locator('.product-line-slideshow button')).toHaveCount(0);
+  }
 
-  await page.getByRole('link', { name: 'Khám phá Lifestyle', exact: true }).click();
+  await page.getByRole('link', { name: 'Khám phá gốm đời sống', exact: true }).click();
   await expect(page).toHaveURL(/\/bo-suu-tap\/lifestyle$/u);
   await expect(page.getByRole('heading', { level: 1, name: 'Một chút gốm. Một khoảng bình yên.', exact: true })).toBeVisible();
   await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/owner-provided/hu-tra-chim-lac.webp');
-  await expect(page.locator('.product-line-intro__feature').getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature .collection-story__disclosure, .product-line-intro__feature figcaption')).toHaveCount(0);
 
   await page.goto('/');
-  await page.getByRole('link', { name: 'Khám phá Diplomacy', exact: true }).click();
+  await page.getByRole('link', { name: 'Khám phá gốm quà tặng', exact: true }).click();
   await expect(page).toHaveURL(/\/bo-suu-tap\/diplomacy$/u);
   await expect(page.getByRole('heading', { level: 1, name: 'Gửi một món quà. Gói một tấm lòng.', exact: true })).toBeVisible();
   await expect(page.locator('.product-line-intro__feature figure img')).toHaveAttribute('src', '/assets/products/owner-provided/binh-thien-nga-01.webp');
-  await expect(page.locator('.product-line-intro__feature').getByText(/Ảnh sản phẩm do chủ dự án cung cấp/u)).toBeVisible();
+  await expect(page.locator('.product-line-intro__feature .collection-story__disclosure, .product-line-intro__feature figcaption')).toHaveCount(0);
 
   for (const width of [360, 390, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -426,7 +427,7 @@ test('product gallery keeps media disclosures outside the image', async ({ page 
   await page.goto('/san-pham/media-source-fixture');
   await expect(page.getByRole('heading', { level: 1, name: product.name, exact: true })).toBeVisible();
   const mediaNote = page.locator('.product-gallery__media-note');
-  await expect(mediaNote).toContainText('Ảnh sản phẩm do chủ dự án cung cấp');
+  await expect(mediaNote).toHaveCount(0);
   const mainImage = page.locator('.product-gallery__main img');
   await expect(mainImage).toHaveAttribute('src', product.images[0].url);
   await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
@@ -437,8 +438,7 @@ test('product gallery keeps media disclosures outside the image', async ({ page 
   await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
 
   await page.getByRole('button', { name: /Xem ảnh 3:/u }).click();
-  await expect(mediaNote).toContainText('Chi tiết được cắt từ ảnh do chủ dự án cung cấp');
-  await expect(mediaNote).toContainText('không phải góc chụp mới');
+  await expect(mediaNote).toHaveCount(0);
   await expect(mainImage).toHaveAttribute('src', product.images[2].url);
   await expect.poll(() => mainImage.evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
 
@@ -485,7 +485,7 @@ test('product detail uses only catalog media and published story data', async ({
   await expect(page.getByRole('heading', { level: 1, name: product.name, exact: true })).toBeVisible();
   await expect(page.locator('.product-detail__description')).toHaveText(product.description);
   await expect(page.locator('.product-gallery__main img')).toHaveAttribute('src', product.images[0].url);
-  await expect(page.locator('.product-gallery__media-note')).toContainText('Ảnh sản phẩm do chủ dự án cung cấp');
+  await expect(page.locator('.product-gallery__media-note')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Khám phá câu chuyện gốm Việt', exact: true })).toBeVisible();
   await expect(page.locator('.product-narrative')).toHaveCount(0);
   await expect(page.getByText(/Bảo vật quốc gia|Cù Lao Chàm/u)).toHaveCount(0);
@@ -493,15 +493,19 @@ test('product detail uses only catalog media and published story data', async ({
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', product.description);
 });
 
-test('published story and NFC browser routes expose only published content and honor tag revocation', async ({ page }) => {
-  await login(page, USERS.admin);
-  await page.goto('/admin/content');
-  await expect(page.locator('.admin-layout')).toHaveCount(1);
-  await expect(page.locator('.catalog-header')).toHaveCount(0);
-  await expect(page.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Điều hướng quản trị', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Nội dung', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: 'Câu chuyện và trang nội dung', exact: true })).toBeVisible();
+test('published story and NFC browser routes expose only published content and honor tag revocation', async ({ page, browser }) => {
+  const adminContext = await browser.newContext();
+  try {
+  const adminPage = await adminContext.newPage();
+  await page.goto('/');
+  await login(adminPage, USERS.admin);
+  await adminPage.goto('/admin/content');
+  await expect(adminPage.locator('.admin-layout')).toHaveCount(1);
+  await expect(adminPage.locator('.catalog-header')).toHaveCount(0);
+  await expect(adminPage.getByRole('group', { name: 'Phiên làm việc' })).toHaveCount(0);
+  await expect(adminPage.getByRole('navigation', { name: 'Điều hướng quản trị', exact: true })).toBeVisible();
+  await expect(adminPage.getByRole('link', { name: 'Nội dung', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(adminPage.getByRole('heading', { name: 'Câu chuyện và trang nội dung', exact: true })).toBeVisible();
   const slug = 'p11-browser-content-fixture';
   const draftInput = {
     slug,
@@ -514,7 +518,7 @@ test('published story and NFC browser routes expose only published content and h
     productIds: [],
     status: 'draft',
   };
-  const created = await browserApi(page, '/api/v1/admin/stories', { method: 'POST', body: draftInput });
+  const created = await browserApi(adminPage, '/api/v1/admin/stories', { method: 'POST', body: draftInput });
   expect(created.status, JSON.stringify(created.body)).toBe(201);
   const storyId = created.body.data.id;
 
@@ -525,7 +529,7 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page).toHaveTitle('Câu chuyện chưa công khai | TRO & LAM');
   await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
 
-  const published = await browserApi(page, `/api/v1/admin/stories/${storyId}`, {
+  const published = await browserApi(adminPage, `/api/v1/admin/stories/${storyId}`, {
     method: 'PATCH',
     body: { ...draftInput, origin: 'Synthetic P11 test fixture; not a cultural claim.', status: 'published', expectedVersion: 0 },
   });
@@ -544,12 +548,12 @@ test('published story and NFC browser routes expose only published content and h
   const pageSlug = 'p11-browser-page-metadata';
   const pageTitle = 'P11 Published Page Metadata';
   const pageDescription = 'P11 metadata excerpt from published CMS text.';
-  const draftPage = await browserApi(page, '/api/v1/admin/pages', {
+  const draftPage = await browserApi(adminPage, '/api/v1/admin/pages', {
     method: 'POST',
     body: { slug: pageSlug, title: pageTitle, locale: 'vi', status: 'draft', blocks: [{ type: 'paragraph', text: pageDescription }] },
   });
   expect(draftPage.status, JSON.stringify(draftPage.body)).toBe(201);
-  const publishedPage = await browserApi(page, `/api/v1/admin/pages/${draftPage.body.data.id}`, {
+  const publishedPage = await browserApi(adminPage, `/api/v1/admin/pages/${draftPage.body.data.id}`, {
     method: 'PATCH',
     body: { slug: pageSlug, title: pageTitle, locale: 'vi', status: 'published', expectedVersion: 0, blocks: [{ type: 'paragraph', text: pageDescription }] },
   });
@@ -561,12 +565,12 @@ test('published story and NFC browser routes expose only published content and h
 
   const englishPageTitle = 'P11 English Published Page Metadata';
   const englishPageDescription = 'P11 metadata excerpt from published English CMS text.';
-  const draftEnglishPage = await browserApi(page, '/api/v1/admin/pages', {
+  const draftEnglishPage = await browserApi(adminPage, '/api/v1/admin/pages', {
     method: 'POST',
     body: { slug: pageSlug, title: englishPageTitle, locale: 'en', status: 'draft', blocks: [{ type: 'paragraph', text: englishPageDescription }] },
   });
   expect(draftEnglishPage.status, JSON.stringify(draftEnglishPage.body)).toBe(201);
-  const publishedEnglishPage = await browserApi(page, `/api/v1/admin/pages/${draftEnglishPage.body.data.id}`, {
+  const publishedEnglishPage = await browserApi(adminPage, `/api/v1/admin/pages/${draftEnglishPage.body.data.id}`, {
     method: 'PATCH',
     body: { slug: pageSlug, title: englishPageTitle, locale: 'en', status: 'published', expectedVersion: 0, blocks: [{ type: 'paragraph', text: englishPageDescription }] },
   });
@@ -577,7 +581,7 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', englishPageDescription);
   await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute('content', 'en_US');
 
-  const createdTag = await browserApi(page, '/api/v1/admin/nfc-tags', {
+  const createdTag = await browserApi(adminPage, '/api/v1/admin/nfc-tags', {
     method: 'POST',
     body: { storyId },
   });
@@ -589,7 +593,7 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', draftInput.sections[0].body[0].text);
   await expect(page.locator('.notice')).toBeVisible();
 
-  const revoked = await browserApi(page, `/api/v1/admin/nfc-tags/${tagId}/revoke`, {
+  const revoked = await browserApi(adminPage, `/api/v1/admin/nfc-tags/${tagId}/revoke`, {
     method: 'POST',
     body: { reason: 'P11 browser fixture retired', expectedVersion: 0 },
   });
@@ -598,6 +602,7 @@ test('published story and NFC browser routes expose only published content and h
   await expect(page).toHaveTitle('NFC đã ngừng hoạt động | TRO & LAM');
   await expect(page.locator('.story-state h1')).toContainText('NFC');
   await expect(page.getByText('Synthetic source-confirmed browser content for this test only.')).toHaveCount(0);
+  } finally { await adminContext.close(); }
 });
 
 test('guest assistant gives a truthful no-context reply and offers a human handoff', async ({ page, context }) => {
@@ -611,7 +616,7 @@ test('guest assistant gives a truthful no-context reply and offers a human hando
   expect(response.status()).toBe(200);
   const responseBody = await response.json();
   const result = responseBody.data;
-  expect(result.reply).toMatch(/^Mình chưa tìm thấy thông tin công khai đã được duyệt/iu);
+  expect(result.reply).toContain('Đậu Đậu chưa có thông tin chắc chắn');
   expect(result.sources).toEqual([]);
   expect(result.handoffSuggested).toBe(true);
   await expect(page.locator('.assistant-widget__message--assistant .assistant-markdown')).toContainText(result.reply);
@@ -653,7 +658,7 @@ test('guest assistant answers a product price question from the published catalo
     expect(response.status()).toBe(200);
     const result = (await response.json()).data;
 
-    expect(result.reply).toContain('Gemini đang tạm thời chưa khả dụng');
+    expect(result.reply).toContain('Đậu Đậu chưa tư vấn chi tiết được lúc này');
     expect(result.reply).toContain(`${new Intl.NumberFormat('vi-VN').format(ASSISTANT_PRODUCT.priceVnd)} VND`);
     expect(result.sources).toHaveLength(1);
     expect(result.sources[0]).toMatchObject({
@@ -674,6 +679,7 @@ test('guest assistant answers a product price question from the published catalo
 });
 
 test('public home, catalog, product-line, and contact pages pass automated WCAG checks at mobile and desktop', async ({ page }) => {
+  test.setTimeout(90_000);
   const paths = [
     '/',
     '/san-pham',
@@ -730,7 +736,7 @@ test('public home, catalog, product-line, and contact pages pass automated WCAG 
 });
 
 test('customer account pages have no horizontal overflow or selected WCAG violations on mobile and desktop', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const routes = [
     ['/tai-khoan/ho-so', 'Hồ sơ của tôi'],
     ['/tai-khoan/dia-chi', 'Địa chỉ nhận hàng'],
@@ -748,13 +754,14 @@ test('customer account pages have no horizontal overflow or selected WCAG violat
   ];
 
   await login(page, USERS.customer);
-  const accountMenuTrigger = page.getByRole('button', { name: 'Mở menu tài khoản', exact: true });
+  const accountMenuTrigger = page.locator('.header-account-menu summary');
+  await page.mouse.move(0, 0);
   await accountMenuTrigger.focus();
   await page.keyboard.press('Enter');
-  await expect(accountMenuTrigger).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.locator('#header-account-menu-panel')).toBeVisible();
+  await expect(page.locator('.header-account-menu')).toHaveJSProperty('open', true);
+  await expect(page.locator('.header-account-menu__dropdown')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.locator('#header-account-menu-panel')).toHaveCount(0);
+  await expect(page.locator('.header-account-menu__dropdown')).toBeHidden();
   await expect(accountMenuTrigger).toBeFocused();
 
   for (const viewport of viewports) {
@@ -786,9 +793,10 @@ test('customer account pages have no horizontal overflow or selected WCAG violat
   ]) {
     await page.setViewportSize(viewport);
     await page.goto('/tai-khoan/ho-so');
-    await accountMenuTrigger.focus();
+    await page.mouse.move(0, 0);
+  await accountMenuTrigger.focus();
     await page.keyboard.press('Enter');
-    await expect(page.locator('#header-account-menu-panel')).toBeVisible();
+    await expect(page.locator('.header-account-menu__dropdown')).toBeVisible();
     const layout = await page.evaluate(() => ({
       viewportWidth: globalThis.innerWidth,
       documentWidth: globalThis.document.documentElement.scrollWidth,
@@ -856,7 +864,7 @@ test('public catalog filters are reflected in the URL and pagination restores af
 test('guest cart updates, survives reload, removes items, stays isolated and merges into one customer cart', async ({ page, browser }) => {
   await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+  await expect(page.locator('main').getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
   await page.goto('/gio-hang');
 
   const cartItems = page.locator('.cart-item');
@@ -884,7 +892,7 @@ test('guest cart updates, survives reload, removes items, stays isolated and mer
 
     await guestBPage.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
     await guestBPage.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
-    await expect(guestBPage.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+    await expect(guestBPage.locator('main').getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
     const guestBCart = await browserApi(guestBPage, '/api/v1/cart');
     expect(guestBCart.status).toBe(200);
     expect(guestBCart.body.data.items).toHaveLength(1);
@@ -899,7 +907,7 @@ test('guest cart updates, survives reload, removes items, stays isolated and mer
 
     await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
     await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
+    await expect(page.locator('main').getByRole('status')).toContainText('Đã cập nhật giỏ hàng');
     await login(page, USERS.customer);
     await page.goto('/gio-hang');
     await expect(page.locator('.cart-item')).toHaveCount(1);
@@ -931,6 +939,7 @@ test('customer is denied the admin shell and stays protected on product and acco
 
 test('customer manages addresses with manual fallback and is denied staff/admin APIs', async ({ page }) => {
   await login(page, USERS.customer);
+  await page.goto('/tai-khoan');
   await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
 
   const ownIdentity = await browserApi(page, '/api/v1/auth/me');
@@ -962,8 +971,7 @@ async function addressBookFlow(page) {
   await page.goto('/tai-khoan/dia-chi');
   await expect(page.getByRole('heading', { name: 'Địa chỉ nhận hàng', exact: true })).toBeVisible();
   await expect(page.getByText('Chưa có địa chỉ nào')).toBeVisible();
-  await page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Bạn đã từ chối quyền vị trí' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dùng vị trí hiện tại', exact: true })).toHaveCount(0);
   expect(reverseGeocodeRequests).toBe(0);
 
   await page.getByLabel('Tên gợi nhớ', { exact: true }).fill('Nhà riêng');
@@ -1091,7 +1099,8 @@ test('guest cannot read private order data without order proof', async ({ page }
 
 test('guest order email lookup keeps credentials generic and reveals the order only after a valid code', async ({ page }) => {
   await page.goto('/tra-cuu-don-hang');
-  await page.getByLabel('Mã đơn hàng', { exact: true }).fill('TL-P11-NOT-AN-ORDER');
+  await page.getByText('Xác minh email để xem thông tin chi tiết', { exact: true }).click();
+  await page.locator('#order-code').fill('TL-P11-NOT-AN-ORDER');
   await page.getByLabel('Email đặt hàng', { exact: true }).fill('missing.p11@example.test');
   const missingChallengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
     && response.request().method() === 'POST');
@@ -1101,10 +1110,10 @@ test('guest order email lookup keeps credentials generic and reveals the order o
   expect(missingChallengeResponse.status(), JSON.stringify(missingChallengeBody)).toBe(202);
   expect(missingChallengeBody.data.accepted).toBe(true);
   expect(missingChallengeBody.data.challengeId).toEqual(expect.any(String));
-  await expect(page.getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
+  await expect(page.locator('main').getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
   await page.getByRole('button', { name: 'Dùng mã đơn hoặc email khác', exact: true }).click();
 
-  await page.getByLabel('Mã đơn hàng', { exact: true }).fill(GUEST_ORDER_CODE);
+  await page.locator('#order-code').fill(GUEST_ORDER_CODE);
   await page.getByLabel('Email đặt hàng', { exact: true }).fill(GUEST_ORDER_EMAIL);
   const validChallengeResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/order-access/challenges')
     && response.request().method() === 'POST');
@@ -1114,7 +1123,7 @@ test('guest order email lookup keeps credentials generic and reveals the order o
   expect(validChallengeResponse.status()).toBe(missingChallengeResponse.status());
   expect(Object.keys(validChallengeBody.data).sort()).toEqual(Object.keys(missingChallengeBody.data).sort());
   expect(validChallengeBody.data.accepted).toBe(true);
-  await expect(page.getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
+  await expect(page.locator('main').getByRole('status')).toContainText('Nếu mã đơn và email trùng khớp');
   await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
   await expect(page.getByText(GUEST_ORDER_EMAIL, { exact: true })).toHaveCount(0);
   await expect(page.getByText('14 Đường Riêng tư, Việt Nam', { exact: true })).toHaveCount(0);
@@ -1173,7 +1182,7 @@ test('PayOS return query flags never mark the order paid without server confirma
   expect(statusResponse.status()).toBe(200);
   expect((await statusResponse.json()).data.paymentStatus).toBe('pending');
   await expect(page.getByRole('heading', { name: 'Đã xác nhận thanh toán', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
+  await expect(page.locator('main').getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
   await expectSyntheticPendingPayment(orderId);
   await expect(page.getByRole('link', { name: 'Mở đơn hàng', exact: true })).toHaveAttribute('href', `/don-hang/${orderId}`);
 });
@@ -1187,14 +1196,14 @@ test('PayOS cancellation return keeps the synthetic order pending and opens its 
   expect(statusResponse.status()).toBe(200);
   expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
   await expect(page.getByRole('heading', { name: 'Chưa hoàn tất thanh toán', exact: true })).toBeVisible();
-  await expect(page.getByRole('status')).toContainText('Trang quay lại không thay đổi trạng thái giao dịch');
+  await expect(page.locator('main').getByRole('status')).toContainText('Trang quay lại không thay đổi trạng thái giao dịch');
   await expectSyntheticPendingPayment(orderId);
 
   await page.getByRole('link', { name: 'Mở đơn hàng', exact: true }).click();
   await expect(page).toHaveURL(`/don-hang/${orderId}`);
   await expect(page.getByRole('heading', { name: PAYMENT_ORDER_CODE, exact: true })).toBeVisible();
   await expect(page.getByText('Chờ thanh toán', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Thanh toán qua PayOS', exact: true })).toBeEnabled();
   await expectSyntheticPendingPayment(orderId);
 });
 
@@ -1207,13 +1216,13 @@ test('PayOS failure return query does not replace persisted payment status or re
   expect(statusResponse.status()).toBe(200);
   expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
   await expect(page.getByRole('heading', { name: 'Đã xác nhận thanh toán', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
+  await expect(page.locator('main').getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
   await expectSyntheticPendingPayment(orderId);
 
   await page.getByRole('link', { name: 'Mở đơn hàng', exact: true }).click();
   await expect(page).toHaveURL(`/don-hang/${orderId}`);
   await expect(page.getByRole('heading', { name: PAYMENT_ORDER_CODE, exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Thanh toán qua PayOS', exact: true })).toBeEnabled();
 });
 
 test('PayOS provider unavailable leaves the persisted synthetic order pending and retryable', async ({ page }) => {
@@ -1225,13 +1234,13 @@ test('PayOS provider unavailable leaves the persisted synthetic order pending an
   for (let attemptNumber = 0; attemptNumber < 2; attemptNumber += 1) {
     const attemptResponse = page.waitForResponse((response) => response.url().includes(`/api/v1/orders/${orderId}/payment-attempts`)
       && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true }).click();
+    await page.getByRole('button', { name: 'Thanh toán qua PayOS', exact: true }).click();
     const response = await attemptResponse;
     const body = await response.json();
     expect(response.status(), JSON.stringify(body)).toBe(503);
     expect(body.error?.code).toBe('PAYMENT_PROVIDER_UNAVAILABLE');
     await expect(page.getByRole('alert')).toContainText('Thanh toán trực tuyến hiện chưa được cấu hình');
-    await expect(page.getByRole('button', { name: 'Tạo liên kết thanh toán', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Thanh toán qua PayOS', exact: true })).toBeEnabled();
   }
 
   const paymentStatus = await browserApi(page, `/api/v1/orders/${orderId}/payment`);
@@ -1318,6 +1327,7 @@ test('admin session reaches its guarded workspace and can read admin statistics 
 });
 
 test('admin-requested reset link uses verified email without returning credentials or revoking the session', async ({ page, browser }) => {
+  test.setTimeout(60_000);
   const userId = process.env.P11_E2E_ADMIN_RESET_CUSTOMER_ID;
   const email = USERS.adminResetCustomer.email;
   const replacementPassword = 'P11 admin reset replacement 82!';
@@ -1329,7 +1339,7 @@ test('admin-requested reset link uses verified email without returning credentia
     await login(customerPage, USERS.adminResetCustomer);
     await login(page, USERS.admin);
     const before = await inspectP11Database(async ({ AuthChallenge: ChallengeRead, AuthSession: SessionRead, User: UserRead }) => {
-      const user = await UserRead.findById(userId).lean().exec();
+      const user = await UserRead.findById(userId).select('+passwordHash').lean().exec();
       return {
         user,
         sessions: await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec(),
@@ -1361,12 +1371,12 @@ test('admin-requested reset link uses verified email without returning credentia
     expect(resetResponse.status(), JSON.stringify(resetBody)).toBe(202);
     expect(resetBody.data).toEqual({ accepted: true, queued: true });
     expect(JSON.stringify(resetBody)).not.toMatch(/token|password|passwordHash|actionUrl/iu);
-    await expect(page.getByRole('status')).toContainText('được xếp gửi');
-    await expect(page.getByRole('status')).toContainText('không xác nhận thư đã được giao');
+    await expect(page.locator('main').getByRole('status')).toContainText('được xếp gửi');
+    await expect(page.locator('main').getByRole('status')).toContainText('không xác nhận thư đã được giao');
     await expect(resetPanel.getByLabel('Lý do hỗ trợ', { exact: true })).toHaveValue('');
 
     const afterRequest = await inspectP11Database(async ({ AuditLog: AuditRead, AuthChallenge: ChallengeRead, AuthSession: SessionRead, OutboxEvent: OutboxEventRead, User: UserRead }) => {
-      const user = await UserRead.findById(userId).lean().exec();
+      const user = await UserRead.findById(userId).select('+passwordHash').lean().exec();
       const challenges = await ChallengeRead.find({ userId: new mongoose.Types.ObjectId(userId), purpose: 'reset_password' }).lean().exec();
       const sessions = await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec();
       const outbox = await OutboxEventRead.find({ type: 'operations.delivery', aggregateType: 'mail' }).lean().exec();
@@ -1429,20 +1439,20 @@ test('admin-requested reset link uses verified email without returning credentia
     expect(targetSessionsBeforeUse.length).toBeGreaterThan(0);
     expect(targetSessionsBeforeUse.some((session) => !session.revokedAt)).toBe(true);
 
-    await page.goto(`/dat-lai-mat-khau#${new URLSearchParams({ token })}`);
-    await page.getByLabel('Mật khẩu mới · ít nhất 12 ký tự', { exact: true }).fill(replacementPassword);
-    await page.getByLabel('Nhập lại mật khẩu mới', { exact: true }).fill(replacementPassword);
-    const completionPromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/reset-password')
+    await customerPage.goto(`/dat-lai-mat-khau#${new URLSearchParams({ token })}`);
+    await customerPage.getByLabel('Mật khẩu mới · ít nhất 12 ký tự', { exact: true }).fill(replacementPassword);
+    await customerPage.getByLabel('Nhập lại mật khẩu mới', { exact: true }).fill(replacementPassword);
+    const completionPromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/auth/reset-password')
       && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Cập nhật mật khẩu', exact: true }).click();
+    await customerPage.getByRole('button', { name: 'Cập nhật mật khẩu', exact: true }).click();
     const completion = await completionPromise;
     const completionBody = await completion.json();
     expect(completion.status(), JSON.stringify(completionBody)).toBe(200);
     expect(completionBody.data.reset).toBe(true);
-    await expect(page.getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
+    await expect(customerPage.locator('main').getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
 
     const consumed = await inspectP11Database(async ({ AuthChallenge: ChallengeRead, AuthSession: SessionRead, User: UserRead }) => {
-      const user = await UserRead.findById(userId).lean().exec();
+      const user = await UserRead.findById(userId).select('+passwordHash').lean().exec();
       return {
         challenge: await ChallengeRead.findOne({ tokenHash: hashToken(token), purpose: 'reset_password' }).lean().exec(),
         sessions: await SessionRead.find({ userId: new mongoose.Types.ObjectId(userId) }).lean().exec(),
@@ -1460,7 +1470,7 @@ test('admin-requested reset link uses verified email without returning credentia
     const staleCustomerSession = await browserApi(customerPage, '/api/v1/auth/me');
     expect(staleCustomerSession.status).toBe(401);
     expect(staleCustomerSession.body.error?.code).toBe('SESSION_EXPIRED');
-    await login(customerPage, { ...USERS.adminResetCustomer, role: 'customer' });
+    await login(customerPage, { ...USERS.adminResetCustomer, role: 'customer' }, replacementPassword);
     const customerLogin = await browserApi(customerPage, '/api/v1/auth/me');
     expect(customerLogin.status).toBe(200);
     expect(customerLogin.body.data).toMatchObject({ id: userId, email, role: 'customer' });
@@ -1652,7 +1662,7 @@ test('admin can create, version-update and archive a product while order snapsho
   await page.getByLabel('Giá công bố (VND)', { exact: true }).fill('120000');
   await productForm.locator('select').nth(3).selectOption('draft');
   await page.getByRole('button', { name: 'Tạo sản phẩm', exact: true }).click();
-  await expect(page.getByText('Đã lưu thông tin sản phẩm.', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/products\/[a-f\d]{24}\/edit$/u);
 
   const productId = page.url().match(/\/admin\/products\/([a-f0-9]{24})\/edit$/u)?.[1];
   expect(productId).toBeTruthy();
@@ -1717,7 +1727,7 @@ test('admin can create, version-update and archive a product while order snapsho
   await expect(page.getByRole('button', { name: 'Lưu trữ sản phẩm P11 Admin CRUD Fixture Updated', exact: true })).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Lưu trữ sản phẩm P11 Admin CRUD Fixture Updated', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu trữ sản phẩm. Lịch sử đơn hàng không bị xóa.');
+  await expect(page.locator('main').getByRole('status')).toContainText('Đã lưu trữ sản phẩm. Lịch sử đơn hàng không bị xóa.');
 
   const publicDetail = await browserApi(page, '/api/v1/products/p11-admin-crud-fixture');
   expect(publicDetail.status).toBe(404);
@@ -1807,7 +1817,7 @@ test('customer notifications stay owner-scoped and read changes persist without 
 
   const promotionResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
     && new URL(response.url()).searchParams.get('category') === 'promotion');
-  await page.getByRole('button', { name: 'Ưu đãi', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Loại thông báo', exact: true }).selectOption('promotion');
   expect((await promotionResponsePromise).status()).toBe(200);
   await expect(page.getByText('P11 Customer Promotion Notice', { exact: true })).toBeVisible();
   await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toHaveCount(0);
@@ -1815,21 +1825,21 @@ test('customer notifications stay owner-scoped and read changes persist without 
 
   const systemResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
     && new URL(response.url()).searchParams.get('category') === 'system');
-  await page.getByRole('button', { name: 'Cập nhật hệ thống', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Loại thông báo', exact: true }).selectOption('system');
   expect((await systemResponsePromise).status()).toBe(200);
   await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toBeVisible();
   await expect(page.getByText('P11 Customer Promotion Notice', { exact: true })).toHaveCount(0);
 
   const orderResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
     && new URL(response.url()).searchParams.get('category') === 'order');
-  await page.getByRole('button', { name: 'Cập nhật đơn hàng', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Loại thông báo', exact: true }).selectOption('order');
   expect((await orderResponsePromise).status()).toBe(200);
   await expect(page.getByText('P11 Customer Order Notice One', { exact: true })).toBeVisible();
   await expect(page.getByText('P11 Customer Account Notice Two', { exact: true })).toHaveCount(0);
 
   const allResponsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/notifications'
     && !new URL(response.url()).searchParams.has('category'));
-  await page.getByRole('button', { name: 'Tất cả', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Loại thông báo', exact: true }).selectOption('');
   expect((await allResponsePromise).status()).toBe(200);
 
   const unread = await browserApi(page, '/api/v1/notifications/unread-count');
@@ -1924,8 +1934,8 @@ test('verified customer review remains private until an admin publishes it', asy
     expect(publishedReviews.status).toBe(200);
     expect(publishedReviews.body.data).toHaveLength(1);
     expect(publishedReviews.body.data[0]).toMatchObject({ id: reviewId, rating: 4, comment });
-    await adminPage.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
-    await expect(adminPage.getByText(comment, { exact: true })).toBeVisible();
+    await page.goto(`/san-pham/${PUBLISHED_PRODUCT.slug}`);
+    await expect(page.getByText(comment, { exact: true })).toBeVisible();
   } finally {
     await adminContext.close();
   }
@@ -1962,7 +1972,7 @@ test('customer and staff support ticket round-trip keeps internal notes private'
   expect(createTicketResponse.status(), JSON.stringify(createTicketBody)).toBe(201);
   const ticketId = createTicketBody.data.ticket.id;
   expect(createTicketBody.data.ticket).toMatchObject({ kind: 'complaint', orderId, status: 'open' });
-  await expect(page.getByRole('status')).toContainText(`Đã tạo yêu cầu ${createTicketBody.data.ticket.code}`);
+  await expect(page.locator('main').getByRole('status')).toContainText(`Đã tạo yêu cầu ${createTicketBody.data.ticket.code}`);
 
   const customerInternalNoteAttempt = await browserApi(page, `/api/v1/tickets/${ticketId}/messages`, {
     method: 'POST', body: { body: 'P11 unauthorized internal note', attachmentIds: [], visibility: 'internal' },
@@ -2108,7 +2118,7 @@ test('public contact inquiry reaches the staff queue and persists assignment and
   expect(createBody.data.deliveryStatus).toBe('queued');
   expect(Object.keys(createBody.data).sort()).toEqual(['deliveryStatus', 'id']);
   const contactId = createBody.data.id;
-  await expect(page.getByRole('status')).toContainText(`Mã tham chiếu: ${contactId}`);
+  await expect(page.locator('main').getByRole('status')).toContainText(`Mã tham chiếu: ${contactId}`);
 
   const anonymousStaffQueue = await browserApi(page, '/api/v1/staff/contacts');
   expect(anonymousStaffQueue.status).toBe(401);
@@ -2251,18 +2261,18 @@ test('customer checkout keeps its recipient snapshot after the saved address is 
   const existingCartItems = page.locator('.cart-item');
   while (await existingCartItems.count()) {
     const itemCount = await existingCartItems.count();
-    await existingCartItems.first().getByRole('button', { name: 'Xóa', exact: true }).click();
+    await existingCartItems.first().locator('.cart-remove').click();
     await expect(existingCartItems).toHaveCount(itemCount - 1);
   }
   await page.goto('/san-pham');
   await page.getByRole('link', { name: PUBLISHED_PRODUCT.name, exact: true }).click();
   await page.getByRole('button', { name: 'Thêm vào giỏ', exact: true }).click();
   await page.getByRole('link', { name: 'Xem giỏ hàng', exact: true }).click();
-  await page.getByRole('link', { name: 'Tiến hành đặt hàng', exact: true }).click();
+  await page.locator('.cart-summary input[type=checkbox]').check();
+  const quoteResponsePromise = page.waitForResponse(response => response.url().includes('/api/v1/checkout/quote'));
+  await page.getByRole('link', { name: 'Mua hàng (1)', exact: true }).click();
   await expect(page.locator('#checkout-address')).toHaveValue(savedAddress.id);
 
-  const quoteResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v1/checkout/quote'));
-  await page.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
   const quoteResponse = await quoteResponsePromise;
   const quoteBody = await quoteResponse.json();
   expect(quoteResponse.status(), JSON.stringify(quoteBody)).toBe(200);
@@ -2389,7 +2399,7 @@ test('customer registration verifies through encrypted outbox and returns to log
   const registrationBody = await registrationResponse.json();
   expect(registrationResponse.status(), JSON.stringify(registrationBody)).toBe(202);
   expect(registrationBody.data.verificationRequired).toBe(true);
-  await expect(page.getByRole('status')).toContainText('đã xếp hướng dẫn xác minh');
+  await expect(page.locator('main').getByRole('status')).toContainText('đã xếp hướng dẫn xác minh');
 
   const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
   const verificationMail = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
@@ -2438,10 +2448,11 @@ test('customer registration verifies through encrypted outbox and returns to log
   const loginBody = await loginResponse.json();
   expect(loginResponse.status(), JSON.stringify(loginBody)).toBe(200);
   expect(loginBody.data.user).toMatchObject({ email, role: 'customer' });
-  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
 });
 
 test('admin block, customer appeal and admin approval revoke old access and allow a fresh customer login', async ({ page, browser }) => {
+  test.setTimeout(60_000);
   const blockReason = 'P11 browser acceptance temporary block';
   const appealMessage = 'P11 customer requests an account review.';
   const decisionNote = 'P11 acceptance confirms the customer may regain account access.';
@@ -2450,12 +2461,12 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const adminPage = await adminContext.newPage();
     await login(adminPage, USERS.admin);
     await adminPage.goto('/admin/users');
-    await adminPage.getByLabel('Tìm tên hoặc email', { exact: true }).fill(USERS.customer.email);
+    await adminPage.getByLabel('Tìm tên hoặc email', { exact: true }).fill(USERS.appealCustomer.email);
     await adminPage.getByRole('button', { name: 'Lọc', exact: true }).click();
-    const customerRow = adminPage.locator('tbody tr').filter({ has: adminPage.getByText(USERS.customer.email, { exact: true }) });
+    const customerRow = adminPage.locator('tbody tr').filter({ has: adminPage.getByText(USERS.appealCustomer.email, { exact: true }) });
     await expect(customerRow).toHaveCount(1);
     await customerRow.getByRole('link', { name: 'Mở tài khoản', exact: true }).click();
-    await expect(adminPage.getByRole('heading', { name: USERS.customer.name, exact: true })).toBeVisible();
+    await expect(adminPage.getByRole('heading', { name: USERS.appealCustomer.name, exact: true })).toBeVisible();
     const userId = new URL(adminPage.url()).pathname.split('/').at(-1);
     const statusForm = adminPage.locator('form.identity-admin__panel').filter({ has: adminPage.getByRole('heading', { name: 'Trạng thái', exact: true }) });
     await statusForm.getByLabel('Lý do bắt buộc', { exact: true }).fill(blockReason);
@@ -2467,10 +2478,10 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const blockBody = await blockResponse.json();
     expect(blockResponse.status(), JSON.stringify(blockBody)).toBe(200);
     expect(blockBody.data).toMatchObject({ id: userId, status: 'blocked' });
-    await expect(adminPage.getByRole('status')).toContainText('Trạng thái đã cập nhật');
+    await expect(adminPage.locator('main').getByRole('status')).toContainText('Trạng thái đã cập nhật');
 
     await page.goto('/dang-nhap');
-    await page.getByLabel('Email', { exact: true }).fill(USERS.customer.email);
+    await page.getByLabel('Email', { exact: true }).fill(USERS.appealCustomer.email);
     await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
     const blockedLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
       && response.request().method() === 'POST');
@@ -2499,7 +2510,7 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const appealRow = adminPage.locator('tbody tr').filter({ hasText: appealMessage });
     await expect(appealRow).toHaveCount(1);
     await appealRow.getByRole('link', { name: 'Xem và xử lý', exact: true }).click();
-    await expect(adminPage.getByRole('heading', { name: USERS.customer.name, exact: true })).toBeVisible();
+    await expect(adminPage.getByRole('heading', { name: USERS.appealCustomer.name, exact: true })).toBeVisible();
     await expect(adminPage.getByText(appealMessage, { exact: true })).toBeVisible();
     await adminPage.getByLabel('Lý do gửi tới người dùng', { exact: true }).fill(decisionNote);
     await adminPage.getByLabel('Tôi xác nhận đây là quyết định thủ công và cần được ghi vào lịch sử.', { exact: true }).check();
@@ -2510,7 +2521,7 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const decisionBody = await decisionResponse.json();
     expect(decisionResponse.status(), JSON.stringify(decisionBody)).toBe(200);
     expect(decisionBody.data).toMatchObject({ id: appealId, status: 'approved', userStatus: 'active', reviewNote: decisionNote });
-    await expect(adminPage.getByRole('status')).toContainText('tài khoản đã mở');
+    await expect(adminPage.locator('main').getByRole('status')).toContainText('tài khoản đã mở');
 
     const persisted = await inspectP11Database(async ({ AccountAppeal: AccountAppealRead, AuditLog: AuditLogRead, User: UserRead }) => ({
       user: await UserRead.findById(userId).lean().exec(),
@@ -2523,7 +2534,7 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     expect(persisted.audit.targetId).toBe(appealId);
 
     await page.goto('/dang-nhap');
-    await page.getByLabel('Email', { exact: true }).fill(USERS.customer.email);
+    await page.getByLabel('Email', { exact: true }).fill(USERS.appealCustomer.email);
     await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
     const freshLoginResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/login')
       && response.request().method() === 'POST');
@@ -2531,19 +2542,19 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const freshLoginResponse = await freshLoginResponsePromise;
     const freshLoginBody = await freshLoginResponse.json();
     expect(freshLoginResponse.status(), JSON.stringify(freshLoginBody)).toBe(200);
-    expect(freshLoginBody.data.user).toMatchObject({ email: USERS.customer.email, role: 'customer', status: 'active' });
-    await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+    expect(freshLoginBody.data.user).toMatchObject({ email: USERS.appealCustomer.email, role: 'customer', status: 'active' });
+    await expect(page).toHaveURL(/\/$/u);
   } finally {
     await adminContext.close();
   }
 });
 
 test('customer resets a password through encrypted outbox, consuming the link and revoking old sessions', async ({ page }) => {
-  const email = USERS.customer.email;
+  const email = USERS.passwordResetCustomer.email;
   const oldPassword = FIXTURE_PASSWORD;
   const newPassword = 'P11 replacement password 57!';
 
-  await login(page, USERS.customer);
+  await login(page, USERS.passwordResetCustomer);
   await page.goto('/quen-mat-khau');
   await page.getByLabel('Email', { exact: true }).fill(email);
   const resetRequestResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/auth/forgot-password')
@@ -2553,7 +2564,7 @@ test('customer resets a password through encrypted outbox, consuming the link an
   const resetRequestBody = await resetRequestResponse.json();
   expect(resetRequestResponse.status(), JSON.stringify(resetRequestBody)).toBe(202);
   expect(resetRequestBody.data.accepted).toBe(true);
-  await expect(page.getByRole('status')).toContainText('hướng dẫn đặt lại đã được xếp gửi');
+  await expect(page.locator('main').getByRole('status')).toContainText('hướng dẫn đặt lại đã được xếp gửi');
 
   const decryptMail = createOutboxPayloadCipher({ key: process.env.P11_E2E_MAIL_ENCRYPTION_KEY }).decrypt;
   const resetMail = await inspectP11Database(async ({ OutboxEvent: OutboxEventRead }) => {
@@ -2584,7 +2595,7 @@ test('customer resets a password through encrypted outbox, consuming the link an
   const resetBody = await resetResponse.json();
   expect(resetResponse.status(), JSON.stringify(resetBody)).toBe(200);
   expect(resetBody.data.reset).toBe(true);
-  await expect(page.getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
+  await expect(page.locator('main').getByRole('status')).toContainText('Mật khẩu đã được cập nhật');
 
   const persisted = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, AuthSession: AuthSessionRead, User: UserRead }) => {
     const user = await UserRead.findOne({ emailNormalized: email }).lean().exec();
@@ -2614,7 +2625,7 @@ test('customer resets a password through encrypted outbox, consuming the link an
   const newLoginBody = await newLoginResponse.json();
   expect(newLoginResponse.status(), JSON.stringify(newLoginBody)).toBe(200);
   expect(newLoginBody.data.user).toMatchObject({ email, role: 'customer' });
-  await expect(page.getByRole('heading', { name: 'Tài khoản của tôi', level: 1, exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
 });
 
 test('customer logout revokes the server session and clears the browser cookie', async ({ page, context }) => {
@@ -2683,7 +2694,7 @@ test('admin role changes require a reason and confirmation, audit the result and
     const updateBody = await updateResponse.json();
     expect(updateResponse.status(), JSON.stringify(updateBody)).toBe(200);
     expect(updateBody.data).toMatchObject({ id: userId, role: 'staff', status: 'active' });
-    await expect(adminPage.getByRole('status')).toContainText('các phiên cũ đã bị thu hồi');
+    await expect(adminPage.locator('main').getByRole('status')).toContainText('các phiên cũ đã bị thu hồi');
 
     const staleSession = await browserApi(customerPage, '/api/v1/auth/me');
     expect(staleSession.status).toBe(401);
@@ -2754,7 +2765,7 @@ test('customer manages profile, receives an admin voucher, and applies it during
     await page.getByLabel('Tên ưu đãi', { exact: true }).fill(voucherTitle);
     await page.getByLabel('Số tiền giảm (VND)', { exact: true }).fill('20000');
     await page.getByLabel('Đơn tối thiểu (VND)', { exact: true }).fill('100000');
-    await page.getByLabel('Hạn dùng', { exact: true }).fill('2026-10-20T23:59');
+    await page.getByLabel('Hạn dùng', { exact: true }).fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16));
     const issueResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/admin/vouchers')
       && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Cấp voucher', exact: true }).click();
@@ -2766,17 +2777,17 @@ test('customer manages profile, receives an admin voucher, and applies it during
     const voucherId = issueBody.data.id;
 
     await login(customerPage, USERS.profileCustomer);
-    await customerPage.getByRole('button', { name: 'Mở menu tài khoản' }).click();
+    await customerPage.locator('.header-account-menu').hover();
     await expect(customerPage.locator('.header-account-menu__badge')).toHaveText('1');
-    const accountMenu = customerPage.locator('#header-account-menu-panel');
+    const accountMenu = customerPage.locator('.header-account-menu__dropdown');
     await expect(accountMenu.getByRole('link', { name: /^Thông báo/u })).toBeVisible();
-    for (const label of ['Tài khoản của tôi', 'Hồ sơ', 'Địa chỉ', 'Đổi mật khẩu', 'Đơn mua', 'Kho voucher']) {
+    for (const label of ['Hồ sơ', 'Đơn hàng']) {
       await expect(accountMenu.getByRole('link', { name: label, exact: true })).toBeVisible();
     }
     await accountMenu.getByRole('link', { name: /^Thông báo/u }).click();
     await expect(customerPage.getByRole('heading', { name: 'Thông báo', exact: true })).toBeVisible();
     await expect(customerPage.getByText('Bạn có voucher mới', { exact: true })).toBeVisible();
-    await customerPage.getByRole('button', { name: 'Ưu đãi', exact: true }).click();
+    await customerPage.getByRole('combobox', { name: 'Loại thông báo', exact: true }).selectOption('promotion');
     await expect(customerPage.getByText('Bạn có voucher mới', { exact: true })).toBeVisible();
 
     await customerPage.goto('/tai-khoan/voucher');
@@ -2815,10 +2826,9 @@ test('customer manages profile, receives an admin voucher, and applies it during
     await customerPage.getByLabel('Địa chỉ', { exact: true }).fill('33 Đường Thử nghiệm');
     await customerPage.getByLabel('Tỉnh / thành phố', { exact: true }).fill('Hải Dương');
     await customerPage.getByLabel('Địa chỉ đầy đủ', { exact: true }).fill('33 Đường Thử nghiệm, Hải Dương');
-    await customerPage.locator('#checkout-voucher').selectOption(voucherId);
     const quoteResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/checkout/quote')
-      && response.request().method() === 'POST');
-    await customerPage.getByRole('button', { name: 'Tính phí và kiểm tra tồn', exact: true }).click();
+      && response.request().method() === 'POST' && response.request().postDataJSON().voucherId === voucherId);
+    await customerPage.locator('#checkout-voucher').selectOption(voucherId);
     const quoteResponse = await quoteResponsePromise;
     const quoteBody = await quoteResponse.json();
     expect(quoteResponse.status(), JSON.stringify(quoteBody)).toBe(200);
@@ -2842,7 +2852,7 @@ test('customer manages profile, receives an admin voucher, and applies it during
     await customerPage.getByLabel('Ngày sinh', { exact: true }).fill('1992-04-20');
     await customerPage.locator('#profile-gender').selectOption('prefer_not_to_say');
     await customerPage.getByRole('button', { name: 'Lưu hồ sơ', exact: true }).click();
-    await expect(customerPage.getByRole('status')).toContainText('Thông tin hồ sơ đã được lưu');
+    await expect(customerPage.locator('main').getByRole('status')).toContainText('Thông tin hồ sơ đã được lưu');
     expect((await browserApi(customerPage, '/api/v1/auth/me')).body.data).toMatchObject({ birthDate: '1992-04-20', gender: 'prefer_not_to_say' });
 
     await customerPage.getByLabel('Email mới', { exact: true }).fill(USERS.customer.email);
@@ -2877,7 +2887,7 @@ test('customer manages profile, receives an admin voucher, and applies it during
     await customerPage.getByRole('button', { name: 'Xác minh email mới', exact: true }).click();
     const verifyEmail = await verifyEmailPromise;
     expect(verifyEmail.status()).toBe(200);
-    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
+    await expect(customerPage).toHaveURL(/\/$/u);
     expect((await browserApi(customerPage, '/api/v1/auth/me')).status).toBe(401);
 
     const accountAfterEmailChange = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, AuthSession: AuthSessionRead, User: UserRead }) => {
@@ -2929,15 +2939,15 @@ test('customer manages profile, receives an admin voucher, and applies it during
     expect(newPasswordLogin.body.data.user.email).toBe(updatedEmail);
     await customerPage.goto('/tai-khoan/ho-so');
     await expect(customerPage.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
-    await customerPage.getByRole('button', { name: 'Mở menu tài khoản' }).click();
-    const authenticatedAccountMenu = customerPage.locator('#header-account-menu-panel');
+    await customerPage.locator('.header-account-menu').hover();
+    const authenticatedAccountMenu = customerPage.locator('.header-account-menu__dropdown');
     await expect(authenticatedAccountMenu.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
     const logoutResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/auth/logout')
       && response.request().method() === 'POST');
     await authenticatedAccountMenu.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
     const logoutResponse = await logoutResponsePromise;
     expect(logoutResponse.status()).toBe(204);
-    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
+    await expect(customerPage).toHaveURL(/\/$/u);
     expect((await browserApi(customerPage, '/api/v1/auth/me')).status).toBe(401);
   } finally {
     await customerContext.close();

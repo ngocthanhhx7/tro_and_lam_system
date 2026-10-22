@@ -234,10 +234,10 @@ export class IdentityRepository {
     const key = `password-reset:${targetId}`;
     try {
       await this.models.IdentityGuard.updateOne(
-        { key }, { $setOnInsert: { version: 0 } }, { upsert: true },
+        { key }, { $setOnInsert: { version: 0 } }, { upsert: true, session },
       ).exec();
     } catch (error) {
-      if (error?.code !== 11000) throw error;
+      if (error?.code !== 11000 || session) throw error;
     }
     const cooldownStart = new Date(now.getTime() - cooldownMs);
     return this.models.IdentityGuard.findOneAndUpdate(

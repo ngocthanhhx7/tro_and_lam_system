@@ -10,8 +10,6 @@
 .support-page h2 { margin: 0; color: var(--brand-deep-blue); font-size: clamp(1.45rem, 3vw, 2rem); }
 .support-page h3 { margin: 0; color: var(--brand-deep-blue); font-size: 1.2rem; }
 .support-page p { color: var(--text-secondary); }
-.support-breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 24px; color: var(--text-secondary); font-size: .84rem; }
-.support-breadcrumbs a { text-decoration: none; }
 .support-eyebrow { margin: 0; color: var(--brand-blue) !important; font-size: .76rem; font-weight: 750; letter-spacing: .13em; }
 .support-intro { max-width: 800px; margin-bottom: 30px; }
 .support-intro > p:last-child { max-width: 720px; margin: 0; font-size: 1.03rem; }

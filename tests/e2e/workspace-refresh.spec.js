@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './browser-fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 import { FIXTURE_PASSWORD, STAFF_ORDER_CODE, USERS, WEB_ORIGIN } from './fixtures.js';
 
