@@ -1194,7 +1194,8 @@ test('PayOS cancellation return keeps the synthetic order pending and opens its 
   await page.goto(`/payment/cancel?orderId=${orderId}&status=CANCELLED&cancel=true&code=01`);
   const statusResponse = await paymentStatusResponse;
   expect(statusResponse.status()).toBe(200);
-  expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
+  // The UI request may be aborted by StrictMode's initial effect cleanup; assert the persisted amounts below.
+  await expectSyntheticPendingPayment(orderId);
   await expect(page.getByRole('heading', { name: 'Chưa hoàn tất thanh toán', exact: true })).toBeVisible();
   await expect(page.locator('main').getByRole('status')).toContainText('Trang quay lại không thay đổi trạng thái giao dịch');
   await expectSyntheticPendingPayment(orderId);
@@ -1214,7 +1215,8 @@ test('PayOS failure return query does not replace persisted payment status or re
   await page.goto(`/payment/return?orderId=${orderId}&status=FAILED&amount=120000&code=01&signature=forged`);
   const statusResponse = await paymentStatusResponse;
   expect(statusResponse.status()).toBe(200);
-  expect((await statusResponse.json()).data).toMatchObject({ paymentStatus: 'pending', paidAmountVnd: 0, refundedAmountVnd: 0 });
+  // The UI request may be aborted by StrictMode's initial effect cleanup; assert the persisted amounts below.
+  await expectSyntheticPendingPayment(orderId);
   await expect(page.getByRole('heading', { name: 'Đã xác nhận thanh toán', exact: true })).toHaveCount(0);
   await expect(page.locator('main').getByRole('status')).toContainText('PayOS đang hoàn tất thông báo');
   await expectSyntheticPendingPayment(orderId);
@@ -2461,11 +2463,12 @@ test('admin block, customer appeal and admin approval revoke old access and allo
     const adminPage = await adminContext.newPage();
     await login(adminPage, USERS.admin);
     await adminPage.goto('/admin/users');
-    await adminPage.getByLabel('Tìm tên hoặc email', { exact: true }).fill(USERS.appealCustomer.email);
-    await adminPage.getByRole('button', { name: 'Lọc', exact: true }).click();
+    await adminPage.getByLabel('Tìm khách hàng', { exact: true }).fill(USERS.appealCustomer.email);
+    await adminPage.getByRole('button', { name: 'Lọc kết quả', exact: true }).click();
     const customerRow = adminPage.locator('tbody tr').filter({ has: adminPage.getByText(USERS.appealCustomer.email, { exact: true }) });
     await expect(customerRow).toHaveCount(1);
-    await customerRow.getByRole('link', { name: 'Mở tài khoản', exact: true }).click();
+    await customerRow.getByRole('button', { name: 'Xem nhanh', exact: true }).click();
+    await adminPage.getByRole('dialog').getByRole('link', { name: 'Mở hồ sơ đầy đủ', exact: true }).click();
     await expect(adminPage.getByRole('heading', { name: USERS.appealCustomer.name, exact: true })).toBeVisible();
     const userId = new URL(adminPage.url()).pathname.split('/').at(-1);
     const statusForm = adminPage.locator('form.identity-admin__panel').filter({ has: adminPage.getByRole('heading', { name: 'Trạng thái', exact: true }) });
@@ -2746,6 +2749,12 @@ test('admin role changes require a reason and confirmation, audit the result and
 });
 
 test('customer manages profile, receives an admin voucher, and applies it during checkout', async ({ browser, page }) => {
+  await inspectP11Database(async ({ BusinessSetting }) => {
+    await BusinessSetting.findOneAndUpdate({ key: 'business' }, {
+      $set: { values: { shippingZones: [{ id: 'p11-profile-zone', provinceNames: ['Hải Dương'], feeVnd: 5000 }], codEnabled: true, checkoutLimits: { maxPendingCodOrders: 3 } } },
+      $setOnInsert: { key: 'business', version: 0 },
+    }, { upsert: true }).exec();
+  });
   test.setTimeout(60_000);
   const voucherCode = 'P11ACCOUNT20';
   const voucherTitle = 'P11 synthetic customer voucher';
@@ -2773,11 +2782,12 @@ test('customer manages profile, receives an admin voucher, and applies it during
     const issueBody = await issueResponse.json();
     expect(issueResponse.status(), JSON.stringify(issueBody)).toBe(201);
     expect(issueBody.data).toMatchObject({ code: voucherCode, status: 'available', customer: { email: USERS.profileCustomer.email } });
-    await expect(page.locator('.identity-feedback--success')).toContainText('Voucher đã được cấp');
+    await expect(page.locator('.identity-feedback--success')).toContainText('Voucher đã được tạo theo phạm vi áp dụng đã chọn.');
     const voucherId = issueBody.data.id;
 
     await login(customerPage, USERS.profileCustomer);
-    await customerPage.locator('.header-account-menu').hover();
+    await customerPage.goto('/');
+    await customerPage.locator('.header-account-menu summary').hover();
     await expect(customerPage.locator('.header-account-menu__badge')).toHaveText('1');
     const accountMenu = customerPage.locator('.header-account-menu__dropdown');
     await expect(accountMenu.getByRole('link', { name: /^Thông báo/u })).toBeVisible();
@@ -2887,7 +2897,7 @@ test('customer manages profile, receives an admin voucher, and applies it during
     await customerPage.getByRole('button', { name: 'Xác minh email mới', exact: true }).click();
     const verifyEmail = await verifyEmailPromise;
     expect(verifyEmail.status()).toBe(200);
-    await expect(customerPage).toHaveURL(/\/$/u);
+    await expect(customerPage).toHaveURL(/\/dang-nhap$/u);
     expect((await browserApi(customerPage, '/api/v1/auth/me')).status).toBe(401);
 
     const accountAfterEmailChange = await inspectP11Database(async ({ AuthChallenge: AuthChallengeRead, AuthSession: AuthSessionRead, User: UserRead }) => {
@@ -2939,7 +2949,7 @@ test('customer manages profile, receives an admin voucher, and applies it during
     expect(newPasswordLogin.body.data.user.email).toBe(updatedEmail);
     await customerPage.goto('/tai-khoan/ho-so');
     await expect(customerPage.getByRole('heading', { name: 'Hồ sơ của tôi', exact: true })).toBeVisible();
-    await customerPage.locator('.header-account-menu').hover();
+    await customerPage.locator('.header-account-menu summary').hover();
     const authenticatedAccountMenu = customerPage.locator('.header-account-menu__dropdown');
     await expect(authenticatedAccountMenu.getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
     const logoutResponsePromise = customerPage.waitForResponse((response) => response.url().endsWith('/api/v1/auth/logout')

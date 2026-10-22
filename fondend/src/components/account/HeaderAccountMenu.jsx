@@ -10,6 +10,8 @@ export default function HeaderAccountMenu() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const menu = useRef(null);
+  const closeTimer = useRef(null);
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   useEffect(() => {
     if (user?.role !== 'customer') return undefined;
@@ -37,8 +39,17 @@ export default function HeaderAccountMenu() {
   return <details
     className="header-account-menu"
     ref={menu}
-    onPointerEnter={(event) => { if (event.pointerType === 'mouse') event.currentTarget.open = true; }}
-    onPointerLeave={(event) => { if (event.pointerType === 'mouse') event.currentTarget.open = false; }}
+    onPointerEnter={(event) => {
+      if (event.pointerType !== 'mouse') return;
+      window.clearTimeout(closeTimer.current);
+      event.currentTarget.open = true;
+    }}
+    onPointerLeave={(event) => {
+      if (event.pointerType !== 'mouse') return;
+      const details = event.currentTarget;
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = window.setTimeout(() => { details.open = false; }, 180);
+    }}
     onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
     onKeyDown={(event) => {
       if (event.key === 'Escape') {

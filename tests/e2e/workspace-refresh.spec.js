@@ -97,7 +97,7 @@ test('customer can still browse the store and cannot enter workspaces', async ({
   await page.getByLabel('Email', { exact: true }).fill(USERS.customer.email);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page).toHaveURL(`${WEB_ORIGIN}/tai-khoan`);
+  await expect(page).toHaveURL(`${WEB_ORIGIN}/`);
   await page.goto('/san-pham');
   await expect(page.locator('.catalog-header')).toBeVisible();
   await page.goto('/admin');
