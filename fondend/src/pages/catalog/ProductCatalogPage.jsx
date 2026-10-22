@@ -131,7 +131,6 @@ export default function ProductCatalogPage({ showIntro = true } = {}) {
 
   const pageTitle = forcedLine ? lineLabels[forcedLine] : 'Sản phẩm';
   return <div className={`catalog-page section-wrap${showIntro ? '' : ' catalog-page--embedded'}`}>
-    {showIntro && <nav className="breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span aria-current="page">{pageTitle}</span></nav>}
     {showIntro && (forcedLine ? <section className="product-line-intro">
       <div className="product-line-intro__feature">
         <div className="product-line-intro__copy"><p className="eyebrow">{lineIntroductions[forcedLine].eyebrow}</p><h1>{lineIntroductions[forcedLine].heading}</h1><p>{lineIntroductions[forcedLine].summary}</p><div className="product-line-intro__actions"><a className="text-link" href="#san-pham-trong-dong">Xem sản phẩm <span aria-hidden="true">→</span></a>{forcedLine === 'diplomacy' && <Link className="text-link" to="/qua-tang-doanh-nghiep">Trao đổi về quà tặng <span aria-hidden="true">→</span></Link>}</div></div>

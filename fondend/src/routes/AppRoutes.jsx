@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/auth.context.js';
 import RouteErrorBoundary from '../components/errors/RouteErrorBoundary.jsx';
 import HttpErrorPage from '../pages/HttpErrorPage.jsx';
 import { setPageIndexability } from '../utils/pageMetadata.js';
+import { getNewsMetadata } from '../pages/news/newsData.js';
 import { identityRoutes } from './modules/identity.routes.jsx';
 import { accountRoutes } from './modules/account.routes.jsx';
 import { catalogRoutes } from './modules/catalog.routes.jsx';
@@ -17,6 +18,8 @@ import { paymentRoutes } from './modules/payments.routes.jsx';
 import { supportRoutes } from './modules/support.routes.jsx';
 
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage.jsx'));
+const BinhGiotNgocPage = lazy(() => import('../pages/stories/BinhGiotNgocPage.jsx'));
+const ProductNfcPage = lazy(() => import('../pages/stories/ProductNfcPage.jsx'));
 const ERROR_STATUSES = Object.freeze([400, 401, 403, 404, 405, 408, 409, 413, 422, 429, 500, 502, 503, 504]);
 const editorialPages = () => import('../pages/public/EditorialPages.jsx');
 const AboutPage = lazy(() => editorialPages().then((module) => ({ default: module.AboutPage })));
@@ -35,9 +38,11 @@ const INDEXABLE_PATHS = Object.freeze([
   /^\/cau-chuyen\/[^/]+$/u,
   /^\/trang\/[^/]+$/u,
   /^\/nfc\/[^/]+$/u,
+  /^\/tin-tuc(?:\/[^/]+)?\/?$/u,
 ]);
 
 function isIndexablePath(pathname) {
+  if (pathname.startsWith('/tin-tuc/')) return Boolean(getNewsMetadata(pathname));
   return INDEXABLE_PATHS.some((pattern) => pattern.test(pathname));
 }
 
@@ -91,6 +96,8 @@ export default function AppRoutes() {
   return <Suspense fallback={<div className="route-loading" role="status" aria-live="polite">Đang mở trang…</div>}>
     <RouteErrorBoundary key={pathname}>
     <Routes>
+      <Route path="/nfc/binh_giot_ngoc" element={<BinhGiotNgocPage />} />
+      {['binh_thien_nga', 'binh_hoa_lam_ty_ba', 'binh_phu_quy', 'binh_truong_phuc'].map((productId) => <Route key={productId} path={`/nfc/${productId}`} element={<ProductNfcPage key={productId} productId={productId} />} />)}
       {integratedCatalogShell}
       {adminCatalogRoutes.map((route) => {
         const guarded = route.props.element;

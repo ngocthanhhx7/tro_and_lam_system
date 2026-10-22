@@ -288,7 +288,6 @@ export function GuestOrderSupportPage() {
     finally { setBusy(false); }
   }
   return <section className="support-page support-page--narrow">
-    <nav className="support-breadcrumbs" aria-label="Vị trí hiện tại"><Link to="/">Trang chủ</Link><span aria-hidden="true">/</span><span>Yêu cầu hỗ trợ theo đơn</span></nav>
     <header className="support-intro"><p className="support-eyebrow">HỖ TRỢ ĐƠN HÀNG</p><h1>Tiếp tục với TRO &amp; LAM</h1><p>Yêu cầu chỉ được tạo khi trình duyệt đang có quyền truy cập hợp lệ cho đơn này.</p></header>
     <form className="support-card support-form" onSubmit={submit}>
       <label className="support-field">Loại yêu cầu<select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value })}><option value="support">Hỗ trợ đơn hàng</option><option value="complaint">Phản ánh</option></select></label>

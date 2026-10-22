@@ -9,11 +9,13 @@ import { useAuth } from '../contexts/auth.context.js';
 import { accountApi } from '../services/account/account.api.js';
 import { CART_UPDATED_EVENT, getCartItemCount } from '../services/account/cartEvents.js';
 import { setPageMetadata } from '../utils/pageMetadata.js';
+import { getNewsMetadata } from '../pages/news/newsData.js';
 
 const links = [
   { to: '/', label: 'Trang chủ' },
   { to: '/san-pham', label: 'Sản phẩm' },
   { to: '/cau-chuyen', label: 'Câu chuyện' },
+  { to: '/tin-tuc', label: 'Tin tức' },
   { to: '/ve-chung-toi', label: 'Về chúng tôi' },
   { to: '/lien-he', label: 'Liên hệ' },
 ];
@@ -114,13 +116,15 @@ export default function PublicCatalogLayout() {
   useEffect(() => {
     if (productMenu.current) productMenu.current.open = false;
     window.scrollTo({ top: 0, behavior: 'instant' });
-    const metadata = pageMetadata[pathname] || (pathname.startsWith('/san-pham/')
+    const newsMetadata = getNewsMetadata(pathname);
+    if (pathname.startsWith('/tin-tuc/') && !newsMetadata) return;
+    const metadata = newsMetadata || pageMetadata[pathname] || (pathname.startsWith('/san-pham/')
       ? { title: 'Chi tiết sản phẩm gốm Chu Đậu | TRO & LAM', description: 'Thông tin sản phẩm gốm Chu Đậu do TRO & LAM công bố.' }
       : { title: isCollection ? 'Sản phẩm gốm Chu Đậu | TRO & LAM' : 'Gốm Chu Đậu | TRO & LAM', description: 'Khám phá các dòng gốm Chu Đậu và câu chuyện được TRO & LAM biên tập.' });
     setPageMetadata(metadata);
   }, [pathname, isCollection]);
   function closeMenu() { setMenuOpen(false); menuButton.current?.focus(); }
-  return <div className="public-site" onContextMenuCapture={(event) => {
+  return <div className={`public-site${pathname === '/tin-tuc' || pathname.startsWith('/tin-tuc/') ? ' public-site--news' : ''}`} onContextMenuCapture={(event) => {
     // Deter casual image saving without disabling menus on text, links or forms.
     if (event.target instanceof Element && event.target.closest('img, picture')) event.preventDefault();
   }} onDragStartCapture={(event) => {

@@ -1,0 +1,37 @@
+.nfc-product-page .gn-hero-copy, .nfc-product-page .gn-title-row > div { min-width: 0; }
+.nfc-product-page h1 { font-size: clamp(34px, 4.2vw, 60px); overflow-wrap: anywhere; }
+.nfc-product-page .gn-thumbnails { flex-wrap: wrap; }
+.nfc-product-page .gn-vase-frame { background: #fff; }
+.nfc-product-page .gn-vase-frame img { display: block; }
+.nfc-product-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 22px; }
+.nfc-product-links a { color: #f3dfba; font-size: 12px; text-underline-offset: 6px; min-height: 44px; display: inline-flex; align-items: center; }
+.nfc-product-page .nfc-entry-title { color: var(--gn-navy); font-size: 24px; line-height: 1.5; margin-bottom: 24px; }
+.nfc-product-page .nfc-prose-heading { color: var(--gn-gold-dark); font-size: 21px; line-height: 1.6; }
+.nfc-story-entry + .nfc-story-entry { margin-top: 48px; padding-top: 40px; border-top: 1px solid #cba05266; }
+.nfc-product-page .gn-detail-photo { max-height: 540px; min-height: 380px; }
+.nfc-product-page .gn-detail-photo img { object-position: center; }
+.nfc-story-continuation { margin-top: 28px; }
+.nfc-prose { display: grid; gap: 18px; font-size: 14px; line-height: 1.95; }
+.nfc-product-page .nfc-source { font-size: 11px; margin-top: 12px; }
+.nfc-source a { text-underline-offset: 4px; color: #765824; }
+.nfc-product-page .nfc-pair-note { margin-top: 28px; padding: 20px 24px; border-left: 2px solid var(--gn-gold); background: #f5e9d266; font-family: var(--font-heading); font-style: italic; }
+.nfc-narratives { display: grid; gap: 32px; margin-bottom: 40px; max-width: 1040px; }
+.nfc-product-page :is(.gn-craft, .gn-care) :is(.nfc-entry-title, .nfc-prose-heading) { color: #f3dfba; }
+.nfc-product-page .nfc-prose .nfc-entry-title { margin-bottom: 0; }
+.nfc-product-page .gn-craft-step:nth-child(3) img { transform: none; }
+.nfc-product-page .gn-craft-step:nth-child(3):hover img { transform: scale(1.1); }
+.nfc-product-page .gn-craft-step:nth-child(4) img { object-position: center; }
+.nfc-product-page .gn-care-card h4 { font-family: var(--font-body); color: var(--gn-gold-dark); font-size: 12px; margin-bottom: 10px; line-height: 1.6; }
+.nfc-care-entry + .nfc-care-entry { padding-top: 20px; margin-top: 20px; border-top: 1px solid #e3d1b3; }
+.nfc-product-page .gn-closing p + p { margin-top: 16px; }
+@media (max-width: 767px) {
+  .nfc-product-page .nfc-product-links { order: 6; justify-content: center; margin-top: 0; gap: 4px 20px; }
+  .nfc-prose { gap: 16px; font-size: 14px; line-height: 1.85; }
+  .nfc-product-page .nfc-entry-title { font-size: 22px; }
+  .nfc-product-page .nfc-prose-heading { font-size: 19px; }
+  .nfc-story-entry + .nfc-story-entry { margin-top: 32px; padding-top: 28px; }
+  .nfc-story-continuation { margin-top: 22px; }
+  .nfc-narratives { gap: 24px; margin-bottom: 28px; }
+  .nfc-product-page .nfc-pair-note { padding: 16px 18px; font-size: 14px; line-height: 1.85; }
+  .nfc-product-page .gn-care-card h4 { font-size: 13px; }
+}
