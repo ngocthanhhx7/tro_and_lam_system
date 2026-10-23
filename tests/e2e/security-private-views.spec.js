@@ -58,7 +58,7 @@ async function verifyGuest(page, code, email) {
 
 test('cross-tab logout and account replacement remove the previous account cart without a page reload', async ({ page, context }) => {
   test.setTimeout(60_000);
-  await login(page, USERS.customer);
+  await login(page, USERS.securityCustomerA);
   const cart = await api(page, '/cart');
   expect((await api(page, `/cart/items/${process.env.P11_E2E_FIXTURE_PRODUCT_ID}`, { method: 'PUT', body: { quantity: 1, expectedVersion: cart.body.data.version } })).status).toBe(200);
   await page.goto('/gio-hang');
@@ -73,8 +73,8 @@ test('cross-tab logout and account replacement remove the previous account cart 
   await otherTab.locator('#startup-loader').waitFor({ state: 'detached' });
   await expect(otherTab).toHaveURL(/\/$/u);
   await expect(page.locator('.cart-item')).toHaveCount(0);
-  await login(otherTab, USERS.otherCustomer);
-  await expect(page.locator('.header-account-menu summary')).toHaveAttribute('aria-label', new RegExp(USERS.otherCustomer.name, 'u'));
+  await login(otherTab, USERS.securityCustomerB);
+  await expect(page.locator('.header-account-menu summary')).toHaveAttribute('aria-label', new RegExp(USERS.securityCustomerB.name, 'u'));
   expect((await api(page, '/cart')).body.data.items).toEqual([]);
   await expect(page.locator('.cart-item')).toHaveCount(0);
 });
@@ -94,18 +94,25 @@ test('replacing guest proof in another tab clears the old private order and supp
     const created = await Orders.create(source);
     return String(created._id);
   });
-  await verifyGuest(page, GUEST_ORDER_CODE, GUEST_ORDER_EMAIL);
-  await expect(page.getByText('P11 Guest Private Name', { exact: true })).toBeVisible();
-  const ticket = await api(page, '/tickets', { method: 'POST', body: { kind: 'support', subject: 'Synthetic private thread A', body: 'Security fixture message A', orderId: process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID } });
-  expect(ticket.status).toBe(201);
-  const supportTab = await context.newPage();
-  await supportTab.goto(`/ho-tro/${ticket.body.data.ticket.id}`);
-  await expect(supportTab.getByText('Security fixture message A', { exact: true })).toBeVisible();
-  const otherTab = await context.newPage();
-  await verifyGuest(otherTab, secondCode, secondEmail);
-  await expect(otherTab).toHaveURL(new RegExp(`/don-hang/${secondId}$`, 'u'));
-  await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
-  await expect(supportTab.getByText('Security fixture message A', { exact: true })).toHaveCount(0);
-  expect((await api(page, `/orders/${process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID}`)).status).toBe(404);
-  expect([403, 404]).toContain((await api(supportTab, `/tickets/${ticket.body.data.ticket.id}`)).status);
+  try {
+    await verifyGuest(page, GUEST_ORDER_CODE, GUEST_ORDER_EMAIL);
+    await expect(page.getByText('P11 Guest Private Name', { exact: true })).toBeVisible();
+    const ticket = await api(page, '/tickets', { method: 'POST', body: { kind: 'support', subject: 'Synthetic private thread A', body: 'Security fixture message A', orderId: process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID } });
+    expect(ticket.status).toBe(201);
+    const supportTab = await context.newPage();
+    await supportTab.goto(`/ho-tro/${ticket.body.data.ticket.id}`);
+    await expect(supportTab.getByText('Security fixture message A', { exact: true })).toBeVisible();
+    const otherTab = await context.newPage();
+    await verifyGuest(otherTab, secondCode, secondEmail);
+    await expect(otherTab).toHaveURL(new RegExp(`/don-hang/${secondId}$`, 'u'));
+    await expect(page.getByText('P11 Guest Private Name', { exact: true })).toHaveCount(0);
+    await expect(supportTab.getByText('Security fixture message A', { exact: true })).toHaveCount(0);
+    expect((await api(page, `/orders/${process.env.P11_E2E_FIXTURE_GUEST_ORDER_ID}`)).status).toBe(404);
+    expect([403, 404]).toContain((await api(supportTab, `/tickets/${ticket.body.data.ticket.id}`)).status);
+  } finally {
+    await localDatabase(async connection => {
+      const Orders = connection.model('SecurityOrderCleanup', Order.schema);
+      await Orders.deleteOne({ _id: secondId, code: secondCode });
+    });
+  }
 });

@@ -9,6 +9,8 @@ export const USERS = Object.freeze({
     email: 'customer.p11@example.test',
     role: 'customer',
   }),
+  securityCustomerA: Object.freeze({ name: 'Security Synthetic Customer A', email: 'security.a.p11@example.test', role: 'customer' }),
+  securityCustomerB: Object.freeze({ name: 'Security Synthetic Customer B', email: 'security.b.p11@example.test', role: 'customer' }),
   passwordResetCustomer: Object.freeze({ name: 'P11 Password Reset Customer', email: 'password.reset.p11@example.test', role: 'customer' }),
   appealCustomer: Object.freeze({ name: 'P11 Account Appeal Customer', email: 'account.appeal.p11@example.test', role: 'customer' }),
   otherCustomer: Object.freeze({
