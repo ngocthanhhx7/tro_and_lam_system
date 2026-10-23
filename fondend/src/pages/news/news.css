@@ -93,13 +93,24 @@
 .news-article__image img { display: block; width: 100%; max-height: 560px; height: auto; object-fit: contain; background: #e8e2d3; }
 .news-article__image figcaption { color: #6a726a; font-size: 11px; line-height: 1.9; padding-top: 12px; }
 .news-article__body { width: 100%; max-width: 800px; margin-top: 32px; }
+.news-article__introduction { color: #435d62; font-size: 16px; line-height: 1.95; margin-bottom: 30px !important; }
 .news-article__body > section { scroll-margin-top: 130px; }
 .news-article__body > section + section { margin-top: 30px; }
 .news-article__body h2 { color: #123f50; font-size: 26px; font-weight: 400; line-height: 1.45; margin-bottom: 16px; }
 .news-article__body section p { font-size: 16px; line-height: 1.95; color: #435d62; }
+.news-article__body section p + p { margin-top: 18px; }
+.news-article__inline-image { margin: 26px 0; }
+.news-article__inline-image img { display: block; width: 100%; height: auto; max-height: 620px; object-fit: contain; background: #e8e2d3; }
+.news-article__inline-image figcaption { color: #6a726a; font-size: 11px; line-height: 1.9; padding-top: 12px; }
 .news-source-note { margin-top: 36px; padding: 24px; border-left: 2px solid #aa8b4b; background: #eeeadd; }
 .news-source-note p { margin-block: 10px 12px; color: #5b6960; font-size: 12px; line-height: 1.9; }
 .news-source-note a { display: inline-flex; align-items: center; gap: 18px; min-height: 44px; font-size: 12px; }
+.news-source-note h2 { font-size: 23px; }
+.news-source-note ul { list-style: none; margin: 0; padding: 0; }
+.news-source-note li + li { margin-top: 18px; }
+.news-source-note li > span { display: block; color: #5b6960; font-size: 11px; line-height: 1.8; }
+.news-source-note li a { line-height: 1.8; padding-block: 8px; }
+.news-source-note li a svg { flex-shrink: 0; }
 .news-article__body > .news-button { margin-top: 30px; }
 .news-article__reference { margin-top: 20px !important; font-size: 12px; }
 .news-article__back { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-top: 1px solid #deded2; padding-top: 22px; margin-top: 36px; }
@@ -209,6 +220,7 @@
   .news-article__body { margin-top: 30px; }
   .news-article__body h2 { font-size: 23px; }
   .news-article__body section p { font-size: 15px; line-height: 1.95; }
+  .news-article__introduction { font-size: 15px; }
   .news-source-note { padding: 18px; }
   .news-source-note a { align-items: center; line-height: 1.8; }
   .news-source-note a svg { flex-shrink: 0; }

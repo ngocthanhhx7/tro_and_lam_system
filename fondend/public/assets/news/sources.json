@@ -40,5 +40,68 @@
     "image": "https://bizweb.dktcdn.net/100/376/052/articles/678664328-1547989946683640-1205712076606749669-n.jpg?v=1777014208820",
     "credit": "Gốm Chu Đậu",
     "retrieved": "2026-10-22"
+  },
+  "chu-dau-ve-gom": {
+    "file": "/assets/news/chu-dau-ve-gom.jpg",
+    "page": "https://chudauceramic.vn/san-pham-cong-ty-cp-gom-chu-dau-tiep-tuc-duoc-vinh-danh-thuong-hieu-quoc-gia-viet-nam",
+    "image": "https://bizweb.dktcdn.net/100/376/052/files/3-7ffe9602-c491-484d-9bf8-6f63cde50ecf.jpg?v=1732179736241",
+    "credit": "Gốm Chu Đậu",
+    "retrieved": "2026-10-23"
+  },
+  "chu-dau-di-san": {
+    "file": "/assets/news/chu-dau-di-san.jpg",
+    "page": "https://chudauceramic.vn/dau-an-400-nam-tinh-hoa-gom-chu-dau",
+    "image": "https://bizweb.dktcdn.net/100/376/052/files/vai-bat-ngo-400-nam-lich-su-gom-chu-dau-66cc496c9bc3b.jpg?v=1748059247423",
+    "credit": "Gốm Chu Đậu / Tạp chí Công Thương",
+    "retrieved": "2026-10-23"
+  },
+  "chu-dau-nghe-nhan": {
+    "file": "/assets/news/chu-dau-nghe-nhan.jpg",
+    "page": "https://chudauceramic.vn/gom-chu-dau-khang-dinh-thuong-hieu-quoc-gia",
+    "image": "https://bizweb.dktcdn.net/100/376/052/files/gom-chu-dau-thuong-hieu-quoc-gia-2.jpg?v=1745549534711",
+    "credit": "Gốm Chu Đậu / Báo Hải Dương",
+    "retrieved": "2026-10-23"
+  },
+  "ikebana-hoa-2026": {
+    "file": "/assets/news/ikebana-hoa-2026.jpg",
+    "page": "https://thanhnien.vn/trien-lam-gom-chu-dau-va-nghe-thuat-cam-hoa-ikebana-185260303105035302.htm",
+    "image": "https://images2.thanhnien.vn/thumb_w/1200/528068263637045248/2026/3/3/dsc08309-1772509121698479895305.jpg",
+    "credit": "Ban tổ chức triển lãm Hòa / Báo Thanh Niên",
+    "retrieved": "2026-10-23"
+  },
+  "ikebana-tac-pham": {
+    "file": "/assets/news/ikebana-tac-pham.jpg",
+    "page": "https://thanhnien.vn/trien-lam-gom-chu-dau-va-nghe-thuat-cam-hoa-ikebana-185260303105035302.htm",
+    "image": "https://images2.thanhnien.vn/thumb_w/1200/528068263637045248/2026/3/3/dsc08313-17725091217221532885760.jpg",
+    "credit": "Ban tổ chức triển lãm Hòa / Báo Thanh Niên",
+    "retrieved": "2026-10-23"
+  },
+  "chu-dau-ben-song": {
+    "file": "/assets/news/chu-dau-ben-song.jpg",
+    "page": "https://baohaiduong.vn/ky-uc-song-que-bai-1-chu-dau-ben-thuyen-do-ke-chuyen-doi-gom-369647.html",
+    "image": "https://bhd.1cdn.vn/2023/12/30/song-ke-8207a197f6dcadec4d06e7b1a2288169(1).jpg",
+    "credit": "Bảo Anh / Báo Hải Dương",
+    "retrieved": "2026-10-23"
+  },
+  "nghe-nhan-lang-nghe-2024": {
+    "file": "/assets/news/nghe-nhan-lang-nghe-2024.jpg",
+    "page": "https://baohaiduong.vn/cong-ty-cp-gom-chu-dau-co-them-5-ca-nhan-duoc-phong-tang-danh-hieu-nghe-nhan-lang-nghe-390902.html",
+    "image": "https://bhd.1cdn.vn/2024/08/21/img_1398(1).jpeg",
+    "credit": "Gốm Chu Đậu cung cấp / Báo Hải Dương",
+    "retrieved": "2026-10-23"
+  },
+  "co-vat-hoi-huong": {
+    "file": "/assets/news/co-vat-hoi-huong.jpg",
+    "page": "https://vnexpress.net/sau-co-vat-gom-chu-dau-thuoc-so-huu-tu-nhan-4757087.html",
+    "image": "https://vcdn1-giaitri.vnecdn.net/2024/06/11/Gom-1-4608-1718097672.jpg?w=1020&h=0&q=100&dpr=1&fit=crop&s=PmgH3bAq52Vrywx9KviQXA",
+    "credit": "Bộ sưu tập An Biên / VnExpress",
+    "retrieved": "2026-10-23"
+  },
+  "co-vat-binh-hoa-lam": {
+    "file": "/assets/news/co-vat-binh-hoa-lam.jpg",
+    "page": "https://vnexpress.net/sau-co-vat-gom-chu-dau-thuoc-so-huu-tu-nhan-4757087.html",
+    "image": "https://vcdn1-giaitri.vnecdn.net/2024/06/11/Gom-6-1-9465-1718097672.jpg?w=1020&h=0&q=100&dpr=1&fit=crop&s=D2CkyzYa5yGvf_qAOco7iA",
+    "credit": "Bộ sưu tập An Biên / VnExpress",
+    "retrieved": "2026-10-23"
   }
 }

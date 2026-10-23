@@ -1,3 +1,5 @@
+import providedNewsArticles from './providedNewsArticles.json';
+
 export const newsCategories = [
   { id: 'all', label: 'Tất cả' },
   { id: 'thanh-tuu', label: 'Thành tựu & dấu mốc', shortLabel: 'Thành tựu' },
@@ -10,6 +12,7 @@ const official = (path) => `https://chudauceramic.vn/${path}`;
 // Source dates are the publication dates of the linked articles, not new event dates.
 // Tro & Lam entries are editorial introductions prepared for this news page.
 export const newsArticles = [
+  ...providedNewsArticles,
   {
     slug: 'gom-chu-dau-tai-trien-lam-a80', category: 'lang-nghe', date: '2025-09-06',
     title: 'Gốm Chu Đậu tại A80: sắc gốm trong dòng chảy văn hóa Việt',
@@ -140,7 +143,7 @@ export const newsArticles = [
 export const newsMilestones = [
   { year: '2001', title: 'Tiếp nối một dòng gốm cổ', description: 'Dấu mốc phục dựng và phát triển gốm Chu Đậu.', slug: 'hanh-trinh-phuc-hung-gom-chu-dau' },
   { year: '2019', title: 'Gốm gặp thư pháp', description: 'Đĩa 1.000 chữ Long được ghi nhận kỷ lục thế giới.', slug: 'dia-nghin-chu-long-dau-an-ky-luc' },
-  { year: '2024', title: 'Thương hiệu Quốc gia', description: 'Lần thứ ba liên tiếp sản phẩm được vinh danh.', slug: 'gom-chu-dau-thuong-hieu-quoc-gia-2024' },
+  { year: '2026', title: 'Thương hiệu Quốc gia', description: 'Lần thứ tư liên tiếp sản phẩm được vinh danh.', slug: 'gom-chu-dau-4-lan-lien-tiep-dat-thuong-hieu-quoc-gia' },
 ];
 
 export const getNewsArticle = (slug) => newsArticles.find((article) => article.slug === slug);
