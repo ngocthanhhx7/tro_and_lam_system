@@ -180,7 +180,16 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
       if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= now()) {
         fail(409, 'PAYMENT_ATTEMPT_EXPIRED', 'Thời hạn thanh toán của đơn đã kết thúc');
       }
-      if (existing) return { attempt: existing, order, expiresAt, replay: true };
+      if (existing) {
+        if (existing.linkCreationStartedAt || existing.paymentLinkId) {
+          return { attempt: existing, order, expiresAt, replay: true, createAllowed: false };
+        }
+        const claimed = await repository.updateAttempt(existing._id ?? existing.id, existing.version, {
+          linkCreationStartedAt: now(),
+        }, { session });
+        if (!claimed) fail(409, 'VERSION_CONFLICT', 'Lần thanh toán đã thay đổi');
+        return { attempt: claimed, order, expiresAt, replay: true, createAllowed: false };
+      }
       const active = await repository.findActiveAttempt(orderId, { session });
       if (active) fail(409, 'PAYMENT_ATTEMPT_EXISTS', 'Đơn đã có một liên kết thanh toán đang hoạt động');
       const priorReview = await repository.findReviewEvent(orderId, { session });
@@ -196,8 +205,9 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
         requestKey,
         active: true,
         version: 0,
+        linkCreationStartedAt: now(),
       }, { session });
-      return { attempt, order, expiresAt, replay: false };
+      return { attempt, order, expiresAt, replay: false, createAllowed: true };
     });
     return sessionResult;
   }
@@ -230,7 +240,7 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
       fail(409, 'PAYMENT_ATTEMPT_EXPIRED', 'Thời hạn thanh toán của đơn đã kết thúc');
     }
     try {
-      const existingRemote = prepared.attempt.paymentLinkId
+      const existingRemote = prepared.attempt.paymentLinkId || !prepared.createAllowed
         ? await provider.getLink(prepared.attempt)
         : { status: 'unknown' };
       if (existingRemote.status === 'pending' && existingRemote.checkoutUrl) {
@@ -250,6 +260,11 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
           fail(409, 'PAYMENT_ATTEMPT_TERMINAL', 'Liên kết thanh toán hiện không còn hoạt động');
         }
         fail(503, 'PAYMENT_PROVIDER_UNAVAILABLE', 'Chưa thể xác minh liên kết thanh toán hiện tại. Vui lòng thử lại sau.');
+      }
+      // A timed-out create may already exist remotely. Never issue a second
+      // create for that attempt; recover it by its persisted provider order code.
+      if (!prepared.createAllowed) {
+        fail(503, 'PAYMENT_PROVIDER_UNAVAILABLE', 'Đang xác minh liên kết thanh toán đã yêu cầu. Vui lòng thử lại sau.');
       }
       const webOrigin = config.publicWebUrl;
       let returnUrl;
@@ -331,10 +346,10 @@ export function createPaymentsService({ ports = {}, config = {}, provider: suppl
             }, { session });
             applied = result?.applied ?? result?.order !== undefined;
             reviewRequired = result?.reviewRequired === true;
-            processingState = reviewRequired ? 'review' : (applied || result?.order) ? 'applied' : 'review';
+            processingState = reviewRequired ? 'review' : applied ? 'applied' : result?.order ? 'rejected' : 'review';
             reasonCode = reviewRequired
               ? (fact.amountVnd === attempt.amountVnd ? 'LATE_PAYMENT_STOCK_REVIEW' : 'PAYMENT_AMOUNT_MISMATCH')
-              : undefined;
+              : !applied && result?.order ? 'PAYMENT_ALREADY_APPLIED' : undefined;
             const updatedAttempt = await repository.updateAttempt(attempt._id ?? attempt.id, attempt.version, {
               status: 'paid', providerState: 'paid', active: false, lastCheckedAt: timestamp,
               ...(attempt.paymentLinkId ? {} : { paymentLinkId: fact.paymentLinkId }),

@@ -13,6 +13,7 @@ const paymentAttemptSchema = new mongoose.Schema({
   active: { type: Boolean, required: true, default: true },
   providerState: { type: String, required: true, enum: ['unknown', 'pending', 'paid', 'failed', 'expired', 'cancelled'], default: 'unknown' },
   lastCheckedAt: { type: Date },
+  linkCreationStartedAt: { type: Date },
   version: { type: Number, required: true, default: 0, min: 0, validate: Number.isSafeInteger },
 }, { timestamps: true, collection: 'payment_attempts' });
 

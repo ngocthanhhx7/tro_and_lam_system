@@ -1,3 +1,5 @@
+import { announcePrivacyChange } from './privacyEvents.js';
+
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -34,6 +36,7 @@ async function loadCsrfToken(signal) {
   csrfRequest ||= fetch(apiUrl('/auth/csrf'), {
     method: 'GET',
     credentials: 'include',
+    cache: 'no-store',
     headers: { Accept: 'application/json' },
     signal,
   }).then(async (response) => {
@@ -79,6 +82,7 @@ export async function requestJson(path, options = {}) {
     signal,
     headers,
     credentials: 'include',
+    cache: 'no-store',
   });
   let response = await send();
   let result = await readResponse(response);
@@ -97,6 +101,11 @@ export async function requestJson(path, options = {}) {
       details: result?.error?.details,
       requestId: result?.meta?.requestId || response.headers.get('x-request-id'),
     });
+  }
+  if (unsafeMethods.has(method)) {
+    const proofChanged = path === '/order-access/verify' || (path === '/orders' && method === 'POST' && Boolean(result?.data?.guestAccess));
+    const sessionChanged = ['/auth/login', '/auth/logout', '/auth/reset-password', '/account/password', '/account/email-change/verify'].includes(path);
+    if (proofChanged || sessionChanged) announcePrivacyChange({ local: proofChanged });
   }
   return result;
 }

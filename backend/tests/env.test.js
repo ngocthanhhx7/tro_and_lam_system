@@ -6,7 +6,7 @@ const valid = { MONGODB_URI: 'mongodb://localhost:27017/tro_lam' };
 test('valid configuration has development defaults', () => {
   const config = validateEnv(valid);
   assert.equal(config.port, 5000);
-  assert.equal(config.listenHost, '0.0.0.0');
+  assert.equal(config.listenHost, '127.0.0.1');
   assert.equal(config.publicWebUrl, 'http://localhost:5173');
   assert.equal(config.sameSite, 'Lax');
   assert.equal(config.secureCookies, false);

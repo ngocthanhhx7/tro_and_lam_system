@@ -174,19 +174,27 @@ function publishedSources(products, stories) {
   return sources;
 }
 
-function makeInMemoryUsageGuard() {
+export function makeInMemoryUsageGuard({ maxKeys = 10_000 } = {}) {
+  if (!Number.isSafeInteger(maxKeys) || maxKeys < 1) throw new TypeError('Usage key bound must be positive');
   const requestWindows = new Map();
   const dailyTokens = new Map();
+  let nextSweepAt = 0;
   return Object.freeze({
     async consumeRequest(key, { at, limit, windowMs }) {
       const nowMs = at.getTime();
-      const recent = (requestWindows.get(key) || []).filter((timestamp) => timestamp > nowMs - windowMs);
+      if (nowMs >= nextSweepAt || (!requestWindows.has(key) && requestWindows.size >= maxKeys)) {
+        for (const [owner, entry] of requestWindows) {
+          if (entry.expiresAt <= nowMs) requestWindows.delete(owner);
+        }
+        nextSweepAt = nowMs + 60_000;
+      }
+      if (!requestWindows.has(key) && requestWindows.size >= maxKeys) return false;
+      const recent = (requestWindows.get(key)?.timestamps || []).filter((timestamp) => timestamp > nowMs - windowMs);
       if (recent.length >= limit) {
-        requestWindows.set(key, recent);
         return false;
       }
       recent.push(nowMs);
-      requestWindows.set(key, recent);
+      requestWindows.set(key, { timestamps: recent, expiresAt: nowMs + windowMs });
       return true;
     },
     async reserveDailyTokens(day, amount, limit) {

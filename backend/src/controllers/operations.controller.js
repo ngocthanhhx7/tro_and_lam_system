@@ -20,7 +20,7 @@ export function createOperationsController({ notificationService, auditService, 
       return sendSuccess(res, await notificationService.markAllRead(actorId(req)));
     },
     async getStaffDashboard(req, res) {
-      return sendSuccess(res, await dashboardService.getStaffDashboard({ actorId: actorId(req), ...req.query }));
+      return sendSuccess(res, await dashboardService.getStaffDashboard({ from: req.query.from, to: req.query.to, actorId: actorId(req) }));
     },
     async listAdminAuditLogs(req, res) {
       const result = await auditService.list(req.query);

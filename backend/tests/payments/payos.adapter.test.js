@@ -9,6 +9,28 @@ import {
 
 const checksumKey = 'test-checksum-key-only';
 
+test('recovery looks up an uncertain link by its stored provider order code and checks amount binding', async () => {
+  let url;
+  let amount = 9000;
+  const adapter = createPayosAdapter({ config: payosConfig(), fetchImpl: async input => {
+    url = input;
+    return { ok: true, json: async () => ({ code: '00', data: { id: 'recovered-link', orderCode: 123456789, amount, amountPaid: 0, status: 'PENDING' } }) };
+  } });
+  const attempt = { providerOrderCode: 123456789, amountVnd: 9000 };
+  const result = await adapter.getLink(attempt);
+  assert.equal(url, 'https://api-merchant.payos.vn/v2/payment-requests/123456789');
+  assert.equal(result.checkoutUrl, 'https://pay.payos.vn/web/recovered-link');
+  amount = 1;
+  await assert.rejects(adapter.getLink(attempt), error => error.code === 'PAYOS_RESPONSE_MISMATCH');
+});
+
+test('PayOS checkout URL rejects an alternate port on the allowed host', async () => {
+  const adapter = createPayosAdapter({ config: payosConfig(), fetchImpl: async () => ({ ok: true,
+    json: async () => ({ code: '00', data: { id: 'one-link', orderCode: 1, amount: 9000, amountPaid: 0, status: 'PENDING', checkoutUrl: 'https://pay.payos.vn:8443/web/one-link' } }),
+  }) });
+  await assert.rejects(adapter.getLink({ providerOrderCode: 1, amountVnd: 9000 }), error => error.code === 'PAYOS_RESPONSE_INVALID');
+});
+
 function payosConfig(overrides = {}) {
   return { enabled: true, clientId: 'test-client-id', apiKey: 'test-api-key', checksumKey, ...overrides };
 }

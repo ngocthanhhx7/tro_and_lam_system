@@ -117,14 +117,17 @@ test('late payment after reservation release is ledgered for review and does not
   assert.match(harness.delivered.mail[0].data.status, /chưa được xác nhận giao/u);
 });
 
-test('provider timeout retry reuses the same persisted attempt and provider order code', async () => {
+test('provider timeout retry recovers by the persisted provider order code without another create', async () => {
   const harness = createPaymentHarness();
   const providerCodes = [];
   let calls = 0;
   harness.provider.createLink = async (attempt) => {
     providerCodes.push(attempt.providerOrderCode);
     calls += 1;
-    if (calls === 1) throw new PayosAdapterError('PAYMENT_PROVIDER_UNAVAILABLE');
+    throw new PayosAdapterError('PAYMENT_PROVIDER_UNAVAILABLE');
+  };
+  harness.provider.getLink = async (attempt) => {
+    assert.equal(attempt.providerOrderCode, 123456789);
     return {
       paymentLinkId: 'link-retry-1',
       checkoutUrl: 'https://pay.payos.vn/web/link-retry-1',
@@ -140,7 +143,51 @@ test('provider timeout retry reuses the same persisted attempt and provider orde
   assert.equal(result.checkoutUrl, 'https://pay.payos.vn/web/link-retry-1');
   assert.equal(harness.repository.state.attempts.length, 1);
   assert.equal(harness.repository.state.attempts[0]._id, attemptId);
-  assert.deepEqual(providerCodes, [123456789, 123456789]);
+  assert.deepEqual(providerCodes, [123456789]);
+  assert.equal(calls, 1);
+});
+
+test('concurrent link creation and an uncertain retry issue exactly one external create request', async () => {
+  const harness = createPaymentHarness();
+  let release;
+  let entered;
+  const started = new Promise(resolve => { entered = resolve; });
+  const pending = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  harness.provider.createLink = async () => { calls += 1; entered(); await pending; return { paymentLinkId: 'one-link', checkoutUrl: 'https://pay.payos.vn/web/one-link', status: 'pending' }; };
+  harness.provider.getLink = async () => ({ status: 'unknown' });
+  const service = serviceFor(harness);
+  const first = service.createPaymentAttempt({ id: harness.userId }, harness.orderId, validKey);
+  await started;
+  await assert.rejects(service.createPaymentAttempt({ id: harness.userId }, harness.orderId, validKey), error => error.code === 'PAYMENT_PROVIDER_UNAVAILABLE');
+  assert.equal(calls, 1);
+  release();
+  assert.equal((await first).checkoutUrl, 'https://pay.payos.vn/web/one-link');
+});
+
+test('a legacy pending attempt without a saved link is recovered rather than created a second time', async () => {
+  const harness = createPaymentHarness();
+  addAttempt(harness, { paymentLinkId: undefined });
+  harness.provider.createLink = async () => { assert.fail('A legacy attempt may already exist remotely'); };
+  harness.provider.getLink = async () => ({ status: 'pending', paymentLinkId: 'legacy-link', checkoutUrl: 'https://pay.payos.vn/web/legacy-link' });
+  const result = await serviceFor(harness).createPaymentAttempt({ id: harness.userId }, harness.orderId, validKey);
+  assert.equal(result.checkoutUrl, 'https://pay.payos.vn/web/legacy-link');
+});
+
+test('a delayed webhook after reconciliation does not create a second applied finance event', async () => {
+  const harness = createPaymentHarness();
+  addAttempt(harness);
+  harness.provider.getLink = async () => ({ status: 'paid', paymentLinkId: 'link-verified-1', amountPaidVnd: harness.order.totalVnd, currency: 'VND' });
+  const service = serviceFor(harness);
+  await service.reconcilePendingAttempts();
+  const webhook = await service.receivePayosWebhook({ fact: verifiedFact(harness, { providerEventKey: 'later-webhook' }) });
+  assert.equal(webhook.applied, false);
+  assert.equal(webhook.processingState, 'rejected');
+  assert.equal(webhook.reasonCode, 'PAYMENT_ALREADY_APPLIED');
+  assert.equal(harness.repository.state.events.length, 2);
+  const collected = harness.repository.state.events.filter(event => event.processingState === 'applied').reduce((sum, event) => sum + event.amountVnd, 0);
+  assert.equal(collected, harness.order.totalVnd);
+  assert.equal(harness.delivered.mail.length, 1);
 });
 
 test('full refund approval and recorded failure restore the paid aggregate', async () => {

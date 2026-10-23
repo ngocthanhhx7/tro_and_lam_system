@@ -19,7 +19,7 @@ export default function OrderDetailPage() {
     setLoading(true);
     setError(null);
     try { setOrder(await commerceApi.getOrder(id)); }
-    catch (requestError) { setError(requestError); }
+    catch (requestError) { setOrder(null); setError(requestError); }
     finally { setLoading(false); }
   }, [id]);
 

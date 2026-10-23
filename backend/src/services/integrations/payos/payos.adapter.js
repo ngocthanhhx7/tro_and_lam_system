@@ -48,7 +48,7 @@ function checkoutUrl(value) {
   if (typeof value !== 'string') throw new PayosAdapterError('PAYOS_RESPONSE_INVALID', { retryable: false });
   let parsed;
   try { parsed = new URL(value); } catch { throw new PayosAdapterError('PAYOS_RESPONSE_INVALID', { retryable: false }); }
-  if (parsed.protocol !== 'https:' || !CHECKOUT_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) {
+  if (parsed.protocol !== 'https:' || !CHECKOUT_HOSTS.has(parsed.hostname) || parsed.port || parsed.username || parsed.password) {
     throw new PayosAdapterError('PAYOS_RESPONSE_INVALID', { retryable: false });
   }
   return parsed.toString();
@@ -137,12 +137,14 @@ export function createPayosAdapter({ config = {}, fetchImpl = globalThis.fetch, 
   }
 
   async function getLink(attempt) {
-    if (typeof attempt?.paymentLinkId !== 'string' || attempt.paymentLinkId.length === 0) {
+    const lookupId = attempt?.paymentLinkId || (Number.isSafeInteger(attempt?.providerOrderCode) ? String(attempt.providerOrderCode) : '');
+    if (!lookupId) {
       return { status: 'unknown' };
     }
-    const data = await request(`/v2/payment-requests/${encodeURIComponent(attempt.paymentLinkId)}`);
+    const data = await request(`/v2/payment-requests/${encodeURIComponent(lookupId)}`);
     const responseLinkId = data.id ?? data.paymentLinkId;
-    if (responseLinkId !== attempt.paymentLinkId || data.orderCode !== attempt.providerOrderCode
+    if (typeof responseLinkId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/u.test(responseLinkId)
+      || (attempt.paymentLinkId && responseLinkId !== attempt.paymentLinkId) || data.orderCode !== attempt.providerOrderCode
       || data.amount !== attempt.amountVnd) {
       throw new PayosAdapterError('PAYOS_RESPONSE_MISMATCH', { retryable: false });
     }
@@ -158,7 +160,7 @@ export function createPayosAdapter({ config = {}, fetchImpl = globalThis.fetch, 
       amountVnd: data.amount,
       amountPaidVnd,
       currency,
-      ...(typeof data.checkoutUrl === 'string' ? { checkoutUrl: checkoutUrl(data.checkoutUrl) } : {}),
+      checkoutUrl: checkoutUrl(data.checkoutUrl || `https://pay.payos.vn/web/${encodeURIComponent(responseLinkId)}`),
     };
   }
 

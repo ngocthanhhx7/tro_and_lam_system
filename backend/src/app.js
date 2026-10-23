@@ -36,6 +36,12 @@ export function createApp({
   app.set('trust proxy', trustProxy);
   app.use(helmet());
   app.use(requestContext);
+  // Private/error API responses must never survive a cookie or principal change.
+  // Public media keeps its separate immutable policy below.
+  app.use(API_PREFIX, (_req, res, next) => {
+    res.set('Cache-Control', 'private, no-store');
+    next();
+  });
   app.use(cors({
     origin(origin, callback) {
       if (!origin || allowedOrigins.has(origin)) return callback(null, true);

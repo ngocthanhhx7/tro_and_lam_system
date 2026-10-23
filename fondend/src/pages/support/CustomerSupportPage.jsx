@@ -34,6 +34,8 @@ function TicketThread({ ticketId, guest = false }) {
       setTicket(ticketResponse.data);
       setMessages(messagesResponse.data || []);
     } catch (requestError) {
+      setTicket(null);
+      setMessages([]);
       setError(requestError.message || 'Không thể tải nội dung yêu cầu hỗ trợ.');
     } finally {
       setLoading(false);

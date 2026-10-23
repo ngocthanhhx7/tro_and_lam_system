@@ -2,11 +2,13 @@ import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { createApp } from './app.js';
 import { createDomainComposition } from './composition.js';
+import { assertIdentityGuardIndex } from './config/critical-indexes.js';
 
 let databaseConnected = false;
 try {
   await connectDatabase(env.mongoUri);
   databaseConnected = true;
+  if (env.nodeEnv === 'production') await assertIdentityGuardIndex();
   const composition = await createDomainComposition(env);
   const server = createApp({
     ...env,

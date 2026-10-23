@@ -50,6 +50,7 @@ export default function CartPage() {
       if (response.data.adjustments?.length) setNotice('Một số số lượng đã được giới hạn tối đa 99 sản phẩm mỗi mặt hàng.');
       else setNotice('');
     } catch (loadError) {
+      setCart(null);
       setError(cartError(loadError));
     } finally {
       setLoading(false);
@@ -68,7 +69,7 @@ export default function CartPage() {
           ? 'Một số số lượng đã được giới hạn tối đa 99 sản phẩm mỗi mặt hàng.'
           : '');
       } catch (loadError) {
-        if (active) setError(cartError(loadError));
+        if (active) { setCart(null); setError(cartError(loadError)); }
       } finally {
         if (active) setLoading(false);
       }

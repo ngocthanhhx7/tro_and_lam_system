@@ -1,4 +1,5 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { createHash, randomBytes } from 'node:crypto';
 import { ServiceError } from '../../utils/serviceError.js';
 import { sendCreated, sendNoContent, sendSuccess } from '../../utils/apiResponse.js';
@@ -32,6 +33,12 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
   const identity = ports.identityMiddleware || createIdentityMiddleware({ ports, config });
   const { requireCapability, csrfProtection, settings } = identity;
   const requireAddressAccess = requireCapability('self.addresses');
+  const geocodingLimit = rateLimit({
+    windowMs: 60_000, limit: 1,
+    keyGenerator: req => String(req.actor.id ?? req.actor._id),
+    standardHeaders: 'draft-8', legacyHeaders: false,
+    handler: (_req, _res, next) => next(new ServiceError(429, 'RATE_LIMITED', 'Vui lòng chờ trước khi lấy gợi ý địa chỉ khác. Bạn vẫn có thể nhập địa chỉ thủ công.')),
+  });
   const cookieName = config.guestCartCookieName || 'tl_guest_cart';
   const guestCookieOptions = {
     httpOnly: true,
@@ -103,7 +110,7 @@ export function createAccountRouter({ ports = {}, config = {} } = {}) {
     const expectedVersion = validateExpectedVersion(req.body?.expectedVersion);
     return sendSuccess(res, await service.setDefaultAddress(req.actor, id, expectedVersion));
   });
-  router.post('/locations/reverse', csrfProtection, requireAddressAccess, async (req, res) => {
+  router.post('/locations/reverse', csrfProtection, requireAddressAccess, geocodingLimit, async (req, res) => {
     const input = validateReverseLocation(req.body);
     return sendSuccess(res, await service.reverseGeocode(input));
   });

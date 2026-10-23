@@ -108,7 +108,7 @@ function sendMediaUnavailable(error, req, res, next) {
   return res.status(503).json({
     error: {
       code: 'MEDIA_UNAVAILABLE',
-      message: error.message || 'Kho lưu trữ ảnh chưa sẵn sàng',
+      message: 'Kho lưu trữ ảnh chưa sẵn sàng',
       details: [{ field: 'file', code: 'DRAFT_ONLY', message: 'Ảnh chưa được tải lên hoặc công bố' }],
     },
     meta: { requestId: res.locals.requestId },

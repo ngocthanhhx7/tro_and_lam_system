@@ -38,7 +38,7 @@ jobs:
 
       - name: Start disposable MongoDB replica set
         run: |
-          docker run -d --rm --name tro-lam-ci-mongo -p 27017:27017 mongo:7.0 --replSet rs0 --bind_ip_all
+          docker run -d --rm --name tro-lam-ci-mongo -p 127.0.0.1:27017:27017 mongo:7.0 --replSet rs0 --bind_ip_all
           ready=0
           for attempt in $(seq 1 60); do
             if docker exec tro-lam-ci-mongo mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' 2>/dev/null | grep -qx '1'; then

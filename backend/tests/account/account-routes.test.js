@@ -14,6 +14,19 @@ const SESSION_A = 'session-a';
 const SESSION_B = 'session-b';
 const GUEST_TOKEN = 'guest-cart-token-secret-value-0123456789';
 
+test('reverse geocoding limits one customer without consuming another customer allowance', async () => {
+  const { app, csrf, accountService } = makeApp();
+  let calls = 0;
+  accountService.reverseGeocode = async () => { calls += 1; return { suggestedAddress: { line1: 'Synthetic address' } }; };
+  const locate = token => request(app).post('/api/v1/locations/reverse')
+    .set('Origin', ORIGIN).set('Cookie', `tl_session=${token}; tl_csrf=${encodeURIComponent(csrf)}`)
+    .set('X-CSRF-Token', csrf).send({ lat: 21, lng: 105 });
+  await locate(SESSION_A).expect(200);
+  await locate(SESSION_A).expect(429);
+  await locate(SESSION_B).expect(200);
+  assert.equal(calls, 2);
+});
+
 function makeApp() {
   const csrf = csrfValue('n'.repeat(32), SECRET);
   const merges = [];
