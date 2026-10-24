@@ -756,6 +756,9 @@ test('customer account pages have no horizontal overflow or selected WCAG violat
   await login(page, USERS.customer);
   const accountMenuTrigger = page.locator('.header-account-menu summary');
   await page.mouse.move(0, 0);
+  // Hover may have opened the menu while login changed the header. Observe
+  // the real mouse-leave close before testing Enter as an opening action.
+  await expect(page.locator('.header-account-menu')).toHaveJSProperty('open', false);
   await accountMenuTrigger.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('.header-account-menu')).toHaveJSProperty('open', true);
