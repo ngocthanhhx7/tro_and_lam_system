@@ -63,7 +63,9 @@ async function login(page, user, password = FIXTURE_PASSWORD) {
   if (user.role === 'customer') {
     await expect(page).toHaveURL(/\/$/u);
     await expect(page.locator('.catalog-header')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    // The URL can update while the previous login heading is still visible
+    // during the lazy route transition. Wait for the actual homepage shell.
+    await expect(page.locator('.atelier-hero h1')).toBeVisible();
   } else if (user.role === 'staff') {
     await expect(page.getByRole('heading', { name: 'Bảng công việc', level: 1, exact: true })).toBeVisible();
   } else if (user.role === 'admin') {
