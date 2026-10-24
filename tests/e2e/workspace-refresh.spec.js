@@ -8,6 +8,7 @@ async function login(page, role) {
   await page.getByLabel('Mật khẩu', { exact: true }).fill(FIXTURE_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL(`${WEB_ORIGIN}/${role}`);
+  await expect(page.getByRole('heading', { level: 1, name: role === 'admin' ? 'Tổng quan vận hành' : 'Bảng công việc', exact: true })).toBeVisible();
 }
 
 for (const role of ['admin', 'staff']) {
@@ -64,7 +65,7 @@ for (const role of ['admin', 'staff']) {
       await expect(page.locator('.catalog-header')).toHaveCount(0);
       await page.getByRole('link', { name: 'Về không gian làm việc', exact: true }).click();
       await expect(page).toHaveURL(`${WEB_ORIGIN}/${role}`);
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: role === 'admin' ? 'Tổng quan vận hành' : 'Bảng công việc', exact: true })).toBeVisible();
     }
     await page.getByRole('button', { name: 'Mở menu tài khoản', exact: true }).click();
     await page.getByRole('link', { name: 'Hồ sơ', exact: true }).click();
