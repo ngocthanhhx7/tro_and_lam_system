@@ -191,7 +191,7 @@
 .workspace-ticket > div { flex: 1; min-width: 0; }
 .workspace-ticket strong { display: block; font-size: 12px; font-weight: 500; }
 .workspace-ticket small { color: #686c62; font-size: 10px; }
-.workspace-ticket p { margin: 6px 0 0; font-size: 11px; color: #717568; }
+.workspace-ticket p { margin: 6px 0 0; font-size: 11px; color: #64695c; }
 .workspace-ticket .workspace-initials { width: 30px; height: 30px; display: grid; place-items: center; background: #e5dcc3; border-radius: 50%; font-size: 10px; flex-shrink: 0; }
 .workspace-notification { display: block; padding: 13px; margin-top: 9px; color: #00293b; background: #f5f2e8; text-decoration: none; font-size: 11px; }
 .workspace-notification small { display: block; margin-top: 6px; color: #686c62; font-size: 10px; }

@@ -2135,16 +2135,12 @@ test('public contact inquiry reaches the staff queue and persists assignment and
   try {
     const staffPage = await staffContext.newPage();
     await login(staffPage, USERS.staff);
-    const newQueueResponsePromise = staffPage.waitForResponse((response) => {
-      const url = new URL(response.url());
-      return url.pathname.endsWith('/api/v1/staff/contacts')
-        && url.searchParams.get('status') === 'new'
-        && response.request().method() === 'GET';
-    }, { timeout: 8000 });
     await staffPage.goto('/staff/contacts');
-    const newQueueResponse = await newQueueResponsePromise;
-    expect(newQueueResponse.status()).toBe(200);
-    const newQueueBody = await newQueueResponse.json();
+    // The dashboard also reads the new queue. Verify a fresh authenticated
+    // read after navigation, rather than consuming its aborted old response.
+    const newQueueResponse = await browserApi(staffPage, '/api/v1/staff/contacts?status=new');
+    expect(newQueueResponse.status).toBe(200);
+    const newQueueBody = newQueueResponse.body;
     expect(newQueueBody.data.some((contact) => contact.id === contactId)).toBe(true);
 
     const newContactCard = staffPage.locator('.support-contact-card').filter({ hasText: name });
