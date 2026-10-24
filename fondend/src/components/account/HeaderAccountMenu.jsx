@@ -39,6 +39,7 @@ export default function HeaderAccountMenu() {
   return <details
     className="header-account-menu"
     ref={menu}
+    onFocus={() => window.clearTimeout(closeTimer.current)}
     onPointerEnter={(event) => {
       if (event.pointerType !== 'mouse') return;
       window.clearTimeout(closeTimer.current);
@@ -52,7 +53,10 @@ export default function HeaderAccountMenu() {
     }}
     onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
     onKeyDown={(event) => {
+      window.clearTimeout(closeTimer.current);
       if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
         event.currentTarget.open = false;
         event.currentTarget.querySelector('summary').focus();
       }
