@@ -6,9 +6,9 @@ import NewsCard, { NewsMeta } from './NewsCard.jsx';
 import { formatNewsDate, getNewsArticle, getNewsCategory, newsArticles, newsCategories, newsMilestones, normalizeNewsSearch } from './newsData.js';
 import './news.css';
 
-const feature = getNewsArticle('gom-chu-dau-tai-trien-lam-a80');
-const spotlights = ['gom-chu-dau-thuong-hieu-quoc-gia-2024', 'nghe-nhan-va-nhung-tang-pham-quoc-khanh', 'lifestyle-diplomacy-hai-cach-cham-vao-di-san'].map(getNewsArticle);
-const sortedArticles = [...newsArticles].sort((first, second) => second.date.localeCompare(first.date));
+const feature = getNewsArticle('gom-chu-dau-4-lan-lien-tiep-dat-thuong-hieu-quoc-gia');
+const spotlights = ['gom-chu-dau-gap-nghe-thuat-ikebana', 'gom-chu-dau-hanh-trinh-gan-600-nam', 'nghe-nhan-tiep-noi-tinh-hoa-gom-chu-dau'].map(getNewsArticle);
+const sortedArticles = [...newsArticles].sort((first, second) => (first.editorialOrder ?? Number.MAX_SAFE_INTEGER) - (second.editorialOrder ?? Number.MAX_SAFE_INTEGER) || second.date.localeCompare(first.date));
 
 export default function NewsPage() {
   const [params, setParams] = useSearchParams();
@@ -51,7 +51,7 @@ export default function NewsPage() {
     <section className="news-container news-feature" aria-label="Tin tiêu điểm">
       <Link className="news-feature__main" to={`/tin-tuc/${feature.slug}`}>
         <img src={feature.image} alt={feature.imageAlt} width="1200" height="800" fetchPriority="high" />
-        <span className="news-feature__tag">TIÊU ĐIỂM VĂN HÓA</span>
+        <span className="news-feature__tag">TIN TIÊU ĐIỂM</span>
         <div className="news-feature__copy"><NewsMeta article={feature} /><h2>{feature.title}</h2><span className="news-read-link">Khám phá câu chuyện <Icon name="arrow" size={18} /></span></div>
       </Link>
       <aside className="news-feature__side"><div className="news-feature__side-heading"><span className="news-eyebrow">ĐÁNG CHÚ Ý</span><span aria-hidden="true">01 — 03</span></div>

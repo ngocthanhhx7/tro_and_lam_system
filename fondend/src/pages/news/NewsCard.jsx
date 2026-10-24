@@ -4,7 +4,7 @@ import { staticImageProps } from '../../services/catalog/staticImage.js';
 import { formatNewsDate, getNewsCategory } from './newsData.js';
 
 export function NewsMeta({ article, detailed = false }) {
-  return <div className="news-meta"><time dateTime={article.date}>{detailed ? `${article.source ? 'Nguồn đăng' : 'Biên tập'}: ` : ''}{formatNewsDate(article.date)}</time><span aria-hidden="true">·</span><span>{article.source ? 'Gốm Chu Đậu' : article.kind}</span></div>;
+  return <div className="news-meta"><time dateTime={article.date}>{detailed ? `${article.source ? 'Nguồn đăng' : 'Biên tập'}: ` : ''}{formatNewsDate(article.date)}</time><span aria-hidden="true">·</span><span>{article.source ? article.source.label : article.kind}</span></div>;
 }
 
 export default function NewsCard({ article, compact = false }) {
