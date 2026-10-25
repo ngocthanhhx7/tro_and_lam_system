@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const POSTER = '/assets/video/tro-lam-banner-poster.jpg';
+const POSTER = '/assets/video/tro-lam-banner-poster-20261026.jpg';
 export default function HeroMotion() {
   const video = useRef(null);
   const [failed, setFailed] = useState(false);
@@ -17,7 +17,13 @@ export default function HeroMotion() {
       }
       // The poster renders immediately. Do not compete with route data/images or
       // download the background movie for reduced-motion/data-saving visitors.
-      if (!player.getAttribute('src')) player.src = '/assets/video/tro-lam-banner.mp4';
+      // Choose once when playback is first needed; resizing must not download
+      // another movie or reset the current playback position.
+      if (!player.getAttribute('src')) {
+        player.src = window.matchMedia('(max-width: 760px)').matches
+          ? '/assets/video/tro-lam-banner-mobile-20261026.mp4'
+          : '/assets/video/tro-lam-banner-desktop-20261026.mp4';
+      }
       player.play().catch(() => {});
     };
     const idle = () => { idleReady = true; applyPreference(); };
