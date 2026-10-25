@@ -5,6 +5,7 @@ import NotFoundPage from '../NotFoundPage.jsx';
 import { setPageIndexability, setPageMetadata } from '../../utils/pageMetadata.js';
 import NewsCard, { NewsMeta } from './NewsCard.jsx';
 import { formatNewsDate, getNewsArticle, getNewsCategory, newsArticles } from './newsData.js';
+import { newsImageProps, newsImageSizes } from '../../services/catalog/newsImage.js';
 import './news.css';
 
 export default function NewsArticlePage() {
@@ -29,12 +30,12 @@ export default function NewsArticlePage() {
       </div>
       <div className="news-article__layout">
         <div className="news-article__main">
-          <figure className="news-article__image"><img src={article.image} alt={article.imageAlt} width="1200" height="800" fetchPriority="high" /><figcaption>{article.imageCaption}{article.imageSourceUrl && <> <a href={article.imageSourceUrl} target="_blank" rel="noreferrer">Nguồn ảnh</a></>}{article.imageCreditUrl && <> <a href={article.imageCreditUrl} target="_blank" rel="noreferrer">Ảnh gốc &amp; giấy phép</a></>}</figcaption></figure>
+          <figure className="news-article__image"><img {...newsImageProps(article.image, { width: 960, sizes: newsImageSizes.article })} alt={article.imageAlt} loading="eager" fetchPriority="high" /><figcaption>{article.imageCaption}{article.imageSourceUrl && <> <a href={article.imageSourceUrl} target="_blank" rel="noreferrer">Nguồn ảnh</a></>}{article.imageCreditUrl && <> <a href={article.imageCreditUrl} target="_blank" rel="noreferrer">Ảnh gốc &amp; giấy phép</a></>}</figcaption></figure>
           <div className="news-article__body">
             {article.introduction && <p className="news-article__introduction">{article.introduction}</p>}
             {article.sections.map((section, index) => <section id={`noi-dung-${index + 1}`} key={section.heading}>
               <h2>{section.heading}</h2>{(section.paragraphs || [section.text]).map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
-              {section.image && <figure className="news-article__inline-image"><img src={section.image.src} alt={section.image.alt} width="1000" height="667" loading="lazy" /><figcaption>{section.image.caption} <a href={section.image.sourceUrl} target="_blank" rel="noreferrer">Nguồn ảnh</a></figcaption></figure>}
+              {section.image && <figure className="news-article__inline-image"><img {...newsImageProps(section.image.src, { width: 960, sizes: newsImageSizes.inline })} alt={section.image.alt} loading="lazy" /><figcaption>{section.image.caption} <a href={section.image.sourceUrl} target="_blank" rel="noreferrer">Nguồn ảnh</a></figcaption></figure>}
             </section>)}
             {article.sources ? <aside className="news-source-note"><h2>Nguồn tham khảo</h2><ul>{article.sources.map((source) => <li key={source.url}><span>{source.label} · <time dateTime={source.date}>{formatNewsDate(source.date)}</time></span><a href={source.url} target="_blank" rel="noreferrer">{source.title}<Icon name="arrow" size={17} /></a></li>)}</ul></aside>
               : article.source && <aside className="news-source-note"><span className="news-eyebrow">ĐỌC TỪ NGUỒN</span><p>Bài tóm lược dựa trên thông tin đã công bố. Ngày hiển thị là ngày nguồn đăng bài.</p><a href={article.source.url} target="_blank" rel="noreferrer">Xem bài gốc trên {article.source.label} <Icon name="arrow" size={17} /></a></aside>}

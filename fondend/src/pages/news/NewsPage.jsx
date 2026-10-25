@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/catalog/Icon.jsx';
 import DecorativeMotif from '../../components/catalog/DecorativeMotif.jsx';
+import { newsImageProps, newsImageSizes } from '../../services/catalog/newsImage.js';
 import NewsCard, { NewsMeta } from './NewsCard.jsx';
 import { formatNewsDate, getNewsArticle, getNewsCategory, newsArticles, newsCategories, newsMilestones, normalizeNewsSearch } from './newsData.js';
 import './news.css';
@@ -50,12 +51,12 @@ export default function NewsPage() {
 
     <section className="news-container news-feature" aria-label="Tin tiêu điểm">
       <Link className="news-feature__main" to={`/tin-tuc/${feature.slug}`}>
-        <img src={feature.image} alt={feature.imageAlt} width="1200" height="800" fetchPriority="high" />
+        <img {...newsImageProps(feature.image, { width: 960, sizes: newsImageSizes.feature })} alt={feature.imageAlt} loading="eager" fetchPriority="high" />
         <span className="news-feature__tag">TIN TIÊU ĐIỂM</span>
         <div className="news-feature__copy"><NewsMeta article={feature} /><h2>{feature.title}</h2><span className="news-read-link">Khám phá câu chuyện <Icon name="arrow" size={18} /></span></div>
       </Link>
       <aside className="news-feature__side"><div className="news-feature__side-heading"><span className="news-eyebrow">ĐÁNG CHÚ Ý</span><span aria-hidden="true">01 — 03</span></div>
-        {spotlights.map((article) => <Link className="news-spotlight" to={`/tin-tuc/${article.slug}`} key={article.slug}><div><span className="news-category">{getNewsCategory(article.category).label}</span><h2>{article.title}</h2><time dateTime={article.date}>{formatNewsDate(article.date)}</time></div><img src={article.image} alt={article.imageAlt} width="140" height="140" loading="lazy" /></Link>)}
+        {spotlights.map((article) => <Link className="news-spotlight" to={`/tin-tuc/${article.slug}`} key={article.slug}><div><span className="news-category">{getNewsCategory(article.category).label}</span><h2>{article.title}</h2><time dateTime={article.date}>{formatNewsDate(article.date)}</time></div><img {...newsImageProps(article.image, { width: 320, sizes: newsImageSizes.spotlight })} alt={article.imageAlt} loading="lazy" /></Link>)}
       </aside>
     </section>
 
@@ -75,6 +76,6 @@ export default function NewsPage() {
 
     <section className="news-milestones" aria-labelledby="news-milestones-title"><div className="news-container"><p className="news-eyebrow">NHỮNG DẤU MỐC ĐƯỢC GÌN GIỮ</p><h2 id="news-milestones-title">Một hành trình, nhiều dấu ấn.</h2><ol>{newsMilestones.map((milestone) => <li key={milestone.year}><Link to={`/tin-tuc/${milestone.slug}`}><span className="news-milestone-year">{milestone.year}</span><h3>{milestone.title}</h3><p>{milestone.description}</p><span className="news-milestone-link">Đọc câu chuyện <Icon name="arrow" size={16} /></span></Link></li>)}</ol></div></section>
 
-    <section className="news-container news-brand-note" aria-labelledby="news-brand-title"><div><p className="news-eyebrow">TỪ TRO &amp; LAM</p><h2 id="news-brand-title">Di sản, trong một cách kể mới.</h2><p>Cùng khám phá sản phẩm, dòng gốm đời sống và gốm quà tặng, cùng những câu chuyện gốm được Tro &amp; Lam biên tập.</p><Link className="news-read-link" to="/tin-tuc?chu-de=tro-va-lam#bai-viet">Đọc những ghi chép từ Tro &amp; Lam <Icon name="arrow" size={18} /></Link></div><img src="/assets/editorial/diplomacy-slides/binh-giot-ngoc.webp" alt="Phối cảnh Bình Giọt Ngọc trong bộ tư liệu Tro & Lam" width="1122" height="1402" loading="lazy" /></section>
+    <section className="news-container news-brand-note" aria-labelledby="news-brand-title"><div><p className="news-eyebrow">TỪ TRO &amp; LAM</p><h2 id="news-brand-title">Di sản, trong một cách kể mới.</h2><p>Cùng khám phá sản phẩm, dòng gốm đời sống và gốm quà tặng, cùng những câu chuyện gốm được Tro &amp; Lam biên tập.</p><Link className="news-read-link" to="/tin-tuc?chu-de=tro-va-lam#bai-viet">Đọc những ghi chép từ Tro &amp; Lam <Icon name="arrow" size={18} /></Link></div><img {...newsImageProps('/assets/editorial/diplomacy-slides/binh-giot-ngoc.webp', { width: 640, sizes: newsImageSizes.brand })} alt="Phối cảnh Bình Giọt Ngọc trong bộ tư liệu Tro & Lam" loading="lazy" /></section>
   </div>;
 }

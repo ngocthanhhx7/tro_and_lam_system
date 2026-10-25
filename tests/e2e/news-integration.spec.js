@@ -1,5 +1,6 @@
 import { expect, test } from './browser-fixtures.js';
 import { readFile } from 'node:fs/promises';
+import { newsImageManifest } from '../../fondend/src/services/catalog/newsImageManifest.js';
 
 const articles = JSON.parse(await readFile(new URL('../../fondend/src/pages/news/providedNewsArticles.json', import.meta.url), 'utf8'));
 
@@ -24,6 +25,43 @@ test('news additions preserve filtering, pagination, source links and mobile art
     expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth)).toBe(true);
     await expect(page.locator('.news-article__body > section').first()).toContainText(article.sections[0].paragraphs[0]);
   }
+});
+
+test('news photos select responsive files and recover the original if a derivative fails', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const source = articles[0].image;
+  const entry = newsImageManifest[source];
+  for (const width of [1440, 768, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2 });
+    try {
+      const page = await context.newPage();
+      await page.goto('/tin-tuc');
+      const hero = page.locator('.news-feature__main > img');
+      await hero.evaluate(image => image.decode());
+      await expect(hero).toHaveAttribute('fetchpriority', 'high');
+      await expect(hero).toHaveAttribute('loading', 'eager');
+      await expect(hero).toHaveAttribute('width', String(entry.width));
+      await expect(hero).toHaveAttribute('height', String(entry.height));
+      expect(await hero.evaluate(image => image.currentSrc)).toMatch(/\/assets\/responsive\/v1\//u);
+      const spotlight = page.locator('.news-spotlight img').first();
+      await spotlight.scrollIntoViewIfNeeded();
+      await spotlight.evaluate(image => image.decode());
+      const spotlightWidth = await spotlight.evaluate(image => image.getBoundingClientRect().width);
+      if (spotlightWidth <= 112) expect(await spotlight.evaluate(image => image.currentSrc)).toMatch(/\/(?:160|320)\.webp$/u);
+      expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth)).toBe(true);
+    } finally { await context.close(); }
+  }
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const variants = new Set(entry.variants.map(variant => variant.url));
+    await page.route('**/assets/responsive/v1/**', route => variants.has(new URL(route.request().url()).pathname) ? route.abort() : route.continue());
+    await page.goto('/tin-tuc');
+    const hero = page.locator('.news-feature__main > img');
+    await expect(hero).toHaveAttribute('src', source);
+    await expect(hero).not.toHaveAttribute('srcset');
+    await hero.evaluate(image => image.decode());
+  } finally { await context.close(); }
 });
 
 test('account keyboard focus cancels a pending mouse-leave close timer', async ({ page }) => {
