@@ -21,6 +21,7 @@ const processes = spawn(process.execPath, [
   env: {
     ...process.env,
     MONGODB_URI: demoMongoUri,
+    LISTEN_HOST: '127.0.0.1',
     PORT: demoApiPort,
     FRONTEND_PORT: frontendPort,
     CORS_ORIGIN: webOrigin,

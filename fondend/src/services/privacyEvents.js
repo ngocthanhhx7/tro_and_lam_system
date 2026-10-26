@@ -1,6 +1,13 @@
 export const PRIVACY_STORAGE_KEY = 'tro-lam:privacy-revision';
 export const PRIVACY_CHANGED_EVENT = 'tro-lam:privacy-changed';
 
+export function isProofScopedPath(pathname) {
+  let decoded;
+  try { decoded = decodeURI(pathname); } catch { return false; }
+  return /^\/(?:don-hang|ho-tro)\//iu.test(decoded)
+    || /^\/tai-khoan\/bi-khoa\/*$/iu.test(decoded);
+}
+
 // A nonce only: never put session tokens, order IDs or personal data in storage.
 export function announcePrivacyChange({ local = false } = {}) {
   try { localStorage.setItem(PRIVACY_STORAGE_KEY, `${Date.now()}:${crypto.randomUUID()}`); }

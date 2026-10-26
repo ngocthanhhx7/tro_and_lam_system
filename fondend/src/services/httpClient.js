@@ -103,7 +103,7 @@ export async function requestJson(path, options = {}) {
     });
   }
   if (unsafeMethods.has(method)) {
-    const proofChanged = path === '/order-access/verify' || (path === '/orders' && method === 'POST' && Boolean(result?.data?.guestAccess));
+    const proofChanged = path === '/auth/appeal-access' || path === '/order-access/verify' || (path === '/orders' && method === 'POST' && Boolean(result?.data?.guestAccess));
     const sessionChanged = ['/auth/login', '/auth/logout', '/auth/reset-password', '/account/password', '/account/email-change/verify'].includes(path);
     if (proofChanged || sessionChanged) announcePrivacyChange({ local: proofChanged });
   }

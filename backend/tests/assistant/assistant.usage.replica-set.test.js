@@ -21,7 +21,10 @@ test('device quota is atomic, durable across service restart and resets without 
     await AiDailyUsage.createIndexes();
     const quota = createAssistantDailyUsage();
     const device = 'c'.repeat(64);
-    const at = new Date('2026-10-15T16:59:59Z');
+    // Keep fixture expiry ahead of the real MongoDB TTL clock. Historical
+    // dates can be deleted mid-test even though the service uses a fake clock.
+    const futureDay = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
+    const at = new Date(`${futureDay}T16:59:59Z`);
     const attempts = await Promise.allSettled(Array.from({ length: 30 }, () => quota.consume(device, at)));
     assert.equal(attempts.filter(result => result.status === 'fulfilled').length, 10);
     assert.ok(attempts.filter(result => result.status === 'rejected').every(result => result.reason.code === 'AI_DAILY_LIMIT'));
@@ -29,7 +32,7 @@ test('device quota is atomic, durable across service restart and resets without 
     assert.equal((await restarted.get(device, at)).remaining, 0);
     assert.equal((await AiDailyUsage.findOne().lean()).used, 10);
     assert.equal(await AiDailyUsage.countDocuments(), 1);
-    assert.equal((await restarted.consume(device, new Date('2026-10-15T17:00:00Z'))).remaining, 9);
+    assert.equal((await restarted.consume(device, new Date(at.getTime() + 1000))).remaining, 9);
     assert.equal((await restarted.consume('d'.repeat(64), at)).remaining, 9);
     await assert.rejects(restarted.consume('client-picked-id', at), error => error.status === 401);
   } finally { await mongoose.connection.dropDatabase(); await mongoose.disconnect(); }

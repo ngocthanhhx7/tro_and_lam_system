@@ -3,12 +3,16 @@ import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { createApp } from './app.js';
 import { createDomainComposition } from './composition.js';
 import { assertIdentityGuardIndex } from './config/critical-indexes.js';
+import { assertPendingGuestCodAttribution } from './services/commerce/cod-quota-migration.js';
 
 let databaseConnected = false;
 try {
   await connectDatabase(env.mongoUri);
   databaseConnected = true;
-  if (env.nodeEnv === 'production') await assertIdentityGuardIndex();
+  if (env.nodeEnv === 'production') {
+    await assertIdentityGuardIndex();
+    await assertPendingGuestCodAttribution();
+  }
   const composition = await createDomainComposition(env);
   const server = createApp({
     ...env,

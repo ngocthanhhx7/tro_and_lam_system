@@ -70,6 +70,7 @@ const orderSchema = new mongoose.Schema({
   code: { type: String, required: true, trim: true, uppercase: true, maxlength: 32 },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   guestAccessTokenHash: { type: String, select: false },
+  guestCheckoutKeyHash: { type: String, select: false },
   recipientSnapshot: { type: recipientSnapshotSchema, required: true },
   itemsSnapshot: { type: [itemSnapshotSchema], required: true, validate: (items) => items.length > 0 },
   subtotalVnd: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
@@ -94,5 +95,7 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ code: 1 }, { unique: true });
 orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ guestCheckoutKeyHash: 1, paymentMethod: 1, paymentStatus: 1, status: 1 });
+orderSchema.index({ 'recipientSnapshot.email': 1, paymentMethod: 1, paymentStatus: 1, status: 1 });
 
 export const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);

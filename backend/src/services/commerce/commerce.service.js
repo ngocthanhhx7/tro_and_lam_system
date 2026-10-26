@@ -378,9 +378,15 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
         }, { session });
         const recipient = await resolveRecipient(actor, input, session);
         const totals = await quoteAmounts({ recipient, items, paymentMethod: input.paymentMethod, actor, session, voucherId: input.voucherId });
+        const guestCheckoutKeyHash = !actor?.id ? hash(actorKey) : undefined;
         if (input.paymentMethod === 'cod') {
+          // Lock both scopes even for users: legacy guest email counts include
+          // orders from signed-in users with that recipient email too.
+          await repository.lockPendingCodScopes([hash(actorKey), hash(`email:${recipient.email}`)], { session });
           const activeCodOrders = await repository.countPendingCodOrders(actor, recipient.email, { session });
-          if (activeCodOrders >= totals.policy.maxPendingCodOrders) {
+          const guestCodOrders = guestCheckoutKeyHash
+            ? await repository.countPendingGuestCodOrders(guestCheckoutKeyHash, { session }) : 0;
+          if (activeCodOrders >= totals.policy.maxPendingCodOrders || guestCodOrders >= totals.policy.maxPendingCodOrders) {
             fail(422, 'CHECKOUT_NOT_ALLOWED', 'Đã đạt giới hạn đơn COD đang chờ xử lý');
           }
         }
@@ -397,6 +403,7 @@ export function createCommerceService({ ports = {}, config = {} } = {}) {
           _id: orderId,
           code: orderCode,
           ...(actor?.id ? { userId: actor.id } : {}),
+          ...(guestCheckoutKeyHash ? { guestCheckoutKeyHash } : {}),
           recipientSnapshot: recipient,
           itemsSnapshot: totals.itemSnapshots,
           subtotalVnd: totals.subtotalVnd,

@@ -3,7 +3,7 @@ import { clearCsrfToken } from '../services/httpClient.js';
 import { identityApi } from '../services/identity/identity.api.js';
 import { AuthContext } from './auth.context.js';
 import { invalidateCartRead } from '../services/account/cartRead.js';
-import { PRIVACY_CHANGED_EVENT, PRIVACY_STORAGE_KEY } from '../services/privacyEvents.js';
+import { isProofScopedPath, PRIVACY_CHANGED_EVENT, PRIVACY_STORAGE_KEY } from '../services/privacyEvents.js';
 
 export function AuthProvider({ children }) {
   const [user, updateUser] = useState(null);
@@ -100,7 +100,8 @@ export function AuthProvider({ children }) {
     };
     const storageChanged = event => { if (event.key === PRIVACY_STORAGE_KEY) revalidate(); };
     const focused = () => {
-      if (!currentUser.current && /^\/(?:don-hang|ho-tro)\//u.test(window.location.pathname)) {
+      // Restricted proofs can change independently of an active normal session.
+      if (isProofScopedPath(window.location.pathname)) {
         revalidate();
         return;
       }

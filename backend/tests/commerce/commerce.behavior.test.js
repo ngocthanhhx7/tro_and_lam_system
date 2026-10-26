@@ -215,7 +215,13 @@ class MemoryCommerceRepository {
   }
   async countPendingCodOrders(actor, email) {
     return [...this.orders.values()].filter((order) => order.paymentMethod === 'cod' && order.paymentStatus === 'pending'
+      && !['cancelled', 'returned'].includes(order.status)
       && (actor?.id ? String(order.userId) === String(actor.id) : order.recipientSnapshot.email === email)).length;
+  }
+  async lockPendingCodScopes() { /* Memory transactions already serialize writes. */ }
+  async countPendingGuestCodOrders(key) {
+    return [...this.orders.values()].filter(order => order.guestCheckoutKeyHash === key
+      && order.paymentMethod === 'cod' && order.paymentStatus === 'pending' && !['cancelled', 'returned'].includes(order.status)).length;
   }
   async createOrderAccessChallenge(challenge) {
     const value = { ...structuredClone(challenge), _id: this.newId() };

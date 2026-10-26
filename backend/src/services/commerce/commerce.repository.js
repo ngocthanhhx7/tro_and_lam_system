@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { randomUUID } from 'node:crypto';
+import { CodQuotaGuard } from '../../models/commerce/cod-quota-guard.model.js';
 import { IdempotencyRecord } from '../../models/commerce/idempotency-record.model.js';
 import { CodCollection } from '../../models/commerce/cod-collection.model.js';
 import { Inventory } from '../../models/commerce/inventory.model.js';
@@ -15,6 +17,7 @@ export class CommerceRepository {
     this.models = {
       IdempotencyRecord: models.IdempotencyRecord || IdempotencyRecord,
       CodCollection: models.CodCollection || CodCollection,
+      CodQuotaGuard: models.CodQuotaGuard || CodQuotaGuard,
       Inventory: models.Inventory || Inventory,
       InventoryMovement: models.InventoryMovement || InventoryMovement,
       OrderAccessChallenge: models.OrderAccessChallenge || OrderAccessChallenge,
@@ -23,8 +26,37 @@ export class CommerceRepository {
     };
   }
 
-  transaction(callback) {
-    return mongoose.connection.transaction(callback);
+  async transaction(callback) {
+    // MongoDB retries write conflicts. A first-use guard upsert can instead
+    // produce E11000; retry only that collision with a fresh transaction snapshot.
+    for (let attempt = 0; ; attempt += 1) {
+      try { return await mongoose.connection.transaction(callback); }
+      catch (error) {
+        if (!error.codQuotaGuardCollision || attempt >= 2) throw error;
+      }
+    }
+  }
+
+  async lockPendingCodScopes(keys, { session } = {}) {
+    if (!session) throw new Error('COD quota guard requires a transaction');
+    try {
+      // Ordered writes in one server command: deterministic lock order without
+      // parallel transaction writes or an extra Atlas round trip per scope.
+      await this.models.CodQuotaGuard.bulkWrite([...new Set(keys)].sort().map(key => ({ updateOne: {
+        filter: { _id: key },
+        update: { $set: { nonce: randomUUID(), expiresAt: new Date(Date.now() + 30 * 86400000) } },
+        upsert: true,
+      } })), { ordered: true, session });
+    } catch (error) {
+      if (error.code === 11000) error.codQuotaGuardCollision = true;
+      throw error;
+    }
+  }
+
+  async countPendingGuestCodOrders(guestCheckoutKeyHash, { session } = {}) {
+    return this.models.Order.countDocuments({
+      guestCheckoutKeyHash, paymentMethod: 'cod', paymentStatus: 'pending', status: { $nin: ['cancelled', 'returned'] },
+    }).session(session || null).exec();
   }
 
   newId() {
