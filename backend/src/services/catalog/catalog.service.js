@@ -178,7 +178,7 @@ export function createCatalogService({
     await auditPort.appendAudit(actorContext(actorIdOf, actor, action, targetId, fields), { session });
   }
 
-  async function availabilityFor(products, { session, required = false } = {}) {
+  async function availabilityFor(products, { session, required = false, snapshot } = {}) {
     const quoteOnly = products.filter((product) => product.saleMode === 'quote');
     const demoOnly = products.filter((product) => product.saleMode !== 'quote' && needsPurchaseApproval(product));
     const buyable = products.filter((product) => product.saleMode !== 'quote' && !needsPurchaseApproval(product));
@@ -188,12 +188,12 @@ export function createCatalogService({
       ...demoOnly.map((product) => [plainId(product), { status: 'known', available: false }]),
     ]);
     if (!ids.length) return fixedStates;
-    if (!inventoryPort || typeof inventoryPort.getAvailability !== 'function') {
+    if (snapshot === undefined && (!inventoryPort || typeof inventoryPort.getAvailability !== 'function')) {
       if (required) throw unavailable('DATABASE_UNAVAILABLE', 'Tình trạng tồn kho chưa sẵn sàng để lọc danh mục');
       return new Map([...fixedStates, ...ids.map((id) => [id, { status: 'unknown', available: false }])]);
     }
     try {
-      const found = toAvailabilityMap(await inventoryPort.getAvailability(ids, { session }));
+      const found = toAvailabilityMap(snapshot ?? await inventoryPort.getAvailability(ids, { session }));
       return new Map([...fixedStates, ...ids.map((id) => [id, found.has(id)
         ? { status: 'known', available: found.get(id) }
         : { status: 'unknown', available: false }])]);
@@ -204,6 +204,11 @@ export function createCatalogService({
   }
 
   async function readPublishedPage(filters, { session } = {}) {
+    if (productRepository.supportsJoinedAvailability === true) {
+      const page = await productRepository.listPublishedProductPageWithAvailability(filters, { session });
+      const states = await availabilityFor(page.items, { session, snapshot: page.availability, required: filters.available !== undefined });
+      return safePage(page.items.map(product => toPublicProduct(product, states.get(plainId(product)))), page.total, filters);
+    }
     if (filters.available === undefined) {
       const page = await productRepository.listPublishedProductPage(filters, { session });
       const states = await availabilityFor(page.items, { session });

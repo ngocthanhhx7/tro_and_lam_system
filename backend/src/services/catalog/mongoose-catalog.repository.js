@@ -57,8 +57,10 @@ export function createMongooseCatalogRepository({
   Product = CatalogProduct,
   Category = CatalogCategory,
   MediaAsset = CatalogMediaAsset,
+  Inventory,
 } = {}) {
   return {
+    supportsJoinedAvailability: Boolean(Inventory),
     // Slug and ID-batch reads below already enforce the published category gate.
     publishedCategoryChecked: true,
     transaction(callback) {
@@ -147,6 +149,52 @@ export function createMongooseCatalogRepository({
       listQuery = withSession(listQuery, session);
       const [items, total] = await Promise.all([listQuery, countQuery]);
       return { items, total };
+    },
+
+    async listPublishedProductPageWithAvailability(filters, { session } = {}) {
+      if (!Inventory) throw new TypeError('Joined availability requires an inventory model');
+      const conditions = queryText(filters);
+      if (filters.categoryId) conditions.categoryId = new mongoose.Types.ObjectId(filters.categoryId);
+      const stockStages = [
+        { $lookup: { from: Inventory.collection.name, localField: '_id', foreignField: 'productId', as: '_catalogInventory' } },
+        { $set: { _catalogAvailable: { $and: [
+          { $or: [
+            { $not: [{ $regexMatch: { input: { $ifNull: ['$sku', ''] }, regex: '^DEMO-(?:LIF|DIP)-\\d{3}$', options: 'i' } }] },
+            { $eq: ['$purchaseApproved', true] },
+          ] },
+          { $let: { vars: { available: { $subtract: [
+            { $ifNull: [{ $arrayElemAt: ['$_catalogInventory.onHand', 0] }, 0] },
+            { $ifNull: [{ $arrayElemAt: ['$_catalogInventory.reserved', 0] }, 0] },
+          ] } }, in: { $and: [{ $gt: ['$$available', 0] }, { $lte: ['$$available', Number.MAX_VALUE] }] } } },
+        ] } } },
+      ];
+      const availabilityFiltered = filters.available !== undefined;
+      const [page] = await withSession(Product.aggregate([
+        { $match: conditions },
+        { $sort: sortFor(filters.sort) },
+        { $lookup: { from: Category.collection.name, localField: 'categoryId', foreignField: '_id', as: '_publishedCategory' } },
+        { $match: { '_publishedCategory.status': 'published' } },
+        ...(availabilityFiltered ? [
+          { $match: { saleMode: { $ne: 'quote' } } },
+          ...stockStages,
+          { $match: { _catalogAvailable: filters.available } },
+        ] : []),
+        { $facet: {
+          items: [
+            { $skip: (filters.page - 1) * filters.limit },
+            { $limit: filters.limit },
+            ...(!availabilityFiltered ? stockStages : []),
+            { $project: { _publishedCategory: 0, _catalogInventory: 0 } },
+          ],
+          total: [{ $count: 'value' }],
+        } },
+      ]), session);
+      const availability = [];
+      const items = (page?.items || []).map(({ _catalogAvailable, ...product }) => {
+        availability.push({ productId: idText(product), available: _catalogAvailable === true });
+        return product;
+      });
+      return { items, availability, total: page?.total[0]?.value || 0 };
     },
 
     async listPublishedProductPage(filters, { session } = {}) {

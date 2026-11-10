@@ -157,7 +157,7 @@ export async function createDomainComposition(env) {
   let commerceService;
   let paymentsService;
   const catalogService = createCatalogService({
-    productRepository: createMongooseCatalogRepository(),
+    productRepository: createMongooseCatalogRepository({ Inventory }),
     inventoryPort: {
       async getAvailability(ids, options) {
         if (!commerceService) throw unavailable('DATABASE_UNAVAILABLE', 'Tồn kho chưa sẵn sàng');
