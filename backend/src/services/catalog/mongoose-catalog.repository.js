@@ -162,10 +162,15 @@ export function createMongooseCatalogRepository({
             { $not: [{ $regexMatch: { input: { $ifNull: ['$sku', ''] }, regex: '^DEMO-(?:LIF|DIP)-\\d{3}$', options: 'i' } }] },
             { $eq: ['$purchaseApproved', true] },
           ] },
-          { $let: { vars: { available: { $subtract: [
-            { $ifNull: [{ $arrayElemAt: ['$_catalogInventory.onHand', 0] }, 0] },
-            { $ifNull: [{ $arrayElemAt: ['$_catalogInventory.reserved', 0] }, 0] },
-          ] } }, in: { $and: [{ $gt: ['$$available', 0] }, { $lte: ['$$available', Number.MAX_VALUE] }] } } },
+          { $let: { vars: {
+            onHand: { $arrayElemAt: ['$_catalogInventory.onHand', 0] },
+            reserved: { $arrayElemAt: ['$_catalogInventory.reserved', 0] },
+          }, in: { $cond: [
+            { $and: [{ $isNumber: '$$onHand' }, { $isNumber: '$$reserved' }] },
+            { $let: { vars: { available: { $subtract: ['$$onHand', '$$reserved'] } },
+              in: { $and: [{ $gt: ['$$available', 0] }, { $lte: ['$$available', Number.MAX_VALUE] }] } } },
+            false,
+          ] } } },
         ] } } },
       ];
       const availabilityFiltered = filters.available !== undefined;

@@ -30,6 +30,8 @@ test('joined catalogue preserves exact DTOs, filters and totals, with fresh stoc
     }));
     await CatalogProduct.collection.insertMany(products);
     await Inventory.collection.insertMany(products.filter((_, i) => i !== 8).map((p, i) => ({ productId: p._id, onHand: i === 9 ? Infinity : 3, reserved: i % 3 ? 0 : 3 })));
+    // Incomplete legacy/import rows must retain the old fail-closed stock state.
+    await Inventory.collection.updateOne({ productId: products[11]._id }, { $unset: { reserved: '' } });
     const inventoryPort = { async getAvailability(ids, { session } = {}) {
       const rows = await Inventory.find({ productId: { $in: ids } }).session(session || null).lean();
       const byId = new Map(rows.map(row => [String(row.productId), Math.max(0, row.onHand - row.reserved)]));
