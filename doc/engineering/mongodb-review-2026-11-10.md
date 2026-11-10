@@ -66,3 +66,9 @@ Category slug vẫn cần resolve danh mục công khai trước aggregate. Expl
 ## Giới hạn và bước tiếp
 
 Không có slow logs/Performance Advisor nên chưa đánh giá phân bố p95 theo traffic thật hoặc đưa kết luận toàn bộ database đã tối ưu. Chưa benchmark catalogue lớn/deep offset/contains regex; khi dữ liệu tăng cần đo cardinality và sort/spill/facet limits trước khi đổi contract. Bounded schema sample không chứng minh mọi document đều cùng kiểu hoặc không có array growth trong tương lai. Giữ order snapshot và các collection log/message tách riêng; không embed dữ liệu tăng không giới hạn vào user/order. Tồn/giá/auth/payment không cache; luồng ghi và transaction không thay đổi. Giảm latency service không đồng nghĩa toàn trang nhanh cùng tỷ lệ. Chưa đổi vùng Atlas do chưa xác nhận cấu hình nhà cung cấp.
+
+## Kiểm thử trình duyệt và điều chỉnh thao tác
+
+Quality của pha ảnh `0967e77` đạt 75/75 browser. Run đầu của pha query `22cc6b1` đạt 281 backend nhưng 74/75 browser; ca còn lại là chart doanh thu dùng `page.mouse.move` với tọa độ tuyệt đối sau khi focus slider, không bảo đảm plot vẫn trong viewport. Assertion ngày đầu nhận nguyên ngày thứ hai từ thao tác bàn phím trước đó. Không có bằng chứng ca này phụ thuộc catalogue; không coi lần chạy lỗi là đạt hoặc bật retry.
+
+Sửa test để scroll plot vào vùng nhìn, thêm assertion viewport và dùng locator.hover có actionability ở vị trí rõ ràng phía ngày đầu. Giữ mọi assertion ngày, bàn phím, số tiền, bảng, date range và race/error; không sửa chart hoặc giảm coverage. Ca riêng local đã đạt (7,9 giây); chờ bộ đầy đủ trên GitHub cho revision sau sửa trước rollout. Artifact kiểm tra toàn vẹn dữ liệu chỉ đọc bổ sung: `.codex-tools/mongodb-integrity-20261110.json`, không phát hiện orphan category/product hoặc kiểu stock sai trong tối đa 250 document/collection (database hiện nhỏ hơn giới hạn này).

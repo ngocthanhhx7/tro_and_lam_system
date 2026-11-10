@@ -1604,8 +1604,13 @@ test('admin revenue trend follows the selected Vietnam date range and exposes ke
   await expect(daySlider).toHaveAttribute('aria-valuetext', /3 tháng 10, 2026/u);
   await daySlider.press('ArrowLeft');
   await expect(daySlider).toHaveAttribute('aria-valuetext', /2 tháng 10, 2026/u);
-  const chartBounds = await page.locator('.admin-chart__plot').boundingBox();
-  await page.mouse.move(chartBounds.x + chartBounds.width * 0.25, chartBounds.y + chartBounds.height / 2);
+  const chartPlot = page.locator('.admin-chart__plot');
+  // Focusing the slider can scroll the plot out of view. Hover the visible,
+  // stable SVG rather than sending a viewport coordinate from a stale box.
+  await chartPlot.scrollIntoViewIfNeeded();
+  await expect(chartPlot).toBeInViewport();
+  const chartBounds = await chartPlot.boundingBox();
+  await chartPlot.hover({ position: { x: chartBounds.width * 0.2, y: chartBounds.height / 2 } });
   await expect(daySlider).toHaveAttribute('aria-valuetext', /1 tháng 10, 2026/u);
   await page.mouse.move(0, 0);
   await expect(daySlider).toHaveAttribute('aria-valuetext', /3 tháng 10, 2026/u);
