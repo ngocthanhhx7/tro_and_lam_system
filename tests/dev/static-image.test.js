@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import sharp from 'sharp';
 import { staticImageProps } from '../../fondend/src/services/catalog/staticImage.js';
 import { staticImageManifest } from '../../fondend/src/services/catalog/staticImageManifest.js';
+import { ownerProductImageManifest } from '../../fondend/src/services/catalog/ownerProductImageManifest.js';
 import { diplomacySlides, lifestyleSlides } from '../../fondend/src/constants/homepageSlides.js';
 
 test('editorial images use allowlisted responsive files and preserve unknown image URLs', () => {
@@ -27,7 +28,7 @@ test('published editorial variants exist, match srcset widths, retain motif alph
   let bytes = 0;
   const visited = new Set();
   for (const slide of [...lifestyleSlides, ...diplomacySlides]) {
-    assert.ok(Object.hasOwn(staticImageManifest, slide.src), `Missing responsive home photo: ${slide.src}`);
+    assert.ok(Object.hasOwn(ownerProductImageManifest, slide.src), `Missing responsive owner home photo: ${slide.src}`);
   }
   for (const [source, entry] of Object.entries(staticImageManifest)) {
     assert.ok(entry.width > 0 && entry.height > 0);

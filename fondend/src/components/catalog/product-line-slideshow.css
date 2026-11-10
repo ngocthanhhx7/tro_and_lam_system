@@ -1,6 +1,6 @@
 .product-line-slideshow.collection-story__image {
   height: auto;
-  aspect-ratio: 1;
+  aspect-ratio: var(--product-line-aspect-ratio, 1);
   background: #fff;
 }
 

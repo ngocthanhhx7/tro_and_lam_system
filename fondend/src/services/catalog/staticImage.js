@@ -1,9 +1,12 @@
 import { staticImageManifest } from './staticImageManifest.js';
+import { ownerProductImageManifest } from './ownerProductImageManifest.js';
+
+const editorialManifest = { ...staticImageManifest, ...ownerProductImageManifest };
 
 // Only files generated from the allowlist receive a srcset. External/dynamic
 // image URLs keep their existing behavior and are never rewritten by this helper.
 export function staticImageProps(url, { width = 640, sizes = '(max-width: 639px) calc(100vw - 32px), 50vw' } = {}) {
-  return responsiveImageProps(url, staticImageManifest, { width, sizes });
+  return responsiveImageProps(url, editorialManifest, { width, sizes });
 }
 
 export function responsiveImageProps(url, manifest, { width = 640, sizes } = {}) {

@@ -68,11 +68,11 @@
 
 @media (max-width: 640px) {
   .about-product-marquee {
-    --about-marquee-speed: 28s;
+    --about-marquee-speed: var(--about-marquee-mobile-duration, 28s);
   }
 
   .about-product-marquee__track {
-    animation-timing-function: steps(7, end);
+    animation-timing-function: steps(var(--about-marquee-steps, 7), end);
   }
 
   .about-product-marquee__card {

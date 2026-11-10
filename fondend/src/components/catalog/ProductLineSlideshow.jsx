@@ -43,6 +43,7 @@ export default function ProductLineSlideshow({ slides, label }) {
   return <div
     ref={container}
     className="collection-story__image product-line-slideshow"
+    style={slides[0].width && slides[0].height ? { '--product-line-aspect-ratio': `${slides[0].width} / ${slides[0].height}` } : undefined}
     role="region"
     aria-roledescription="trình chiếu ảnh"
     aria-label={`Ảnh dòng sản phẩm ${label}`}
@@ -53,7 +54,7 @@ export default function ProductLineSlideshow({ slides, label }) {
       onTransitionEnd={(event) => { if (event.target === event.currentTarget && position === slideCount) setPosition(0); }}
     >
       {loopSlides.map((slide, index) => <div className="product-line-slideshow__slide" key={`${slide.src}-${index}`} role="group" aria-roledescription="ảnh" aria-label={`${index + 1} / ${slideCount}`} aria-hidden={index !== activeSlide}>
-        <img {...staticImageProps(slide.src, { width: 960, sizes: '(max-width: 820px) min(640px, calc(100vw - 32px)), 50vw' })} alt={index === slideCount ? '' : slide.alt} width="1600" height="1600" loading={inView && (index === activeSlide || index === activeSlide + 1) ? 'eager' : 'lazy'} fetchPriority="low" draggable="false" />
+        <img {...staticImageProps(slide.src, { width: 960, sizes: '(max-width: 820px) min(640px, calc(100vw - 32px)), 50vw' })} alt={index === slideCount ? '' : slide.alt} width={slide.width || 1600} height={slide.height || 1600} loading={inView && (index === activeSlide || index === activeSlide + 1) ? 'eager' : 'lazy'} fetchPriority="low" draggable="false" />
       </div>)}
     </div>
   </div>;
