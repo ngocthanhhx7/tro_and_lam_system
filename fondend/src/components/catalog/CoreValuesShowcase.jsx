@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { staticImageProps } from '../../services/catalog/staticImage.js';
 import Icon from './Icon.jsx';
 import './core-values-showcase.css';
+import { ownerAboutProducts, ownerLifestyleSlides } from '../../constants/ownerProductPhotos.js';
 
 const valueImages = [
-  { src: '/assets/editorial/diplomacy-slides/binh-giot-ngoc.webp', alt: 'Bình Giọt Ngọc hoa lam trong không gian ánh vàng.' },
-  { src: '/assets/editorial/diplomacy-slides/binh-thien-nga.webp', alt: 'Bình Thiên Nga gốm Chu Đậu trong không gian ánh vàng.' },
-  { src: '/assets/editorial/lifestyle-slides/tea-jar.webp', alt: 'Hộp trà gốm hoa văn chim Lạc trong không gian ánh vàng.' },
-  { src: '/assets/editorial/lifestyle-slides/dinnerware.webp', alt: 'Bộ đồ ăn gốm hoa lam trong không gian ánh vàng.' },
-  { src: '/assets/editorial/story/binh-giot-ngoc-phuc.webp', alt: 'Bình Giọt Ngọc trang trí chữ Phúc trong không gian ánh vàng.' },
+  ownerAboutProducts[7],
+  ownerAboutProducts[8],
+  ownerLifestyleSlides[0],
+  ownerLifestyleSlides[2],
+  ownerAboutProducts[0],
 ];
 
 export default function CoreValuesShowcase({ values }) {
@@ -36,7 +37,7 @@ export default function CoreValuesShowcase({ values }) {
               onClick={() => setSelected(index)}
             >
               <span className="core-values__number">{value.number}</span>
-              <img className="core-values__thumbnail" {...staticImageProps(valueImages[index].src, { width: 320, sizes: '72px' })} alt="" width="1122" height="1402" loading="lazy" />
+              <img className="core-values__thumbnail" {...staticImageProps(valueImages[index].src, { width: 160, sizes: '72px' })} alt="" width={valueImages[index].width} height={valueImages[index].height} loading="lazy" />
               <span className="core-values__choice-copy">
                 <strong>{value.vietnamese}</strong>
               </span>
@@ -45,7 +46,7 @@ export default function CoreValuesShowcase({ values }) {
           </li>)}
         </ol>
         <article className="core-values__detail" id="story-value-detail" aria-labelledby="story-value-detail-title" aria-live="polite" aria-atomic="true">
-          <img key={image.src} className="core-values__detail-image" {...staticImageProps(image.src)} alt={image.alt} width="1122" height="1402" loading="lazy" />
+          <img key={image.src} className="core-values__detail-image" {...staticImageProps(image.src, { sizes: '(max-width: 900px) calc(100vw - 32px), 50vw' })} alt={image.alt} width={image.width} height={image.height} loading="lazy" />
           <div className="core-values__shade" aria-hidden="true" />
           <div key={active.number} className="core-values__caption">
             <div className="core-values__detail-heading">

@@ -4,6 +4,7 @@ import { HeritageFilm } from '../../components/catalog/EditorialMedia.jsx';
 import StoryPageDecorations from '../../components/catalog/StoryPageDecorations.jsx';
 import CoreValuesShowcase from '../../components/catalog/CoreValuesShowcase.jsx';
 import { staticImageProps } from '../../services/catalog/staticImage.js';
+import { ownerAboutProducts, ownerLifestyleSlides } from '../../constants/ownerProductPhotos.js';
 import './story-brand.css';
 
 const storySteps = [
@@ -27,9 +28,9 @@ const values = [
   { number: '05', name: 'CONNECTION', vietnamese: 'Kết nối', description: 'Công nghệ trở thành cầu nối giữa hiện vật và câu chuyện văn hóa được lưu giữ trong gốm.' },
 ];
 
-function StoryImage({ src, alt, className, caption, loading = 'lazy' }) {
+function StoryImage({ photo, className, caption, loading = 'lazy' }) {
   return <figure className={`story-brand__image ${className}`}>
-    <img {...staticImageProps(src)} alt={alt} loading={loading} width="1122" height="1402" />
+    <img {...staticImageProps(photo.src, { sizes: '(max-width: 760px) calc(100vw - 32px), 50vw' })} alt={photo.alt} loading={loading} width={photo.width} height={photo.height} />
     {caption && <figcaption>{caption}</figcaption>}
   </figure>;
 }
@@ -47,8 +48,7 @@ function MissionVision() {
           </div>
           <StoryImage
             className="story-brand__mission-photo"
-            src="/assets/editorial/lifestyle-slides/dinnerware.webp"
-            alt="Bộ đồ ăn gốm Chu Đậu với họa tiết xanh trong không gian ấm áp."
+            photo={ownerLifestyleSlides[2]}
           />
         </article>
         <article className="story-brand__mission-card story-brand__mission-card--vision" aria-labelledby="story-vision-title">
@@ -65,8 +65,7 @@ function MissionVision() {
           </div>
           <StoryImage
             className="story-brand__mission-photo"
-            src="/assets/editorial/diplomacy-slides/binh-thien-nga.webp"
-            alt="Bình Thiên Nga gốm Chu Đậu được trưng bày trong không gian nghệ thuật."
+            photo={ownerAboutProducts[8]}
           />
         </article>
       </div>
@@ -90,8 +89,7 @@ export default function StoryBrandPage() {
         </div>
         <StoryImage
           className="story-brand__hero-image"
-          src="/assets/editorial/story/binh-giot-ngoc-phuc.webp"
-          alt="Bình Giọt Ngọc trang trí chữ Phúc trong không gian ánh vàng."
+          photo={ownerAboutProducts[7]}
           loading="eager"
         />
       </div>
@@ -101,8 +99,7 @@ export default function StoryBrandPage() {
       <div className="story-brand__container story-brand__origin-grid">
         <StoryImage
           className="story-brand__origin-image"
-          src="/assets/editorial/diplomacy-slides/binh-thien-nga.webp"
-          alt="Bình Thiên Nga gốm Chu Đậu trong không gian ánh vàng."
+          photo={ownerAboutProducts[8]}
         />
         <div className="story-brand__origin-copy">
           <p className="eyebrow">01 — KHỞI NGUỒN</p>
@@ -143,8 +140,7 @@ export default function StoryBrandPage() {
         </div>
         <StoryImage
           className="story-brand__today-image"
-          src="/assets/editorial/lifestyle-slides/tea-jar.webp"
-          alt="Hộp trà gốm hoa văn chim Lạc trong không gian ánh vàng."
+          photo={ownerLifestyleSlides[0]}
         />
        </div>
        <ol className="story-brand__steps" aria-label="Những lớp chuyện có thể khám phá qua NFC">
@@ -160,7 +156,7 @@ export default function StoryBrandPage() {
     <CoreValues />
 
     <section className="story-brand__closing" aria-labelledby="story-closing-title">
-      <img className="story-brand__closing-image" src="/assets/products/owner-provided/binh-thien-nga-02.webp" alt="" loading="lazy" decoding="async" />
+      <img className="story-brand__closing-image" {...staticImageProps(ownerAboutProducts[8].src, { sizes: '100vw' })} width={ownerAboutProducts[8].width} height={ownerAboutProducts[8].height} alt="" loading="lazy" />
       <div className="story-brand__closing-inner">
         <p className="eyebrow">TRO &amp; LAM · GỐM CHU ĐẬU</p>
         <h2 id="story-closing-title">Để di sản<br />tiếp tục được kể.</h2>

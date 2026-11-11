@@ -82,7 +82,7 @@
   width: 68px;
   height: 76px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .core-values__choice-copy {
