@@ -1,0 +1,26 @@
+.contact-with-map {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: clamp(18px, 2vw, 32px);
+}
+
+.chu-dau-map {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: white;
+  border: 1px solid var(--border-subtle);
+}
+.chu-dau-map__info { padding: clamp(20px, 2vw, 32px); }
+.chu-dau-map__info h3 { margin: 0; font-family: var(--font-heading); }
+.chu-dau-map__info p { margin: 7px 0 12px; }
+.chu-dau-map__info a { color: inherit; text-underline-offset: 4px; }
+.chu-dau-map iframe { display: block; border: 0; width: 100%; min-height: 280px; flex: 1; }
+.chu-dau-map--compact { margin-top: 20px; border-color: rgb(255 255 255 / 24%); background: transparent; }
+.chu-dau-map--compact .chu-dau-map__info { padding: 12px 16px; }
+.catalog-footer .chu-dau-map__info h3 { margin: 0; font-size: 1rem; }
+.catalog-footer .chu-dau-map__info p { margin: 4px 0 8px; }
+.chu-dau-map--compact iframe { height: 145px; min-height: 145px; flex: none; }
+@media (max-width: 820px) {
+  .contact-with-map { grid-template-columns: minmax(0, 1fr); }
+}

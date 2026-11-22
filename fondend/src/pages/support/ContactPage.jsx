@@ -6,6 +6,8 @@ import './support.css';
 
 const INITIAL_FORM = { name: '', email: '', phone: '', company: '', quantity: '', message: '', consent: false };
 
+import ChuDauMap from '../../components/catalog/ChuDauMap.jsx';
+
 export default function ContactPage({ corporate = false }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,7 @@ export default function ContactPage({ corporate = false }) {
     }
   }
 
-  return <section className="support-page support-page--contact">
+  return <section className={`support-page support-page--contact${corporate ? '' : ' contact-with-map'}`}>
     <form className="support-card support-form motif-pane" onSubmit={submit}>
       <EditorialPageMotif motif="bamboo" opacity={.12} align="left" />
       <EditorialPageMotif motif="heritageGate" opacity={.12} align="right" />
@@ -71,5 +73,6 @@ export default function ContactPage({ corporate = false }) {
       <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi yêu cầu'} <span aria-hidden="true">→</span></button>
       <p className="support-privacy">Chỉ gửi thông tin cần thiết để đội ngũ có thể phản hồi. Không gửi dữ liệu thanh toán hoặc giấy tờ tùy thân.</p>
     </form>
+    {!corporate && <ChuDauMap />}
   </section>;
 }

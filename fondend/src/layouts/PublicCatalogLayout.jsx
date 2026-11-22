@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { AssistantWidget } from '../components/assistant/AssistantWidget.jsx';
 import HeaderAccountMenu from '../components/account/HeaderAccountMenu.jsx';
 import HeaderCartMenu from '../components/account/HeaderCartMenu.jsx';
+import ChuDauMap from '../components/catalog/ChuDauMap.jsx';
 import Icon from '../components/catalog/Icon.jsx';
 import { QuickContactLinks } from '../components/catalog/QuickContactLinks.jsx';
 import LogoutButton from '../components/identity/LogoutButton.jsx';
@@ -145,7 +146,7 @@ export default function PublicCatalogLayout() {
       <div className="footer-columns"><div className="footer-about"><Brand /><p>TRO & LAM mang gốm Chu Đậu đến gần hơn với không gian sống và những dịp trao tặng.</p><span className="footer-signature">Giữ nét xưa. Chạm hôm nay.</span></div>
         <div><h3>Khám phá</h3><nav aria-label="Khám phá cuối trang">{links.map((link) => <Link key={link.to} to={link.to}>{link.label}</Link>)}</nav></div>
         <div><h3>Đồng hành cùng bạn</h3><nav aria-label="Hỗ trợ cuối trang"><Link to="/tra-cuu-don-hang">Tra cứu đơn hàng</Link><Link to="/tai-khoan">Tài khoản của bạn</Link><Link to="/gio-hang">Giỏ hàng</Link><Link to="/lien-he">Hỗ trợ mua hàng</Link></nav></div>
-        <div><h3>Kết nối với TRO & LAM</h3><p>Chọn gốm cho ngôi nhà, hay một món quà cho đối tác? Chúng tôi luôn sẵn lòng lắng nghe.</p><Link className="footer-contact" to="/lien-he">Gửi lời nhắn <Icon name="arrow" size={18} /></Link><Link className="footer-contact" to="/qua-tang-doanh-nghiep">Quà tặng doanh nghiệp <Icon name="gift" size={18} /></Link></div>
+        <div><h3>Kết nối với TRO & LAM</h3><p>Chọn gốm cho ngôi nhà, hay một món quà cho đối tác? Chúng tôi luôn sẵn lòng lắng nghe.</p><Link className="footer-contact" to="/lien-he">Gửi lời nhắn <Icon name="arrow" size={18} /></Link><Link className="footer-contact" to="/qua-tang-doanh-nghiep">Quà tặng doanh nghiệp <Icon name="gift" size={18} /></Link><ChuDauMap compact /></div>
       </div><div className="footer-bottom"><span>© {new Date().getFullYear()} TRO & LAM</span><span>Gốm Chu Đậu · Văn hóa Việt</span><Link to="/nguon-tu-lieu">Nguồn hình ảnh & phim</Link></div>
     </footer>
     <QuickContactLinks />
