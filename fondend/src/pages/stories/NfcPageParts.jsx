@@ -1,4 +1,7 @@
 import DecorativeMotif from '../../components/catalog/DecorativeMotif.jsx';
+import { useEffect, useState } from 'react';
+
+const sections = [['story', 'Câu chuyện'], ['craft', 'Chế tác'], ['wishes', 'Ý nghĩa'], ['care', 'Chăm sóc'], ['company', 'Địa chỉ']];
 
 export function OrnamentIcon({ name }) {
   const paths = {
@@ -17,9 +20,33 @@ export function SectionHeading({ id, children }) {
   return <h2 id={id} className="gn-section-heading">{children}</h2>;
 }
 
-export function NfcSectionNav({ prefix }) {
-  const sections = [['story', 'Câu chuyện'], ['craft', 'Chế tác'], ['wishes', 'Ý nghĩa'], ['care', 'Chăm sóc']];
-  return <nav className="gn-mobile-nav" aria-label="Chuyển nhanh giữa các phần">{sections.map(([section, label]) => <a href={`#${prefix}-${section}-title`} key={section}>{label}</a>)}</nav>;
+export function NfcSectionNav({ prefix, trackActive = false }) {
+  const [activeSection, setActiveSection] = useState('story');
+  useEffect(() => {
+    if (!trackActive) return undefined;
+    const headings = sections.map(([section]) => document.getElementById(`${prefix}-${section}-title`));
+    let frame;
+    function update() {
+      frame = undefined;
+      let active = 'story';
+      headings.forEach((heading, index) => {
+        if (heading && heading.getBoundingClientRect().top <= window.innerHeight * .3) active = sections[index][0];
+      });
+      setActiveSection(active);
+    }
+    function scheduleUpdate() {
+      if (frame === undefined) frame = window.requestAnimationFrame(update);
+    }
+    update();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    };
+  }, [prefix, trackActive]);
+  return <nav className="gn-mobile-nav" aria-label="Chuyển nhanh giữa các phần">{sections.map(([section, label]) => <a href={`#${prefix}-${section}-title`} key={section} aria-current={trackActive && activeSection === section ? 'location' : undefined}>{label}</a>)}</nav>;
 }
 
 export function PageMotif({ motif, placement, opacity = .14 }) {

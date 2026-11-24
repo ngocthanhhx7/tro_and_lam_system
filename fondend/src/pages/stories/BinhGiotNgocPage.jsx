@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { NfcSectionNav, OrnamentIcon, PageMotif, SectionHeading, SectionWave } from './NfcPageParts.jsx';
 import { setPageMetadata } from '../../utils/pageMetadata.js';
 import './binh-giot-ngoc.css';
+import NfcCompanySection from './NfcCompanySection.jsx';
 
 const productImages = [
   { src: '/assets/products/owner-provided/binh-giot-ngoc-01.webp', label: 'Họa tiết hoa', alt: 'Bình Giọt Ngọc với họa tiết hoa và lá vẽ thủ công' },
@@ -156,9 +157,9 @@ export default function BinhGiotNgocPage() {
           {careGuides.map((guide) => <div className="gn-card gn-care-card" key={guide.title}><div className="gn-care-card-title"><span className={`gn-icon-square${guide.iconSrc ? ' gn-icon-square--image' : ''}`} aria-hidden="true">{guide.iconSrc ? <img src={guide.iconSrc} alt="" width="28" height="28" loading="lazy" /> : <OrnamentIcon name={guide.icon} />}</span><h3>{guide.title}</h3></div><ul>{guide.items.map((item) => <li key={item}>{item}</li>)}</ul></div>)}
         </div>
         <p className="gn-closing">“Chăm sóc đúng cách là cách gìn giữ vẻ đẹp của Bình Giọt Ngọc và trân trọng tâm huyết của người nghệ nhân qua từng nét gốm.”</p>
-        <div className="gn-signoff"><Link to="/" aria-label="TRO & LAM – Trang chủ"><img src="/images/logo/brand-160.webp" srcSet="/images/logo/brand-160.webp 160w, /images/logo/brand-320.webp 320w" sizes="128px" alt="Logo TRO & LAM" width="128" height="128" loading="lazy" /></Link><span>Gốm Chu Đậu · Văn hóa Việt</span></div>
       </div>
       <SectionWave />
     </section>
+    <NfcCompanySection prefix="gn" />
   </main>;
 }

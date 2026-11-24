@@ -11,6 +11,7 @@
 .nfc-product-page .gn-detail-photo { max-height: 540px; min-height: 380px; }
 .nfc-product-page .gn-detail-photo img { object-position: center; }
 .nfc-story-continuation { margin-top: 28px; }
+.nfc-product-page .nfc-story-heading { margin-bottom: 24px; }
 .nfc-prose { display: grid; gap: 18px; font-size: 14px; line-height: 1.95; }
 .nfc-product-page .nfc-source { font-size: 11px; margin-top: 12px; }
 .nfc-source a { text-underline-offset: 4px; color: #765824; }
@@ -24,6 +25,67 @@
 .nfc-product-page .gn-care-card h4 { font-family: var(--font-body); color: var(--gn-gold-dark); font-size: 12px; margin-bottom: 10px; line-height: 1.6; }
 .nfc-care-entry + .nfc-care-entry { padding-top: 20px; margin-top: 20px; border-top: 1px solid #e3d1b3; }
 .nfc-product-page .gn-closing p + p { margin-top: 16px; }
+
+/* The tea set uses landscape photography and longer care instructions. */
+.nfc-product-page--tea .gn-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 48px; }
+.nfc-product-page--tea .gn-hero-visual { padding: 0; }
+.nfc-product-page--tea .gn-vase-frame { max-width: none; aspect-ratio: 3/2; border-radius: 24px; }
+.nfc-product-page--tea .gn-vase-frame img:hover { scale: 1; }
+.nfc-product-page--tea .gn-pedestal { display: none; }
+.nfc-product-page--tea .gn-subtitle { text-wrap: balance; }
+.nfc-product-page--tea .gn-subtitle::after { display: none; }
+.nfc-product-page--tea .gn-thumbnails { display: grid; grid-template-columns: repeat(var(--nfc-gallery-columns, 4), minmax(0, 1fr)); gap: 10px; max-width: 360px; }
+.nfc-product-page--tea .gn-thumbnail { width: 100%; height: auto; min-height: 44px; aspect-ratio: 3/2; }
+.nfc-product-page--tea .gn-thumbnail.is-active { transform: none; }
+.nfc-product-page--tea :is(.gn-hero-intro, .gn-story-copy, .nfc-prose, .gn-care-card ul) { font-size: 1rem; line-height: 1.9; }
+.nfc-product-page--tea :is(.gn-eyebrow, .gn-image-label, .gn-symbol-note, .gn-motifs > h3, .gn-motif p, .gn-wish p) { font-size: .875rem; }
+.nfc-product-page--tea .gn-story-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.nfc-product-page--tea .gn-detail-photo { min-height: 420px; max-height: none; }
+.nfc-product-page--tea .gn-detail-photo img { object-position: center 57%; }
+.nfc-product-page--tea .gn-detail-photo figcaption { font-size: .875rem; }
+.nfc-product-page--tea .gn-motifs { grid-column: 1/-1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.nfc-product-page--tea .gn-motifs > h3 { grid-column: 1/-1; }
+.nfc-product-page--tea .gn-motif { align-items: flex-start; padding: 20px; }
+.nfc-product-page--tea .gn-motif h4 { font-size: 1.125rem; }
+.nfc-product-page--tea .nfc-story-continuation { max-width: 1040px; }
+.nfc-product-page--tea .gn-wishes { gap: 20px; }
+.nfc-product-page--tea .gn-wish { min-width: 0; width: 100%; min-height: 360px; }
+.nfc-product-page--tea .gn-care .gn-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.nfc-product-page--tea .gn-care-card { padding: 28px; }
+.nfc-product-page--tea .gn-care-card-title { flex-direction: row; align-items: center; }
+.nfc-product-page--tea .gn-care-card h3 { font-size: 1.125rem; }
+.nfc-product-page--tea .gn-care-card li + li { margin-top: 16px; }
+.nfc-product-page--tea .gn-closing { max-width: 900px; font-size: 1.125rem; }
+.nfc-product-page--tea :is(.gn-media-note, .gn-signoff span) { font-size: .875rem; }
+@media (max-width: 1100px) {
+  .nfc-product-page--tea .gn-hero-grid { gap: 32px; }
+  .nfc-product-page--tea .gn-wishes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nfc-product-page--tea .gn-wish { aspect-ratio: 4/3; min-height: 300px; }
+}
+@media (max-width: 800px) {
+  .nfc-product-page--tea .gn-hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .nfc-product-page--tea .gn-hero-visual { width: min(100%, 600px); }
+}
+@media (max-width: 767px) {
+  .nfc-product-page--tea .gn-hero-grid { gap: 22px; }
+  .nfc-product-page--tea .gn-thumbnails { margin-inline: auto; }
+  .nfc-product-page--tea .gn-vase-frame { border-radius: 16px; }
+  .nfc-product-page--tea .gn-title-row .gn-eyebrow { font-size: .75rem; letter-spacing: .1em; }
+  .nfc-product-page--tea .gn-subtitle { font-size: 1.125rem; }
+  .nfc-product-page--tea .gn-story-grid, .nfc-product-page--tea .gn-motifs { grid-template-columns: minmax(0, 1fr); }
+  .nfc-product-page--tea .gn-story-grid .gn-detail-photo { aspect-ratio: 3/4; max-width: 380px; }
+  .nfc-product-page--tea .gn-motif { padding: 16px; }
+  .nfc-product-page--tea .gn-craft-step h3 { font-size: .875rem; padding: 8px 10px; }
+  .nfc-product-page--tea .gn-wishes { gap: 14px; }
+  .nfc-product-page--tea .gn-wish { aspect-ratio: auto; min-height: 320px; padding: 20px 14px; }
+  .nfc-product-page--tea .gn-care .gn-card-grid { grid-template-columns: minmax(0, 1fr); }
+  .nfc-product-page--tea .gn-care-card { padding: 22px 18px; }
+  .nfc-product-page--tea .gn-closing { font-size: 1rem; }
+}
+@media (max-width: 479px) {
+  .nfc-product-page--tea .gn-wishes { grid-template-columns: minmax(0, 1fr); }
+  .nfc-product-page--tea .gn-wish { aspect-ratio: 4/3; min-height: 280px; padding: 24px; }
+}
 @media (max-width: 767px) {
   .nfc-product-page .nfc-product-links { order: 6; justify-content: center; margin-top: 0; gap: 4px 20px; }
   .nfc-prose { gap: 16px; font-size: 14px; line-height: 1.85; }

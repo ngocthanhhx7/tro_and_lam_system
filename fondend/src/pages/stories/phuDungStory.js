@@ -1,0 +1,110 @@
+const asset = '/assets/nfc/hu-dung-tra-hoa-phu-dung/';
+const photo = (name, label, alt) => ({ src: `${asset}${name}.webp`, thumbnail: `${asset}${name}-thumb.webp`, label, alt });
+
+const images = [
+  photo('hu-tra-va-bo-am-chen', 'Hũ trà trong không gian thưởng trà', 'Hũ Đựng Trà Hoa Phù Dung ở bên trái bộ ấm chén, bên khoảnh khắc rót trà'),
+  photo('hoa-van-bo-tra', 'Nét hoa trên bộ ấm chén', 'Họa tiết hoa màu lam và viền vàng trên ấm, chén bên khay bánh'),
+  photo('khong-gian-thuong-tra', 'Một khoảng trà thanh nhã', 'Bộ ấm chén hoa phù dung trên bàn gỗ, bên hoa và bánh'),
+  photo('bo-tra-nen-trang', 'Sắc hoa trên nền men', 'Bộ ấm chén họa tiết hoa dây và viền vàng trên nền trắng'),
+  photo('bo-tra-ban-go', 'Góc trà thân quen', 'Bộ ấm chén họa tiết hoa dây trên bàn gỗ tròn'),
+  photo('rot-tra', 'Trao chén trà thơm', 'Đôi tay nâng ấm hoa phù dung, rót trà vào chén'),
+];
+
+export const phuDungStory = {
+  name: 'Hũ Đựng Trà Hoa Phù Dung',
+  variant: 'tea',
+  layout: 'tea-jar',
+  storyLeadCount: 3,
+  titlePrefix: 'HŨ ĐỰNG TRÀ',
+  titleLines: ['HOA PHÙ DUNG'],
+  subtitle: 'Gìn giữ hương trà – Nâng niu nét đẹp Việt',
+  intro: 'Hũ Đựng Trà Hoa Phù Dung gốm Chu Đậu – nơi những lá trà được nâng niu trong vẻ đẹp thanh nhã của gốm Việt.',
+  images,
+  galleryColumns: 3,
+  imageFit: 'contain',
+  frameBackground: '#0b1c29',
+  entryImages: [images[0].src],
+  entryImageAlts: ['Hũ Đựng Trà Hoa Phù Dung bên trái ấm trà, với sắc men trắng ngà và họa tiết hoa màu lam'],
+  entryImagePositions: ['left center'],
+  imageCaption: 'Hũ trà hoa phù dung bên bộ ấm chén, cùng nâng niu nét đẹp thưởng trà Việt.',
+  motifsTitle: 'Nét đẹp của hũ trà',
+  motifs: [[
+    { title: 'Hoa phù dung', text: 'Những đường nét mềm mại gợi vẻ đẹp dịu dàng, tinh tế của thiên nhiên.' },
+    { title: 'Dáng hũ cân đối', text: 'Thân hũ nhỏ gọn cùng nắp đậy, nâng niu những lá trà trước mỗi lần thưởng thức.' },
+    { title: 'Sắc men trắng ngà', text: 'Hòa quyện với họa tiết, mang dấu ấn thẩm mỹ của gốm Chu Đậu.' },
+  ]],
+  note: 'Nếu bộ ấm chén là nơi hương trà được sẻ chia, thì hũ đựng trà chính là nơi những lá trà được nâng niu.',
+  wishImagery: [{ ...images[0], position: 'left center' }, images[2], images[5], images[4]],
+  wishTitles: ['Nâng niu điều tốt đẹp', 'Cuộc sống an nhiên', 'Gặp gỡ ấm áp', 'Gửi trao trân quý'],
+  wishTexts: [
+    'Gìn giữ hương trà và những giá trị thân thuộc.',
+    'Gửi lời chúc về những phút giây bình yên.',
+    'Trân trọng tình cảm và các mối quan hệ bền lâu.',
+    'Món quà mang dấu ấn văn hóa Việt dành cho người thương quý.',
+  ],
+  craftSteps: [
+    { title: 'Chuẩn bị nguyên liệu', src: '/assets/video/tro-lam-banner-poster.jpg', alt: 'Ảnh tư liệu người thợ làm gốm' },
+    { title: 'Tạo hình thân & nắp', src: '/assets/photography/pottery-hands.jpg', alt: 'Ảnh tư liệu đôi bàn tay tạo hình gốm trên bàn xoay' },
+    { title: 'Trang trí hoa phù dung', src: images[1].src, alt: 'Họa tiết hoa phù dung trên bộ ấm chén hoàn thiện, minh họa nghệ thuật trang trí' },
+    { title: 'Tráng men & nung', src: images[0].src, alt: 'Hũ trà và bộ ấm chén hoa phù dung sau khi hoàn thiện' },
+  ],
+  productLinks: [],
+  entries: [{
+    name: 'Hũ Đựng Trà Hoa Phù Dung',
+    storyHeading: 'Nơi hương trà gặp gỡ tinh hoa gốm Việt',
+    story: [
+      'Có những giá trị văn hóa không hiện diện trong những điều lớn lao, mà được gìn giữ qua những thói quen giản dị của đời sống. Với người Việt, đó có thể là ấm trà nóng mỗi sớm mai, chén trà mời khách hay những phút giây tĩnh lặng khi con người tìm về sự an yên giữa nhịp sống thường ngày.',
+      'Từ nét đẹp ấy, Hũ Đựng Trà Hoa Phù Dung gốm Chu Đậu là sự kết hợp giữa công năng lưu giữ trà và nghệ thuật trang trí gốm truyền thống Việt Nam.',
+      'Mang dáng hình nhỏ gọn, cân đối cùng sắc men trắng ngà, hũ trà gây ấn tượng bởi họa tiết hoa phù dung được thể hiện bằng những đường nét mềm mại, thanh thoát. Hoa phù dung gợi lên vẻ đẹp dịu dàng, sự tinh tế và nét duyên của thiên nhiên. Khi xuất hiện trên nền gốm Chu Đậu, hình tượng ấy trở thành điểm nhấn vừa gần gũi, vừa mang chiều sâu thẩm mỹ.',
+      'Từng nét hoa văn được thể hiện trên bề mặt gốm không chỉ làm đẹp cho vật dụng, mà còn gợi nhắc truyền thống đưa hình ảnh thiên nhiên vào nghệ thuật trang trí của người Việt. Sự hòa quyện giữa sắc men, hình dáng và họa tiết tạo nên một sản phẩm mang giá trị sử dụng và dấu ấn văn hóa.',
+      'Nếu bộ ấm chén là nơi hương trà được sẻ chia, thì hũ đựng trà chính là nơi những lá trà được nâng niu trước khi trở thành thức uống. Mở nắp hũ, lấy một chút trà và chuẩn bị ấm nước nóng, những thao tác quen thuộc ấy lại góp phần tạo nên một nghi thức nhỏ đầy thi vị trong đời sống.',
+      'Hũ Đựng Trà Hoa Phù Dung vì thế không chỉ là vật dụng bảo quản trà, mà còn là một phần của không gian thưởng trà Việt, nơi vẻ đẹp truyền thống tiếp tục hiện diện trong từng khoảnh khắc đời thường.',
+    ],
+    craft: [
+      'Từ nét hoa phù dung đến vẻ đẹp của gốm Việt',
+      'Đằng sau vẻ đẹp thanh nhã của Hũ Đựng Trà Hoa Phù Dung là quá trình chế tác kết hợp giữa kỹ thuật tạo hình, nghệ thuật trang trí và kinh nghiệm của người thợ gốm Chu Đậu.',
+      'Hành trình bắt đầu từ việc lựa chọn và xử lý nguyên liệu, chuẩn bị chất liệu phù hợp cho quá trình tạo hình. Phôi gốm được tạo thành thân hũ và nắp đậy, bảo đảm sự cân đối về hình dáng, độ hoàn thiện và khả năng sử dụng.',
+      'Điểm nhấn của sản phẩm nằm ở công đoạn trang trí hoa phù dung. Những cánh hoa và đường nét mềm mại được thể hiện trên nền gốm theo bố cục hài hòa, gợi lên vẻ đẹp thanh tao của thiên nhiên. Công đoạn này đòi hỏi sự khéo léo và cảm nhận thẩm mỹ, bởi mỗi chi tiết đều góp phần tạo nên diện mạo riêng của sản phẩm.',
+      'Sau khi hoàn thiện hoa văn, hũ trà tiếp tục trải qua các công đoạn tráng men và nung đốt. Dưới tác động của nhiệt độ, lớp men được hoàn thiện, tạo nên sắc độ và bề mặt đặc trưng của gốm Chu Đậu.',
+      'Trước khi đến tay người sử dụng, sản phẩm được kiểm tra hình dáng, lớp men, họa tiết và độ phù hợp giữa thân hũ với nắp đậy.',
+      'Từ những nguyên liệu ban đầu đến chiếc hũ trà hoàn chỉnh là sự kết tinh của nhiều công đoạn chế tác. Qua đó, Hũ Đựng Trà Hoa Phù Dung không chỉ mang giá trị thẩm mỹ mà còn thể hiện sự tỉ mỉ và tâm huyết của những người thợ gốm.',
+    ],
+    wishes: [
+      'Giữ trọn hương trà – Gửi trao sự trân quý',
+      'Hoa phù dung gợi lên vẻ đẹp thanh nhã, tinh tế và sự hài hòa với thiên nhiên. Trong nghệ thuật trang trí gốm, hình tượng hoa phù dung mang đến cảm nhận về nét duyên dáng, mềm mại và vẻ đẹp bình dị của đời sống.',
+      'Khi kết hợp với công năng lưu giữ trà, sản phẩm gợi lên ý nghĩa nâng niu những điều tốt đẹp, gìn giữ những giá trị thân thuộc và trân trọng các mối quan hệ bền lâu.',
+      'Hũ Đựng Trà Hoa Phù Dung có thể trở thành món quà ý nghĩa dành tặng ông bà, cha mẹ, thầy cô, bạn bè, đối tác hoặc những người yêu thích văn hóa thưởng trà. Món quà thay lời chúc về cuộc sống an nhiên, những cuộc gặp gỡ ấm áp và tình cảm luôn được trân trọng.',
+      'Giá trị của sản phẩm không chỉ nằm ở vẻ đẹp của chất liệu gốm mà còn ở thông điệp chân thành được gửi gắm qua một món quà mang dấu ấn văn hóa Việt.',
+      'Hũ Đựng Trà Hoa Phù Dung – Gìn giữ hương trà, nâng niu nét đẹp Việt.',
+    ],
+    care: {
+      intro: [
+        'Giữ trọn hương trà – Gìn giữ vẻ đẹp hoa phù dung',
+        'Để bảo vệ vẻ đẹp của nước men, họa tiết hoa phù dung và duy trì chất lượng trà trong quá trình sử dụng, cần chú ý những hướng dẫn sau:',
+      ],
+      groups: [
+        [
+          'Lau sạch định kỳ: Sử dụng khăn mềm, sạch để loại bỏ bụi bẩn trên bề mặt hũ, đặc biệt tại các vị trí có hoa văn trang trí.',
+          'Làm sạch bên trong: Khi thay trà hoặc vệ sinh hũ, loại bỏ hoàn toàn vụn trà còn sót lại. Có thể sử dụng khăn mềm khô để làm sạch nhẹ nhàng.',
+          'Hạn chế hơi ẩm: Nếu cần vệ sinh bằng nước và nhà sản xuất cho phép, hãy làm sạch nhẹ nhàng và để hũ khô hoàn toàn trước khi tiếp tục đựng trà.',
+          'Tránh hóa chất mạnh: Không sử dụng chất tẩy rửa có tính ăn mòn, miếng cọ kim loại hoặc dụng cụ sắc nhọn có thể gây trầy xước bề mặt men và hoa văn.',
+        ],
+        [
+          'Đậy nắp cẩn thận: Sau mỗi lần lấy trà, đặt nắp về đúng vị trí nhằm hạn chế không khí và hơi ẩm xâm nhập. Không mặc định hũ kín khí hoàn toàn nếu chưa có xác nhận của nhà sản xuất.',
+          'Lựa chọn vị trí phù hợp: Đặt hũ tại nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp, nguồn nhiệt cao và những khu vực có độ ẩm lớn.',
+          'Tránh mùi lạ: Không đặt hũ gần gia vị, hóa chất hoặc thực phẩm có mùi mạnh, bởi lá trà dễ hấp thụ mùi từ môi trường xung quanh.',
+          'Hạn chế va đập: Đặt sản phẩm trên bề mặt chắc chắn. Khi di chuyển, dùng hai tay nâng đỡ phần thân và đáy hũ, tránh cầm trực tiếp vào nắp.',
+          'Bảo vệ họa tiết trang trí: Với phiên bản có chi tiết vàng kim, nên sử dụng khăn mềm và hạn chế chà xát lên các đường nét trang trí.',
+        ],
+        [
+          'Chỉ cho trà vào hũ khi bên trong đã sạch và khô hoàn toàn.',
+          'Sử dụng thìa hoặc dụng cụ lấy trà sạch, khô để hạn chế hơi ẩm ảnh hưởng đến chất lượng trà.',
+          'Không đặt hũ trong lò vi sóng, lò nướng hoặc máy rửa bát khi chưa có hướng dẫn từ nhà sản xuất.',
+          'Nếu trà có dấu hiệu ẩm mốc hoặc mùi bất thường, không tiếp tục sử dụng.',
+        ],
+        ['Với sản phẩm tích hợp chip NFC, tránh ngâm nước, cạy hoặc tác động mạnh lên vị trí gắn chip.'],
+      ],
+      closing: ['Mỗi lần mở nắp hũ trà là một khoảnh khắc thưởng thức nét đẹp giản dị của văn hóa Việt. Chăm sóc Hũ Đựng Trà Hoa Phù Dung cũng chính là cách gìn giữ hương trà và trân trọng giá trị thủ công được gửi gắm trong từng nét gốm.'],
+    },
+  }],
+};

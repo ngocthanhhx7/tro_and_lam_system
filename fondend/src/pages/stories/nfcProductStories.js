@@ -1,5 +1,7 @@
 import content from './nfcProductContent.json' with { type: 'json' };
 import { getListingProductBySlug } from '../catalog/productListingData.js';
+import { truongAnStory } from './truongAnStory.js';
+import { phuDungStory } from './phuDungStory.js';
 
 const image = (src, label, alt = label) => ({ src, label, alt });
 const catalogImages = (slug) => getListingProductBySlug(slug).images;
@@ -9,6 +11,8 @@ const supplied = '/assets/products/owner-provided/';
 const vrg = '/assets/nfc/products/';
 
 const stories = {
+  hu_dung_tra_hoa_phu_dung: phuDungStory,
+  bo_am_tra_truong_an: truongAnStory,
   binh_thien_nga: {
     name: 'Bình Thiên Nga', titleLines: ['THIÊN NGA'],
     subtitle: 'Phi – Minh – Túc – Thực · Lời chúc cuộc sống đủ đầy',

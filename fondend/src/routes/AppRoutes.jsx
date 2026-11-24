@@ -97,7 +97,7 @@ export default function AppRoutes() {
     <RouteErrorBoundary key={pathname}>
     <Routes>
       <Route path="/nfc/binh_giot_ngoc" element={<BinhGiotNgocPage />} />
-      {['binh_thien_nga', 'binh_hoa_lam_ty_ba', 'binh_phu_quy', 'binh_truong_phuc'].map((productId) => <Route key={productId} path={`/nfc/${productId}`} element={<ProductNfcPage key={productId} productId={productId} />} />)}
+      {['binh_thien_nga', 'binh_hoa_lam_ty_ba', 'binh_phu_quy', 'binh_truong_phuc', 'bo_am_tra_truong_an', 'hu_dung_tra_hoa_phu_dung'].map((productId) => <Route key={productId} path={`/nfc/${productId}`} element={<ProductNfcPage key={productId} productId={productId} />} />)}
       {integratedCatalogShell}
       {adminCatalogRoutes.map((route) => {
         const guarded = route.props.element;

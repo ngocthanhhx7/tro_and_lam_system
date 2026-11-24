@@ -1,0 +1,110 @@
+/* Editorial refinements for the Hoa Phu Dung tea jar. */
+.nfc-product-page--tea-jar .gn-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: clamp(32px, 4vw, 64px); }
+.nfc-product-page--tea-jar .gn-title-row h1 { font-size: clamp(34px, 4vw, 58px); overflow-wrap: normal; }
+.nfc-product-page--tea-jar .gn-hero-intro { max-width: 48ch; font-size: 1rem; }
+.nfc-product-page--tea-jar .nfc-story-link { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; margin-top: 28px; padding: 10px 20px; border: 1px solid #d2af70; border-radius: 6px; color: #f3dfba; font-size: .875rem; font-weight: 600; text-decoration: none; transition: background .2s, color .2s; }
+.nfc-product-page--tea-jar .nfc-story-link:hover { color: #061a2b; background: #e5c278; }
+.nfc-photo-gallery { width: 100%; min-width: 0; }
+.nfc-gallery-stage { position: relative; display: block; width: 100%; aspect-ratio: 3/2; padding: 0; overflow: hidden; border: 1px solid #d2af7080; border-radius: 20px; background: #03101c; cursor: zoom-in; box-shadow: 0 16px 40px #0004; }
+.nfc-gallery-stage > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.nfc-gallery-zoom { position: absolute; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid #e5c27866; border-radius: 6px; color: #fff8ea; background: #03101ce8; font-size: .875rem; }
+.nfc-gallery-stage:hover .nfc-gallery-zoom { background: #173854; }
+.nfc-gallery-caption { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-block: 14px; color: #ead5af; font-size: .875rem; line-height: 1.6; }
+.nfc-gallery-caption > span { flex-shrink: 0; font-variant-numeric: tabular-nums; color: #b7c4ce; }
+.nfc-product-page--tea-jar .gn-thumbnails { grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: none; margin-top: 0; gap: 8px; }
+.nfc-product-page--tea-jar .gn-thumbnail { padding: 3px; border-radius: 7px; }
+.nfc-product-page--tea-jar .gn-thumbnail.is-active { box-shadow: 0 0 0 1px #e5c278; }
+.nfc-product-page--tea-jar .gn-thumbnail:hover { transform: none; }
+
+.nfc-photo-viewer { position: fixed; inset: 0; width: min(1100px, calc(100% - 40px)); max-width: none; max-height: calc(100dvh - 40px); margin: auto; padding: 20px; border: 1px solid #cba05280; border-radius: 16px; background: #061a2b; color: #fff8ea; box-shadow: 0 24px 80px #0008; }
+.nfc-photo-viewer[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: min(900px, calc(100dvh - 40px)); }
+.nfc-photo-viewer::backdrop { background: #020910ed; }
+.nfc-viewer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 16px; }
+.nfc-viewer-toolbar p { font-family: var(--font-heading); font-size: 1.125rem; }
+.nfc-photo-viewer button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 88px; min-height: 44px; padding: 8px 14px; border: 1px solid #cba05280; border-radius: 6px; background: #102a42; color: #fff8ea; font-size: .875rem; cursor: pointer; }
+.nfc-photo-viewer button:hover { background: #25435b; }
+.nfc-viewer-toolbar button { flex-shrink: 0; }
+.nfc-viewer-toolbar button span { font-size: 1.5rem; line-height: 1; }
+.nfc-viewer-figure { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+.nfc-viewer-figure img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.nfc-viewer-figure figcaption { display: flex; justify-content: space-between; gap: 16px; padding-block: 16px; color: #ead5af; font-size: .875rem; }
+.nfc-viewer-figure figcaption span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.nfc-viewer-controls { display: flex; justify-content: center; gap: 16px; }
+
+.nfc-product-page--tea-jar .gn-mobile-nav { position: sticky; top: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #d8b47780; background: #fbf5e8f5; backdrop-filter: blur(12px); box-shadow: 0 4px 16px #061a2b0a; }
+.nfc-product-page--tea-jar .gn-mobile-nav a { display: grid; place-items: center; min-height: 44px; padding: 8px 24px; border-radius: 6px; color: #324554; font-size: .875rem; font-weight: 600; text-decoration: none; }
+.nfc-product-page--tea-jar .gn-mobile-nav a:hover { background: #f2e6d1; }
+.nfc-product-page--tea-jar .gn-mobile-nav a[aria-current] { background: #061a2b; color: #f3dfba; }
+.nfc-product-page--tea-jar .gn-section-heading { scroll-margin-top: 88px; text-wrap: balance; }
+.nfc-product-page--tea-jar .nfc-prose { max-width: 78ch; gap: 22px; }
+.nfc-product-page--tea-jar .nfc-narratives { max-width: none; margin-bottom: 40px; }
+.nfc-product-page--tea-jar .nfc-prose-heading { text-wrap: balance; font-size: 1.375rem; }
+.nfc-product-page--tea-jar .gn-story-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 32px 48px; }
+.nfc-product-page--tea-jar .gn-story-copy { gap: 22px; }
+.nfc-product-page--tea-jar .gn-symbol-note { margin-top: 0; padding: 20px; font-weight: 500; }
+.nfc-product-page--tea-jar .gn-detail-photo { min-height: 460px; border-width: 1px; }
+.nfc-product-page--tea-jar .gn-detail-photo img { transform: scale(2); transform-origin: 20% 64%; transition: none; }
+.nfc-product-page--tea-jar .gn-detail-photo figcaption { z-index: 1; padding: 60px 20px 20px; background: linear-gradient(transparent, #03101ced); }
+.nfc-product-page--tea-jar .gn-motif { border: 0; border-top: 1px solid #cba05266; border-radius: 0; padding: 18px 0 0; background: transparent; box-shadow: none; }
+.nfc-product-page--tea-jar .gn-motif:hover { transform: none; }
+.nfc-product-page--tea-jar .gn-motif p { font-size: .9375rem; color: #4c6071; }
+.nfc-product-page--tea-jar .nfc-story-continuation { margin-top: 36px; }
+.nfc-product-page--tea-jar .gn-craft-step h3 { font-size: .875rem; }
+.nfc-product-page--tea-jar .gn-craft-step:first-child img { transform: scale(1.35); transform-origin: center top; }
+.nfc-product-page--tea-jar .gn-wish p { font-size: .9375rem; }
+.nfc-product-page--tea-jar .gn-care .gn-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 24px; }
+.nfc-product-page--tea-jar .gn-care-card { padding: 26px; }
+.nfc-product-page--tea-jar .gn-care-card strong { color: #233f52; font-weight: 600; }
+.nfc-product-page--tea-jar .gn-care-card:last-child { grid-column: 1/-1; display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: center; gap: 24px; background: #102b40; border-color: #cba05270; }
+.nfc-product-page--tea-jar .gn-care-card:last-child .gn-care-card-title { margin-bottom: 0; }
+.nfc-product-page--tea-jar .gn-care-card:last-child h3 { color: #f3dfba; }
+.nfc-product-page--tea-jar .gn-care-card:last-child ul { list-style: none; padding: 0; color: #d5dfe6; }
+.nfc-product-page--tea-jar .gn-closing { max-width: 76ch; font-size: 1.125rem; line-height: 1.9; }
+
+@media (max-width: 1100px) {
+  .nfc-product-page--tea-jar .gn-hero-grid { gap: 32px; }
+  .nfc-product-page--tea-jar .gn-title-row { gap: 12px; }
+  .nfc-product-page--tea-jar .gn-title-row h1 { font-size: clamp(30px, 3.8vw, 42px); }
+  .nfc-product-page--tea-jar .gn-story-grid { gap: 28px; }
+  .nfc-product-page--tea-jar .gn-care .gn-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nfc-product-page--tea-jar .gn-care-card:nth-child(3) { grid-column: 1/-1; }
+  .nfc-product-page--tea-jar .gn-care-card:nth-child(3) ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 32px; }
+  .nfc-product-page--tea-jar .gn-care-card:nth-child(3) li { margin: 0; }
+}
+@media (max-width: 800px) {
+  .nfc-product-page--tea-jar .gn-hero-grid { grid-template-columns: minmax(0, 1fr); max-width: 640px; }
+  .nfc-product-page--tea-jar .gn-hero-copy { display: contents; }
+  .nfc-product-page--tea-jar .gn-title-row { order: 1; justify-content: center; align-items: center; }
+  .nfc-product-page--tea-jar .gn-title-row h1 { font-size: clamp(28px, 7.9vw, 46px); }
+  .nfc-product-page--tea-jar .gn-subtitle { order: 2; justify-content: center; margin: 0; text-align: center; }
+  .nfc-product-page--tea-jar .gn-hero-visual { order: 3; width: 100%; max-width: 600px; }
+  .nfc-product-page--tea-jar .gn-hero-intro { order: 4; margin: 0; max-width: none; }
+  .nfc-product-page--tea-jar .nfc-story-link { order: 5; margin: 0; justify-self: center; }
+  .nfc-product-page--tea-jar .gn-subtitle::before { display: none; }
+  .nfc-product-page--tea-jar .gn-story-grid { grid-template-columns: minmax(0, 1fr); }
+  .nfc-product-page--tea-jar .gn-story-grid .gn-detail-photo { width: min(100%, 420px); height: auto; min-height: 0; max-width: 420px; aspect-ratio: 4/5; margin-inline: auto; }
+  .nfc-product-page--tea-jar .gn-care-card:last-child { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+@media (max-width: 600px) {
+  .nfc-product-page--tea-jar .gn-hero-grid { gap: 24px; }
+  .nfc-product-page--tea-jar .gn-thumbnails { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .nfc-gallery-stage { border-radius: 14px; }
+  .nfc-gallery-zoom { right: 8px; bottom: 8px; padding: 6px 9px; font-size: .8125rem; }
+  .nfc-product-page--tea-jar .gn-mobile-nav { gap: 4px; padding: 6px 10px; }
+  .nfc-product-page--tea-jar .gn-mobile-nav a { flex: 1; padding: 8px 4px; font-size: .8125rem; }
+  .nfc-product-page--tea-jar .gn-section-heading { scroll-margin-top: 80px; }
+  .nfc-product-page--tea-jar .nfc-prose-heading { font-size: 1.25rem; text-wrap: pretty; }
+  .nfc-product-page--tea-jar .gn-motifs { gap: 20px; }
+  .nfc-product-page--tea-jar .gn-care .gn-card-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .nfc-product-page--tea-jar .gn-care-card { padding: 24px 20px; }
+  .nfc-product-page--tea-jar .gn-care-card:nth-child(3) ul { display: block; }
+  .nfc-product-page--tea-jar .gn-care-card:nth-child(3) li + li { margin-top: 16px; }
+  .nfc-product-page--tea-jar .gn-closing { font-size: 1rem; }
+  .nfc-photo-viewer { width: calc(100% - 20px); max-height: calc(100dvh - 20px); padding: 14px; border-radius: 12px; }
+  .nfc-viewer-toolbar { align-items: flex-start; }
+  .nfc-viewer-toolbar p { font-size: 1rem; }
+  .nfc-photo-viewer[open] { height: calc(100dvh - 20px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nfc-product-page--tea-jar :is(a, button) { transition: none; }
+}
