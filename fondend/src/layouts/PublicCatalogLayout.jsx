@@ -143,10 +143,10 @@ export default function PublicCatalogLayout() {
     <main id="main-content" className="catalog-main"><Outlet /></main>
     <footer className="catalog-footer">
       <div className="footer-invitation"><div><p className="eyebrow">MỘT MÓN GỐM, MỘT LỜI GỬI GẮM</p><h2>Cùng tìm một món quà có ý nghĩa.</h2></div><Link className="button button--light" to="/lien-he">Trò chuyện cùng chúng tôi <Icon name="arrow" size={18} /></Link></div>
-      <div className="footer-columns"><div className="footer-about"><Brand /><p>TRO & LAM mang gốm Chu Đậu đến gần hơn với không gian sống và những dịp trao tặng.</p><span className="footer-signature">Giữ nét xưa. Chạm hôm nay.</span></div>
+      <div className="footer-columns"><div className="footer-about"><Brand /><p>TRO & LAM mang gốm Chu Đậu đến gần hơn với không gian sống và những dịp trao tặng.</p><span className="footer-signature">Giữ nét xưa. Chạm hôm nay.</span><ChuDauMap compact /></div>
         <div><h3>Khám phá</h3><nav aria-label="Khám phá cuối trang">{links.map((link) => <Link key={link.to} to={link.to}>{link.label}</Link>)}</nav></div>
         <div><h3>Đồng hành cùng bạn</h3><nav aria-label="Hỗ trợ cuối trang"><Link to="/tra-cuu-don-hang">Tra cứu đơn hàng</Link><Link to="/tai-khoan">Tài khoản của bạn</Link><Link to="/gio-hang">Giỏ hàng</Link><Link to="/lien-he">Hỗ trợ mua hàng</Link></nav></div>
-        <div><h3>Kết nối với TRO & LAM</h3><p>Chọn gốm cho ngôi nhà, hay một món quà cho đối tác? Chúng tôi luôn sẵn lòng lắng nghe.</p><Link className="footer-contact" to="/lien-he">Gửi lời nhắn <Icon name="arrow" size={18} /></Link><Link className="footer-contact" to="/qua-tang-doanh-nghiep">Quà tặng doanh nghiệp <Icon name="gift" size={18} /></Link><ChuDauMap compact /></div>
+        <div><h3>Kết nối với TRO & LAM</h3><a className="footer-contact" href="tel:0966051231">Hotline · 0966 051 231</a><Link className="footer-contact" to="/lien-he">Gửi lời nhắn <Icon name="arrow" size={18} /></Link><Link className="footer-contact" to="/qua-tang-doanh-nghiep">Quà tặng doanh nghiệp <Icon name="gift" size={18} /></Link></div>
       </div><div className="footer-bottom"><span>© {new Date().getFullYear()} TRO & LAM</span><span>Gốm Chu Đậu · Văn hóa Việt</span><Link to="/nguon-tu-lieu">Nguồn hình ảnh & phim</Link></div>
     </footer>
     <QuickContactLinks />

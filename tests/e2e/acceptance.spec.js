@@ -2123,7 +2123,7 @@ test('public contact inquiry reaches the staff queue and persists assignment and
 
   const createResponsePromise = page.waitForResponse((response) => response.url().endsWith('/api/v1/contacts')
     && response.request().method() === 'POST');
-  await form.getByRole('button', { name: 'Gửi yêu cầu', exact: false }).click();
+  await form.getByRole('button', { name: 'Gửi lời nhắn', exact: false }).click();
   const createResponse = await createResponsePromise;
   const createBody = await createResponse.json();
   expect(createResponse.status(), JSON.stringify(createBody)).toBe(202);

@@ -52,7 +52,7 @@ export default function ContactPage({ corporate = false }) {
         <label className="support-field">Email <span aria-hidden="true">*</span>
           <input name="email" type="email" autoComplete="email" maxLength="254" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
         </label>
-        <label className="support-field">Số điện thoại <span className="support-optional">(không bắt buộc)</span>
+        <label className={kind === 'general' ? 'support-field support-field--full' : 'support-field'}>Số điện thoại <span className="support-optional">(không bắt buộc)</span>
           <input name="phone" type="tel" autoComplete="tel" maxLength="30" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
         </label>
         {corporate && <label className="support-field">Tên tổ chức <span className="support-optional">(không bắt buộc)</span>
@@ -63,14 +63,14 @@ export default function ContactPage({ corporate = false }) {
         </label>}
       </div>
       <label className="support-field">Nội dung <span aria-hidden="true">*</span>
-        <textarea name="message" rows="6" maxLength="5000" required value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} />
+        <textarea name="message" placeholder="Bạn muốn tìm hiểu về sản phẩm nào?" rows="6" maxLength="5000" required value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} />
       </label>
       <label className="support-consent"><input type="checkbox" required checked={form.consent} onChange={(event) => setForm({ ...form, consent: event.target.checked })} />
         <span>Tôi đồng ý để TRO &amp; LAM sử dụng thông tin liên hệ này nhằm phản hồi yêu cầu.</span>
       </label>
       {error && <p className="support-feedback support-feedback--error" role="alert">{error}</p>}
       {reference && <p className="support-feedback support-feedback--success" role="status">Yêu cầu đã được ghi nhận trong hàng đợi. Mã tham chiếu: <strong>{reference}</strong></p>}
-      <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi yêu cầu'} <span aria-hidden="true">→</span></button>
+      <button className="support-button" type="submit" disabled={busy}>{busy ? 'Đang gửi…' : kind === 'general' ? 'Gửi lời nhắn' : 'Gửi yêu cầu'} <span aria-hidden="true">→</span></button>
       <p className="support-privacy">Chỉ gửi thông tin cần thiết để đội ngũ có thể phản hồi. Không gửi dữ liệu thanh toán hoặc giấy tờ tùy thân.</p>
     </form>
     {!corporate && <ChuDauMap />}
